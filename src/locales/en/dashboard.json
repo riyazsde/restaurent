@@ -1,0 +1,83 @@
+{
+  "title": "Dashboard",
+  "welcome": "Welcome back",
+  "overview": "Overview",
+  "statistics": {
+    "totalSales": "Total Sales",
+    "totalOrders": "Total Orders",
+    "totalCustomers": "Total Customers",
+    "revenue": "Revenue",
+    "todaySales": "Today's Sales",
+    "monthlySales": "Monthly Sales",
+    "yearlyRevenue": "Yearly Revenue",
+    "totalOrder": "Total Order",
+    "totalSale": "Total Sale",
+    "activeOrders": "Active Orders",
+    "openTables": "Open Tables",
+    "staffClockedIn": "Staff Clocked In",
+    "pendingReservations": "Pending Reservations"
+  },
+  "charts": {
+    "salesTrend": "Sales Trend",
+    "topProducts": "Top Products",
+    "recentOrders": "Recent Orders",
+    "customerActivity": "Customer Activity",
+    "repeatCustomers": "Repeat Customers",
+    "newCustomers": "New Customers"
+  },
+  "sections": {
+    "reservations": "Reservations",
+    "topSellers": "Top Sellers",
+    "stockAlert": "Stock Alert",
+    "orderHistory": "Order History"
+  },
+  "actions": {
+    "seeAll": "see all",
+    "viewDetailedReport": "View Detailed Report",
+    "viewAll": "View all"
+  },
+  "labels": {
+    "people": "People",
+    "tables": "Tables",
+    "table": "Table",
+    "qty": "Qty",
+    "quantityLow": "Quantity Low",
+    "critical": "Critical",
+    "unknown": "Unknown",
+    "noTable": "No Table",
+    "reservationId": "Reservation id",
+    "qtyLeft": "Qty Left"
+  },
+  "messages": {
+    "noTopSellers": "No top sellers data available",
+    "noStockAlerts": "No stock alerts",
+    "noReservations": "No reservations available",
+    "noDataFound": "No data found",
+    "loadError": "Failed to load dashboard data"
+  },
+  "days": {
+    "mon": "Mon",
+    "tue": "Tue",
+    "wed": "Wed",
+    "thu": "Thu",
+    "fri": "Fri",
+    "sat": "Sat",
+    "sun": "Sun"
+  },
+  "status": {
+    "served": "Served",
+    "completed": "Completed",
+    "preparing": "Preparing",
+    "cancelled": "Cancelled",
+    "pending": "Pending"
+  },
+  "filters": {
+    "thisWeek": "This Week",
+    "thisMonth": "This Month",
+    "sixMonth": "Six Month",
+    "oneYear": "One Year",
+    "today": "Today",
+    "yesterday": "Yesterday",
+    "thisYear": "This Year"
+  }
+}

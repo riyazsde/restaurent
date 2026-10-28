@@ -1,0 +1,41 @@
+{
+    "title": "Mon Profil",
+    "resetPassword": "Réinitialiser le mot de passe",
+    "businessName": "Nom de l'entreprise :",
+    "email": "E-mail :",
+    "password": "Mot de passe",
+    "subscription": {
+        "title": "Détails de l'abonnement",
+        "status": "Statut :",
+        "renewsAt": "Renouvelle à :",
+        "renewButton": "Renouveler l'abonnement",
+        "cancelModal": {
+            "title": "Annuler l'abonnement",
+            "no": "Non",
+            "delete": "Supprimer"
+        },
+        "successModal": {
+            "title": "Abonnement annulé !",
+            "ok": "OK"
+        }
+    },
+    "form": {
+        "email": "E-mail",
+        "currentPassword": "Mot de passe actuel",
+        "currentPasswordPlaceholder": "Entrez le mot de passe actuel",
+        "newPassword": "Nouveau mot de passe",
+        "newPasswordPlaceholder": "Entrez le nouveau mot de passe",
+        "confirmPassword": "Confirmer le mot de passe",
+        "confirmPasswordPlaceholder": "Confirmez le nouveau mot de passe",
+        "cancel": "Annuler",
+        "submit": "Soumettre",
+        "submitting": "Soumission..."
+    },
+    "messages": {
+        "fillAllFields": "Veuillez remplir tous les champs de mot de passe",
+        "passwordMismatch": "Le nouveau mot de passe et la confirmation ne correspondent pas",
+        "passwordLength": "Le mot de passe doit contenir au moins 6 caractères",
+        "passwordChanged": "Mot de passe modifié avec succès !",
+        "failedToChange": "Échec du changement de mot de passe"
+    }
+}

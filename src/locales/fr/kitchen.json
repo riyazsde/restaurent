@@ -1,0 +1,47 @@
+{
+    "title": "Cuisine",
+    "refresh": "Actualiser",
+    "ordersLoaded": "Commandes chargées",
+    "loading": "Chargement des commandes...",
+    "noOrders": "Aucune commande trouvée",
+    "noOrdersDesc": "Les commandes apparaîtront ici lorsque les clients les passeront",
+    "searchPlaceholder": "Rechercher les commandes par ticket, table ou plat...",
+    "noOrdersMatch": "Aucune commande ne correspond à votre recherche",
+    "tabs": {
+        "kitchen": "Cuisine",
+        "kitchenDisplay": "Écran de cuisine (KDS)",
+        "stations": "Postes de préparation"
+    },
+    "card": {
+        "startPreparing": "Commencer la préparation",
+        "markReady": "Marquer prêt",
+        "ready": "Prêt",
+        "new": "Nouveau",
+        "wait": "Attente",
+        "table": "Table",
+        "takeaway": "À emporter"
+    },
+    "stations": {
+        "title": "Postes de préparation en cuisine",
+        "subtitle": "Gérez et assignez les commandes aux postes désignés",
+        "addStation": "Ajouter un poste",
+        "noStations": "Aucun poste configuré",
+        "noStationsDesc": "Créez votre premier poste (ex: Grill, Salades, Plats chauds, Bar)",
+        "addFirstStation": "+ Ajouter le premier poste",
+        "active": "Actif",
+        "inactive": "Inactif",
+        "editStation": "Modifier le poste",
+        "deleteStation": "Supprimer le poste"
+    },
+    "status": {
+        "completed": "Terminé",
+        "preparing": "En préparation",
+        "served": "Servi",
+        "updating": "Mise à jour..."
+    },
+    "messages": {
+        "markedAs": "Article marqué comme {{status}}",
+        "loadError": "Échec du chargement des commandes",
+        "updateError": "Échec de la mise à jour du statut de l'article"
+    }
+}

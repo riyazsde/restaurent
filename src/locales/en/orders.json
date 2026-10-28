@@ -1,0 +1,69 @@
+{
+    "title": "Orders",
+    "refresh": "Refresh",
+    "ordersLoaded": "Orders Loaded",
+    "loading": "Loading orders...",
+    "noOrders": "No orders found",
+    "searchPlaceholder": "Search by order #, customer, or table...",
+    "noOrdersMatch": "No orders match your search query",
+    "status": {
+        "preparing": "Preparing",
+        "served": "Served",
+        "cancelled": "Cancelled",
+        "completed": "Completed"
+    },
+    "actions": {
+        "printBill": "Print Bill",
+        "cancel": "Cancel",
+        "complete": "Complete",
+        "payAndComplete": "Pay and Complete",
+        "deleteItem": "Delete Item",
+        "cancelling": "Cancelling...",
+        "completing": "Completing...",
+        "continue": "Continue",
+        "export": "Export CSV",
+        "exporting": "Exporting..."
+    },
+    "modals": {
+        "yourOrder": "Your Order",
+        "checkSummary": "Check your Order Summary",
+        "itemsNetTotal": "Items Net Total",
+        "taxes": "Taxes",
+        "total": "Total",
+        "cancelOrder": "Cancel Order?",
+        "irreversibleProcess": "This is an Irreversible Process",
+        "completeOrder": "Complete Order?",
+        "markAsServed": "Mark this order as served and completed",
+        "paymentOptions": "Payment Options",
+        "payWithCash": "Pay with Cash",
+        "giftCards": "Gift Cards",
+        "onlinePayments": "Online Payments",
+        "cardPayments": "Card Payments",
+        "splitPayments": "Split Payments",
+        "pay": "Pay",
+        "readyToScan": "Ready to Scan",
+        "transactionSuccessful": "Transaction Successful",
+        "paymentDone": "Payment Done",
+        "dishCreated": "Your Dish has been created and will be updated in the menu in couple of minutes",
+        "itemDeleted": "Item Deleted",
+        "foodPreparing": "Other Food are being Prepared !"
+    },
+    "payment": {
+        "pending": "Pending",
+        "completed": "Completed",
+        "paid": "Paid",
+        "success": "Success",
+        "failed": "Failed",
+        "cancelled": "Cancelled",
+        "processing": "Processing"
+    },
+    "messages": {
+        "itemCancelled": "Item cancelled successfully",
+        "itemCancelError": "Failed to cancel item",
+        "orderUpdated": "Order {{status}} successfully",
+        "orderUpdateError": "Failed to update order status",
+        "fetchError": "Failed to fetch orders",
+        "exportSuccess": "Orders exported successfully!",
+        "exportFailed": "Failed to export orders"
+    }
+}

@@ -1,0 +1,63 @@
+{
+  "title": "Factures",
+  "searchPlaceholder": "Rechercher une facture",
+  "search": "Rechercher",
+  "showing": "Affichage de {{count}} facture(s)",
+  "showingToday": "Affichage des factures d'aujourd'hui",
+  "noInvoices": "Aucune facture trouvée.",
+  "na": "N/D",
+  "table": {
+    "invoiceId": "ID de facture",
+    "tokens": "Jetons",
+    "date": "Date",
+    "tax": "Taxe",
+    "subtotal": "Sous-total",
+    "serviceCharge": "Frais de service",
+    "total": "Total",
+    "deliveryType": "Type de livraison",
+    "customerType": "Type de client",
+    "table": "Table",
+    "action": "Action",
+    "paymentId": "ID de paiement",
+    "orderId": "ID de commande",
+    "paymentMethod": "Méthode de paiement",
+    "paymentStatus": "Statut de paiement",
+    "orderStatus": "Statut de commande",
+    "diningOption": "Option de repas",
+    "tableId": "ID de table"
+  },
+  "filter": {
+    "title": "Filtrer",
+    "sortByDay": "Trier par jour",
+    "today": "Aujourd'hui",
+    "yesterday": "Hier",
+    "thisWeek": "Cette semaine",
+    "thisMonth": "Ce mois",
+    "from": "De",
+    "to": "À",
+    "save": "Enregistrer"
+  },
+  "actions": {
+    "draft": "Brouillon",
+    "view": "Voir la facture",
+    "print": "Imprimer",
+    "printing": "Impression...",
+    "preparingPrint": "Préparation du reçu pour l'impression...",
+    "close": "Fermer"
+  },
+  "modal": {
+    "title": "Détails de la facture",
+    "officialReceipt": "Reçu de facture officiel",
+    "customer": "Client",
+    "orderedItems": "Articles commandés",
+    "noItems": "Détails des articles résumés dans le total",
+    "thankYou": "Merci de votre visite !"
+  },
+  "export": "Exporter CSV",
+  "exporting": "Exportation...",
+  "exportSuccess": "Factures exportées avec succès !",
+  "exportFailed": "Échec de l'exportation des factures",
+  "messages": {
+    "fetchError": "Échec de la récupération des factures"
+  }
+}

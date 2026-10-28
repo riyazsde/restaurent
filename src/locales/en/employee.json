@@ -1,0 +1,173 @@
+{
+    "title": "Employee Details",
+    "createEmployee": "Create Employee",
+    "searchEmployees": "Search employees...",
+    "searching": "Searching...",
+    "noEmployeesFound": "No employees found.",
+    "totalStaff": "Total Staff Members",
+    "activeRoles": "Active Department Roles",
+    "avgPerformance": "Average Performance",
+    "noRolesFound": "No roles found. Create a new employee role to get started.",
+    "roles": {
+        "managers": {
+            "title": "Managers",
+            "description": "Manager's Take care of the Restaurant sales and the customer feedback. By Assisting & Monitoring the peers."
+        },
+        "cashiers": {
+            "title": "Cashiers",
+            "description": "Manager's Take care of the Restaurant sales and the customer feedback. By Assisting & Monitoring the peers."
+        },
+        "waiter": {
+            "title": "Waiter",
+            "description": "Manager's Take care of the Restaurant sales and the customer feedback. By Assisting & Monitoring the peers."
+        },
+        "chefs": {
+            "title": "Chef's",
+            "description": "Manager's Take care of the Restaurant sales and the customer feedback. By Assisting & Monitoring the peers."
+        }
+    },
+    "loading": "Loading...",
+    "fetchError": "Failed to load roles",
+    "create": {
+        "title": "Create Employee",
+        "firstName": "First Name",
+        "lastName": "Last Name",
+        "role": "Role",
+        "responsibility": "Responsibility",
+        "language": "Language",
+        "country": "Country",
+        "state": "State",
+        "city": "City",
+        "email": "Email",
+        "phone": "Phone",
+        "gender": "Gender",
+        "onboardingDate": "Onboarding Date (Optional)",
+        "createPassword": "Create Password",
+        "confirmPassword": "Confirm Password",
+        "permissions": "Permissions",
+        "grantLogin": "Grant Login Permission",
+        "activeStatus": "Active Status",
+        "save": "Save",
+        "creating": "Creating...",
+        "placeholders": {
+            "firstName": "Type First Name",
+            "lastName": "Type Last Name",
+            "email": "Enter Email",
+            "phone": "Enter Phone Number",
+            "password": "Create Password",
+            "confirmPassword": "Confirm Password",
+            "selectRole": "Enter Role",
+            "selectPermissions": "Enter Permissions",
+            "selectResponsibility": "Select Responsibility",
+            "selectLanguage": "Select Language",
+            "selectCountry": "Select Country",
+            "selectState": "Select State",
+            "selectCity": "Select City"
+        },
+        "validation": {
+            "firstNameRequired": "First name is required",
+            "lastNameRequired": "Last name is required",
+            "roleRequired": "Please select a role",
+            "responsibilityRequired": "Please select a responsibility",
+            "languageRequired": "Please select a language",
+            "countryRequired": "Please select a country",
+            "stateRequired": "Please select a state",
+            "cityRequired": "Please select a city",
+            "emailRequired": "Email is required",
+            "emailInvalid": "Please enter a valid email",
+            "phoneRequired": "Phone number is required",
+            "phoneInvalid": "Phone number must be between 10 and 15 characters",
+            "passwordRequired": "Password is required",
+            "passwordLength": "Password must be at least 6 characters",
+            "passwordMismatch": "Passwords do not match"
+        },
+        "success": "Employee created successfully!",
+        "error": "Failed to create employee"
+    },
+    "list": {
+        "title": "Employee",
+        "loading": "Loading employees...",
+        "noEmployees": "No employees found for this role",
+        "table": {
+            "name": "Emp Name",
+            "id": "Emp id",
+            "position": "Position",
+            "shift": "Shift timings",
+            "performance": "Over all Performance %",
+            "view": "View employee"
+        },
+        "viewMore": "View more",
+        "viewDetails": "View Details"
+    },
+    "performance": {
+        "title": "Employee Performance",
+        "tabs": {
+            "details": "Details",
+            "performance": "Performance"
+        },
+        "delete": "Delete Employee",
+        "loadingDetails": "Loading employee details...",
+        "loadingPerformance": "Loading performance data...",
+        "employeeDetails": "Employee Details",
+        "workDetails": "Work Details",
+        "labels": {
+            "name": "Name",
+            "email": "Email",
+            "phone": "Phone",
+            "employeeId": "Employee Id",
+            "role": "Role",
+            "responsibility": "Responsibility",
+            "onboardingDate": "Onboarding Date",
+            "experience": "Experience",
+            "gender": "Gender",
+            "shiftTimings": "Shift Timings",
+            "totalLeave": "Total Leave",
+            "leaveLeft": "Leave Left",
+            "totalLeaves": "Total Leaves",
+            "leavesLeft": "Leaves Left",
+            "takenLeaves": "Taken Leaves",
+            "days": "Days"
+        },
+        "stats": {
+            "clockIn": "Clock in",
+            "hrsWorked": "Hrs Worked today",
+            "minsBreak": "mins Break",
+            "leavesLeft": "Leaves Left"
+        },
+        "charts": {
+            "avgWorkingHrs": "Avg Working hrs",
+            "serving": "serving",
+            "helping": "helping",
+            "totalTips": "Total Tips Earned",
+            "earnedTip": "Earned as tip in last",
+            "ofEarnings": "of total earnings"
+        },
+        "feedback": {
+            "title": "Average Feedback",
+            "overall": "Overall Feedback",
+            "peoples": "Peoples",
+            "staffBehavior": "Staff Behavior",
+            "waitingTime": "Waiting Time",
+            "table": {
+                "hash": "#",
+                "feedback": "Feedback",
+                "orderId": "Order id",
+                "date": "Date",
+                "amount": "Amount",
+                "ratings": "Ratings",
+                "recommend": "Will Recommend"
+            },
+            "noFeedback": "No feedback available",
+            "lovedIt": "Loved it",
+            "good": "Good",
+            "average": "Average",
+            "bad": "Bad",
+            "worst": "Worst"
+        },
+        "noData": "No performance data available",
+        "errors": {
+            "loadDetails": "Failed to load employee details",
+            "loadPerformance": "Failed to load performance data"
+        }
+    }
+}

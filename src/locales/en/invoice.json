@@ -1,0 +1,63 @@
+{
+  "title": "Invoices",
+  "searchPlaceholder": "Search Invoice",
+  "search": "Search",
+  "showing": "Showing {{count}} Invoice(s)",
+  "showingToday": "Showing Invoices for Today",
+  "noInvoices": "No invoices found.",
+  "na": "N/A",
+  "table": {
+    "invoiceId": "Invoice ID",
+    "tokens": "Tokens",
+    "date": "Date",
+    "tax": "Tax",
+    "subtotal": "Subtotal",
+    "serviceCharge": "Service Charge",
+    "total": "Total",
+    "deliveryType": "Delivery Type",
+    "customerType": "Customer Type",
+    "table": "Table",
+    "action": "Action",
+    "paymentId": "Payment ID",
+    "orderId": "Order ID",
+    "paymentMethod": "Payment Method",
+    "paymentStatus": "Payment Status",
+    "orderStatus": "Order Status",
+    "diningOption": "Dining Option",
+    "tableId": "Table ID"
+  },
+  "filter": {
+    "title": "Filter",
+    "sortByDay": "Sort by day",
+    "today": "Today",
+    "yesterday": "Yesterday",
+    "thisWeek": "This Week",
+    "thisMonth": "This Month",
+    "from": "From",
+    "to": "To",
+    "save": "Save"
+  },
+  "actions": {
+    "draft": "Draft",
+    "view": "View Invoice",
+    "print": "Print",
+    "printing": "Printing...",
+    "preparingPrint": "Preparing receipt for print...",
+    "close": "Close"
+  },
+  "modal": {
+    "title": "Invoice Details",
+    "officialReceipt": "Official Invoice Receipt",
+    "customer": "Customer",
+    "orderedItems": "Ordered Items",
+    "noItems": "Order item details summarized in total",
+    "thankYou": "Thank you for your visit!"
+  },
+  "export": "Export CSV",
+  "exporting": "Exporting...",
+  "exportSuccess": "Invoices exported successfully!",
+  "exportFailed": "Failed to export invoices",
+  "messages": {
+    "fetchError": "Failed to fetch invoices"
+  }
+}

@@ -1,0 +1,6 @@
+{
+    "github.gitAuthentication": true,
+    "github.showAvatar": true,
+    "github.branchProtection": true,
+    "git.enabled": true
+}

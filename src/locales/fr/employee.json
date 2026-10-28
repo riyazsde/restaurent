@@ -1,0 +1,173 @@
+{
+    "title": "Détails des employés",
+    "createEmployee": "Créer un employé",
+    "searchEmployees": "Rechercher des employés...",
+    "searching": "Recherche en cours...",
+    "noEmployeesFound": "Aucun employé trouvé.",
+    "totalStaff": "Total des membres du personnel",
+    "activeRoles": "Rôles actifs du département",
+    "avgPerformance": "Performance moyenne",
+    "noRolesFound": "Aucun rôle trouvé. Créez un nouveau rôle d'employé pour commencer.",
+    "roles": {
+        "managers": {
+            "title": "Gérants",
+            "description": "Les gérants s'occupent des ventes du restaurant et des commentaires des clients, en assistant et en surveillant les pairs."
+        },
+        "cashiers": {
+            "title": "Caissiers",
+            "description": "Les caissiers s'occupent des ventes du restaurant et des commentaires des clients, en assistant et en surveillant les pairs."
+        },
+        "waiter": {
+            "title": "Serveur",
+            "description": "Les serveurs s'occupent des ventes du restaurant et des commentaires des clients, en assistant et en surveillant les pairs."
+        },
+        "chefs": {
+            "title": "Chefs",
+            "description": "Les chefs s'occupent des ventes du restaurant et des commentaires des clients, en assistant et en surveillant les pairs."
+        }
+    },
+    "loading": "Chargement...",
+    "fetchError": "Échec du chargement des rôles",
+    "create": {
+        "title": "Créer un employé",
+        "firstName": "Prénom",
+        "lastName": "Nom",
+        "role": "Rôle",
+        "responsibility": "Responsabilité",
+        "language": "Langue",
+        "country": "Pays",
+        "state": "État",
+        "city": "Ville",
+        "email": "Email",
+        "phone": "Téléphone",
+        "gender": "Genre",
+        "onboardingDate": "Date d'intégration (Optionnel)",
+        "createPassword": "Créer un mot de passe",
+        "confirmPassword": "Confirmer le mot de passe",
+        "permissions": "Autorisations",
+        "grantLogin": "Accorder la permission de connexion",
+        "activeStatus": "Statut actif",
+        "save": "Enregistrer",
+        "creating": "Création...",
+        "placeholders": {
+            "firstName": "Entrez le prénom",
+            "lastName": "Entrez le nom",
+            "email": "Entrez l'email",
+            "phone": "Entrez le numéro de téléphone",
+            "password": "Créez un mot de passe",
+            "confirmPassword": "Confirmez le mot de passe",
+            "selectRole": "Entrez le rôle",
+            "selectPermissions": "Entrez les autorisations",
+            "selectResponsibility": "Sélectionnez une responsabilité",
+            "selectLanguage": "Sélectionnez une langue",
+            "selectCountry": "Sélectionnez un pays",
+            "selectState": "Sélectionnez un état",
+            "selectCity": "Sélectionnez une ville"
+        },
+        "validation": {
+            "firstNameRequired": "Le prénom est requis",
+            "lastNameRequired": "Le nom est requis",
+            "roleRequired": "Veuillez sélectionner un rôle",
+            "responsibilityRequired": "Veuillez sélectionner une responsabilité",
+            "languageRequired": "Veuillez sélectionner une langue",
+            "countryRequired": "Veuillez sélectionner un pays",
+            "stateRequired": "Veuillez sélectionner un état",
+            "cityRequired": "Veuillez sélectionner une ville",
+            "emailRequired": "L'email est requis",
+            "emailInvalid": "Veuillez entrer un email valide",
+            "phoneRequired": "Le numéro de téléphone est requis",
+            "phoneInvalid": "Le numéro de téléphone doit comporter entre 10 et 15 caractères",
+            "passwordRequired": "Le mot de passe est requis",
+            "passwordLength": "Le mot de passe doit comporter au moins 6 caractères",
+            "passwordMismatch": "Les mots de passe ne correspondent pas"
+        },
+        "success": "Employé créé avec succès !",
+        "error": "Échec de la création de l'employé"
+    },
+    "list": {
+        "title": "Employé",
+        "loading": "Chargement des employés...",
+        "noEmployees": "Aucun employé trouvé pour ce rôle",
+        "table": {
+            "name": "Nom de l'employé",
+            "id": "ID Emp",
+            "position": "Poste",
+            "shift": "Horaires",
+            "performance": "Performance globale %",
+            "view": "Voir l'employé"
+        },
+        "viewMore": "Voir plus",
+        "viewDetails": "Voir les détails"
+    },
+    "performance": {
+        "title": "Performance des employés",
+        "tabs": {
+            "details": "Détails",
+            "performance": "Performance"
+        },
+        "delete": "Supprimer l'employé",
+        "loadingDetails": "Chargement des détails de l'employé...",
+        "loadingPerformance": "Chargement des données de performance...",
+        "employeeDetails": "Détails de l'employé",
+        "workDetails": "Détails du travail",
+        "labels": {
+            "name": "Nom",
+            "email": "Email",
+            "phone": "Téléphone",
+            "employeeId": "ID Employé",
+            "role": "Rôle",
+            "responsibility": "Responsabilité",
+            "onboardingDate": "Date d'intégration",
+            "experience": "Expérience",
+            "gender": "Genre",
+            "shiftTimings": "Horaires de travail",
+            "totalLeave": "Total des congés",
+            "leaveLeft": "Congés restants",
+            "totalLeaves": "Total des congés",
+            "leavesLeft": "Congés restants",
+            "takenLeaves": "Congés pris",
+            "days": "Jours"
+        },
+        "stats": {
+            "clockIn": "Pointage",
+            "hrsWorked": "Heures travaillées aujourd'hui",
+            "minsBreak": "Minutes de pause",
+            "leavesLeft": "Congés restants"
+        },
+        "charts": {
+            "avgWorkingHrs": "Moyenne des heures de travail",
+            "serving": "service",
+            "helping": "aide",
+            "totalTips": "Total des pourboires gagnés",
+            "earnedTip": "Gagné en pourboire au cours des derniers",
+            "ofEarnings": "des gains totaux"
+        },
+        "feedback": {
+            "title": "Feedback moyen",
+            "overall": "Feedback global",
+            "peoples": "Personnes",
+            "staffBehavior": "Comportement du personnel",
+            "waitingTime": "Temps d'attente",
+            "table": {
+                "hash": "#",
+                "feedback": "Feedback",
+                "orderId": "ID Commande",
+                "date": "Date",
+                "amount": "Montant",
+                "ratings": "Notes",
+                "recommend": "Recommandera"
+            },
+            "noFeedback": "Aucun feedback disponible",
+            "lovedIt": "J'ai adoré",
+            "good": "Bien",
+            "average": "Moyen",
+            "bad": "Mauvais",
+            "worst": "Pire"
+        },
+        "noData": "Aucune donnée de performance disponible",
+        "errors": {
+            "loadDetails": "Échec du chargement des détails de l'employé",
+            "loadPerformance": "Échec du chargement des données de performance"
+        }
+    }
+}

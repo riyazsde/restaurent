@@ -1,0 +1,59 @@
+{
+  "title": "Rapports",
+  "showingData": "Affichage des données de {{period}}",
+  "loading": "Chargement...",
+  "topSellers": "Meilleures ventes",
+  "topSellersSubtitle": "Articles les plus performants par quantité vendue",
+  "export": "Exporter",
+  "payments": "Paiements",
+  "qty": "Qté",
+  "noTopSellers": "Aucune donnée de meilleures ventes disponible",
+  "noPaymentData": "Aucune donnée de paiement disponible",
+  "periods": {
+    "today": "Aujourd'hui",
+    "thisMonth": "Ce mois",
+    "sixMonth": "Six mois",
+    "oneYear": "Un an"
+  },
+  "filters": {
+    "allBranches": "Toutes les succursales",
+    "allChannels": "Tous les canaux",
+    "allServices": "Tous les services"
+  },
+  "summary": {
+    "totalSummary": "Résumé total",
+    "itemsCount": "{{count}} articles",
+    "totalQuantity": "Quantité totale",
+    "platesGlasses": "Assiettes / Verres",
+    "totalRevenue": "Revenu total",
+    "hundredPct": "100% du total",
+    "itemsMix": "Mix d'articles",
+    "ofTotalSales": "Des ventes totales",
+    "plated": "assiettes",
+    "ofTotal": "du total"
+  },
+  "paymentMethods": {
+    "card": "Carte",
+    "cash": "Espèces",
+    "applePay": "Apple Pay",
+    "gPay": "G Pay",
+    "giftCoupon": "Bon cadeau",
+    "giftCoupons": "Bons cadeaux"
+  },
+  "metrics": {
+    "totalOrders": "Total des commandes",
+    "avgOrderValue": "Valeur moyenne des commandes",
+    "voids": "Annulations",
+    "refunds": "Remboursements",
+    "totalCustomer": "Total des clients",
+    "newCustomer": "Nouveaux clients",
+    "repeatCustomer": "Clients réguliers",
+    "netSales": "Ventes nettes",
+    "grossSales": "Ventes brutes",
+    "tax": "Taxe"
+  },
+  "messages": {
+    "fetchError": "Échec de la récupération des données du rapport",
+    "exportSuccess": "Rapport exporté avec succès"
+  }
+}

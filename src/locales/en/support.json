@@ -1,0 +1,123 @@
+{
+    "contactSupport": {
+        "title": "Contact Support",
+        "needHelp": "Need Help?",
+        "helpDescription": "Facing any issues, Custom Feature, New App Development, New Project, connect with us we will respond in 24 hrs.",
+        "mail": "Mail:",
+        "supportTicket": "Support Ticket",
+        "createTicket": "Create Ticket",
+        "viewRaisedTicket": "View Raised Ticket",
+        "faqs": "FAQ's",
+        "loadingFaqs": "Loading FAQs...",
+        "noFaqs": "No FAQs available at the moment.",
+        "faqHeading": "Frequently Asked Questions",
+        "fetchError": "Failed to fetch FAQs",
+        "faqSections": {
+            "ordersReservations": "Orders & Reservations",
+            "invoicesFeedbacks": "Invoices & Feed Backs"
+        }
+    },
+    "createTicket": {
+        "breadcrumb": "Support Ticket",
+        "title": "Create Support Ticket",
+        "postedAt": "Posted at",
+        "ticketType": "Ticket Type",
+        "selectTicketType": "Select Ticket Type",
+        "customer": "Customer",
+        "selectCustomer": "Select Customer",
+        "ticketStatus": "Ticket Status",
+        "describeIssue": "Describe Your Issue",
+        "placeholder": "Please describe your issue in detail...",
+        "email": "Email",
+        "businessName": "Business Name",
+        "replyTicket": "Reply Ticket",
+        "subjectPlaceholder": "Enter Subject....",
+        "explainPlaceholder": "Explain here...",
+        "imagesUploaded": "Images Uploaded",
+        "uploadImg": "Upload Img",
+        "submit": "Submit",
+        "submitting": "Submitting...",
+        "validation": {
+            "ticketType": "Please select a ticket type",
+            "customer": "Please select a customer",
+            "issue": "Please describe your issue"
+        },
+        "success": "Support ticket created successfully!",
+        "error": "Failed to create ticket",
+        "genericError": "Failed to create support ticket"
+    },
+    "tickets": {
+        "breadcrumb": "Support Ticket",
+        "allTickets": "All Tickets",
+        "allTicket": "All Ticket",
+        "searchPlaceholder": "Search for ticket",
+        "periods": {
+            "week": "This Week",
+            "day": "Today",
+            "month": "This Month"
+        },
+        "tabs": {
+            "all": "All Tickets",
+            "onGoing": "On-Going",
+            "resolved": "Resolved",
+            "pending": "Pending",
+            "open": "Open",
+            "process": "In Process",
+            "solved": "Solved",
+            "closed": "Closed"
+        },
+        "ongoingTicket": "Ongoing Ticket",
+        "resolvedTicket": "Resolved Ticket",
+        "noTickets": "No tickets found.",
+        "loading": "Loading tickets...",
+        "fetchError": "Failed to fetch support tickets",
+        "ticketPrefix": "Ticket#",
+        "postedAt": "Posted at",
+        "openTicket": "Open Ticket",
+        "time": {
+            "yesterday": "Yesterday",
+            "daysAgo": "days ago"
+        }
+    },
+    "ticketDetail": {
+        "breadcrumb": "Support Ticket",
+        "allTicket": "All Ticket",
+        "requestor": "Requestor",
+        "subject": "Subject",
+        "createdOn": "Created on",
+        "ticketId": "Ticket ID",
+        "ticketStatus": "Ticket Status",
+        "addResponse": "Add Response",
+        "success": "Response added successfully!",
+        "error": "Failed to add response",
+        "notFound": "Ticket not found",
+        "loading": "Loading ticket details...",
+        "fetchError": "Failed to fetch ticket details",
+        "status": "Status:"
+    },
+    "addResponse": {
+        "breadcrumb": "All Ticket",
+        "title": "Add Response",
+        "ticketStatus": "Ticket Status",
+        "placeholder": "Explain here...",
+        "submit": "Submit Response",
+        "cancel": "Cancel",
+        "validation": "Please enter a response message"
+    },
+    "sendMail": {
+        "title": "Send Mail",
+        "copy": "Copy",
+        "copied": "Copied!",
+        "or": "or",
+        "defaultApp": "Default Mail App",
+        "gmailApp": "Gmail Mail App",
+        "copySuccess": "Email copied to clipboard!"
+    },
+    "status": {
+        "pending": "Pending",
+        "open": "Open",
+        "process": "In Process",
+        "solve": "Solved",
+        "close": "Closed"
+    }
+}

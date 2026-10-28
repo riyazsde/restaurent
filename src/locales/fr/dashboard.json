@@ -1,0 +1,83 @@
+{
+  "title": "Tableau de bord",
+  "welcome": "Bon retour",
+  "overview": "Aperçu",
+  "statistics": {
+    "totalSales": "Ventes totales",
+    "totalOrders": "Commandes totales",
+    "totalCustomers": "Clients totaux",
+    "revenue": "Revenu",
+    "todaySales": "Ventes d'aujourd'hui",
+    "monthlySales": "Ventes mensuelles",
+    "yearlyRevenue": "Revenu annuel",
+    "totalOrder": "Commande totale",
+    "totalSale": "Vente totale",
+    "activeOrders": "Commandes actives",
+    "openTables": "Tables ouvertes",
+    "staffClockedIn": "Personnel en service",
+    "pendingReservations": "Réservations en attente"
+  },
+  "charts": {
+    "salesTrend": "Tendance des ventes",
+    "topProducts": "Meilleurs produits",
+    "recentOrders": "Commandes récentes",
+    "customerActivity": "Activité des clients",
+    "repeatCustomers": "Clients fidèles",
+    "newCustomers": "Nouveaux clients"
+  },
+  "sections": {
+    "reservations": "Réservations",
+    "topSellers": "Meilleures ventes",
+    "stockAlert": "Alerte stock",
+    "orderHistory": "Historique des commandes"
+  },
+  "actions": {
+    "seeAll": "voir tout",
+    "viewDetailedReport": "Voir le rapport détaillé",
+    "viewAll": "Voir tout"
+  },
+  "labels": {
+    "people": "Personnes",
+    "tables": "Tables",
+    "table": "Table",
+    "qty": "Qté",
+    "quantityLow": "Quantité faible",
+    "critical": "Critique",
+    "unknown": "Inconnu",
+    "noTable": "Sans table",
+    "reservationId": "Id réservation",
+    "qtyLeft": "Qté restante"
+  },
+  "messages": {
+    "noTopSellers": "Aucune donnée sur les meilleures ventes",
+    "noStockAlerts": "Aucune alerte de stock",
+    "noReservations": "Aucune réservation disponible",
+    "noDataFound": "Aucune donnée trouvée",
+    "loadError": "Échec du chargement des données du tableau de bord"
+  },
+  "days": {
+    "mon": "Lun",
+    "tue": "Mar",
+    "wed": "Mer",
+    "thu": "Jeu",
+    "fri": "Ven",
+    "sat": "Sam",
+    "sun": "Dim"
+  },
+  "status": {
+    "served": "Servi",
+    "completed": "Terminé",
+    "preparing": "En préparation",
+    "cancelled": "Annulé",
+    "pending": "En attente"
+  },
+  "filters": {
+    "thisWeek": "Cette semaine",
+    "thisMonth": "Ce mois-ci",
+    "sixMonth": "Six mois",
+    "oneYear": "Un an",
+    "today": "Aujourd'hui",
+    "yesterday": "Hier",
+    "thisYear": "Cette année"
+  }
+}

@@ -1,0 +1,100 @@
+{
+    "title": "Clients",
+    "detailsTitle": "Détails du client",
+    "new": "+ Nouveau",
+    "searchPlaceholder": "Rechercher des clients",
+    "actions": "Actions",
+    "downloadVisible": "Télécharger visible",
+    "downloadAll": "Tout télécharger",
+    "import": "Importer",
+    "noCustomersFound": "Aucun client trouvé correspondant à votre recherche",
+    "noCustomersAvailable": "Aucun client disponible",
+    "card": {
+        "type": "Type :",
+        "birthDate": "Date de naissance :",
+        "address": "Adresse :",
+        "created": "Créé :"
+    },
+    "form": {
+        "newTitle": "Nouveau client",
+        "updateTitle": "Mettre à jour le client",
+        "phone": "Téléphone*",
+        "name": "Nom*",
+        "dob": "Date de naissance*",
+        "customerType": "Type de client*",
+        "address": "Adresse",
+        "notes": "Notes",
+        "table": "Table*",
+        "email": "Email*",
+        "placeholders": {
+            "phone": "Entrez le numéro de téléphone ici...",
+            "name": "Entrez le nom ici...",
+            "address": "Entrez l'adresse ici...",
+            "notes": "Entrez des notes ici...",
+            "email": "Entrez l'email ici..."
+        },
+        "options": {
+            "premiumVip": "VIP Premium",
+            "vip": "VIP",
+            "select": "Sélectionner"
+        },
+        "save": "Enregistrer",
+        "creating": "Création...",
+        "updating": "Mise à jour..."
+    },
+    "delete": {
+        "title": "Supprimer le client",
+        "deletedTitle": "Supprimé",
+        "warning": "C'est un processus irréversible",
+        "cancel": "Annuler",
+        "confirm": "Supprimer",
+        "deleting": "Suppression...",
+        "continue": "Continuer"
+    },
+    "success": {
+        "updatedTitle": "Mis à jour",
+        "updatedMessage": "Le client a été mis à jour avec succès",
+        "detailsUpdatedMessage": "Les détails du client ont été mis à jour avec succès"
+    },
+    "details": {
+        "gender": "Genre",
+        "dob": "Date de naissance",
+        "visited": "Nombre de visites",
+        "loyaltyPoints": "Points de fidélité"
+    },
+    "validation": {
+        "requiredFields": "Veuillez remplir tous les champs obligatoires",
+        "invalidPhone": "Le numéro de téléphone doit comporter entre 10 et 15 caractères",
+        "phoneRequired": "Le numéro de téléphone est obligatoire",
+        "createSuccess": "Client créé avec succès",
+        "createError": "Échec de la création du client",
+        "updateSuccess": "Client mis à jour avec succès",
+        "updateError": "Échec de la mise à jour du client",
+        "deleteSuccess": "Client supprimé avec succès",
+        "deleteError": "Échec de la suppression du client",
+        "fetchError": "Échec du chargement des clients"
+    },
+    "export": {
+        "downloadSuccess": "Clients téléchargés avec succès",
+        "noData": "Aucun client disponible à télécharger",
+        "exporting": "Préparation du téléchargement..."
+    },
+    "importModal": {
+        "title": "Importer des clients",
+        "subtitle": "Téléchargez un fichier CSV pour importer des clients en masse dans votre base de données.",
+        "downloadTemplate": "Télécharger le modèle CSV",
+        "dragDrop": "Cliquez pour télécharger ou glissez-déposez un fichier CSV",
+        "selectedFile": "Fichier sélectionné :",
+        "preview": "Aperçu ({{count}} clients trouvés)",
+        "readyToImport": "{{count}} client(s) prêt(s) à être importé(s)",
+        "skippedRows": "{{count}} ligne(s) ignorée(s) (nom ou téléphone manquant)",
+        "importing": "Importation ({{current}}/{{total}})...",
+        "importButton": "Importer les clients",
+        "importSuccess": "{{count}} client(s) importé(s) avec succès",
+        "importPartial": "{{success}} client(s) importé(s), {{failed}} échoué(s)",
+        "importError": "Échec de l'importation des clients",
+        "noValidRows": "Aucune ligne de client valide trouvée dans le CSV. Veuillez vérifier les colonnes : Nom, Téléphone, Date de naissance.",
+        "cancel": "Annuler",
+        "close": "Fermer"
+    }
+}

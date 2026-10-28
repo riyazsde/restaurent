@@ -1,0 +1,41 @@
+{
+    "title": "My Profile",
+    "resetPassword": "Reset Password",
+    "businessName": "Business Name:",
+    "email": "Email:",
+    "password": "Password",
+    "subscription": {
+        "title": "Subscription Details",
+        "status": "Status:",
+        "renewsAt": "Renews at:",
+        "renewButton": "Renew Subscription",
+        "cancelModal": {
+            "title": "Cancel Subscription",
+            "no": "No",
+            "delete": "Delete"
+        },
+        "successModal": {
+            "title": "Subscription Cancelled !",
+            "ok": "OK"
+        }
+    },
+    "form": {
+        "email": "Email",
+        "currentPassword": "Current Password",
+        "currentPasswordPlaceholder": "Enter current password",
+        "newPassword": "New Password",
+        "newPasswordPlaceholder": "Enter new password",
+        "confirmPassword": "Confirm Password",
+        "confirmPasswordPlaceholder": "Confirm new password",
+        "cancel": "Cancel",
+        "submit": "Submit",
+        "submitting": "Submitting..."
+    },
+    "messages": {
+        "fillAllFields": "Please fill all password fields",
+        "passwordMismatch": "New password and confirm password do not match",
+        "passwordLength": "Password must be at least 6 characters long",
+        "passwordChanged": "Password changed successfully!",
+        "failedToChange": "Failed to change password"
+    }
+}

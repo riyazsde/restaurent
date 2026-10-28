@@ -1,0 +1,123 @@
+{
+    "contactSupport": {
+        "title": "Contacter le support",
+        "needHelp": "Besoin d'aide ?",
+        "helpDescription": "Vous rencontrez des problèmes, une fonctionnalité personnalisée, un nouveau développement d'application, un nouveau projet, connectez-vous avec nous, nous vous répondrons dans les 24 heures.",
+        "mail": "Courriel :",
+        "supportTicket": "Ticket de support",
+        "createTicket": "Créer un ticket",
+        "viewRaisedTicket": "Voir les tickets créés",
+        "faqs": "FAQ",
+        "loadingFaqs": "Chargement des FAQ...",
+        "noFaqs": "Aucune FAQ disponible pour le moment.",
+        "faqHeading": "Questions fréquemment posées",
+        "fetchError": "Échec de la récupération des FAQ",
+        "faqSections": {
+            "ordersReservations": "Commandes et réservations",
+            "invoicesFeedbacks": "Factures et retours d'expérience"
+        }
+    },
+    "createTicket": {
+        "breadcrumb": "Ticket de support",
+        "title": "Créer un ticket de support",
+        "postedAt": "Posté à",
+        "ticketType": "Type de ticket",
+        "selectTicketType": "Sélectionner le type de ticket",
+        "customer": "Client",
+        "selectCustomer": "Sélectionner le client",
+        "ticketStatus": "Statut du ticket",
+        "describeIssue": "Décrivez votre problème",
+        "placeholder": "Veuillez décrire votre problème en détail...",
+        "email": "Email",
+        "businessName": "Nom de l'entreprise",
+        "replyTicket": "Ticket de réponse",
+        "subjectPlaceholder": "Entrez l'objet....",
+        "explainPlaceholder": "Expliquez ici...",
+        "imagesUploaded": "Images téléchargées",
+        "uploadImg": "Téléverser l'image",
+        "submit": "Soumettre",
+        "submitting": "Soumission...",
+        "validation": {
+            "ticketType": "Veuillez sélectionner un type de ticket",
+            "customer": "Veuillez sélectionner un client",
+            "issue": "Veuillez décrire votre problème"
+        },
+        "success": "Ticket de support créé avec succès !",
+        "error": "Échec de la création du ticket",
+        "genericError": "Échec de la création du ticket de support"
+    },
+    "tickets": {
+        "breadcrumb": "Ticket de support",
+        "allTickets": "Tous les tickets",
+        "allTicket": "Tous les tickets",
+        "searchPlaceholder": "Rechercher un ticket",
+        "periods": {
+            "week": "Cette semaine",
+            "day": "Aujourd'hui",
+            "month": "Ce mois-ci"
+        },
+        "tabs": {
+            "all": "Tous les tickets",
+            "onGoing": "En cours",
+            "resolved": "Résolu",
+            "pending": "En attente",
+            "open": "Ouvert",
+            "process": "En cours",
+            "solved": "Résolu",
+            "closed": "Fermé"
+        },
+        "ongoingTicket": "Ticket en cours",
+        "resolvedTicket": "Ticket résolu",
+        "noTickets": "Aucun ticket trouvé.",
+        "loading": "Chargement des tickets...",
+        "fetchError": "Échec de la récupération des tickets de support",
+        "ticketPrefix": "Ticket#",
+        "postedAt": "Posté à",
+        "openTicket": "Ouvrir le ticket",
+        "time": {
+            "yesterday": "Hier",
+            "daysAgo": "jours"
+        }
+    },
+    "ticketDetail": {
+        "breadcrumb": "Ticket de support",
+        "allTicket": "Tous les tickets",
+        "requestor": "Demandeur",
+        "subject": "Sujet",
+        "createdOn": "Créé le",
+        "ticketId": "ID du ticket",
+        "ticketStatus": "Statut du ticket",
+        "addResponse": "Ajouter une réponse",
+        "success": "Réponse ajoutée avec succès !",
+        "error": "Échec de l'ajout de la réponse",
+        "notFound": "Ticket non trouvé",
+        "loading": "Chargement des détails du ticket...",
+        "fetchError": "Échec de la récupération des détails du ticket",
+        "status": "Statut :"
+    },
+    "addResponse": {
+        "breadcrumb": "Tous les tickets",
+        "title": "Ajouter une réponse",
+        "ticketStatus": "Statut du ticket",
+        "placeholder": "Expliquez ici...",
+        "submit": "Soumettre la réponse",
+        "cancel": "Annuler",
+        "validation": "Veuillez saisir un message de réponse"
+    },
+    "sendMail": {
+        "title": "Envoyer un courriel",
+        "copy": "Copier",
+        "copied": "Copié !",
+        "or": "ou",
+        "defaultApp": "Application de messagerie par défaut",
+        "gmailApp": "Application Gmail",
+        "copySuccess": "Courriel copié dans le presse-papiers !"
+    },
+    "status": {
+        "pending": "En attente",
+        "open": "Ouvert",
+        "process": "En cours",
+        "solve": "Résolu",
+        "close": "Fermé"
+    }
+}

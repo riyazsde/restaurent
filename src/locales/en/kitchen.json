@@ -1,0 +1,47 @@
+{
+    "title": "Kitchen",
+    "refresh": "Refresh",
+    "ordersLoaded": "Orders Loaded",
+    "loading": "Loading orders...",
+    "noOrders": "No orders found",
+    "noOrdersDesc": "Orders will appear here when customers place them",
+    "searchPlaceholder": "Search orders by ticket #, table, or item...",
+    "noOrdersMatch": "No orders match your search query",
+    "tabs": {
+        "kitchen": "Kitchen",
+        "kitchenDisplay": "Kitchen Display",
+        "stations": "Kitchen Stations"
+    },
+    "card": {
+        "startPreparing": "Start Preparing",
+        "markReady": "Mark Ready",
+        "ready": "Ready",
+        "new": "New",
+        "wait": "Wait",
+        "table": "Table",
+        "takeaway": "Takeaway"
+    },
+    "stations": {
+        "title": "Kitchen Preparation Stations",
+        "subtitle": "Manage and assign orders to designated kitchen stations",
+        "addStation": "Add Station",
+        "noStations": "No Kitchen Stations Configured",
+        "noStationsDesc": "Create your first station (e.g. Grill, Salad, Hot Kitchen, Bar)",
+        "addFirstStation": "+ Add First Station",
+        "active": "Active",
+        "inactive": "Inactive",
+        "editStation": "Edit Station",
+        "deleteStation": "Delete Station"
+    },
+    "status": {
+        "completed": "Completed",
+        "preparing": "Preparing",
+        "served": "Served",
+        "updating": "Updating..."
+    },
+    "messages": {
+        "markedAs": "Item marked as {{status}}",
+        "loadError": "Failed to load orders",
+        "updateError": "Failed to update item status"
+    }
+}

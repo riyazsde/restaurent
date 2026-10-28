@@ -1,0 +1,100 @@
+{
+    "title": "Customers",
+    "detailsTitle": "Customers Details",
+    "new": "+ New",
+    "searchPlaceholder": "Search Customers",
+    "actions": "Actions",
+    "downloadVisible": "Download Visible",
+    "downloadAll": "Download All",
+    "import": "Import",
+    "noCustomersFound": "No customers found matching your search",
+    "noCustomersAvailable": "No customers available",
+    "card": {
+        "type": "Type:",
+        "birthDate": "Birth Date:",
+        "address": "Address:",
+        "created": "Created:"
+    },
+    "form": {
+        "newTitle": "New Customer",
+        "updateTitle": "Update Customer",
+        "phone": "Phone*",
+        "name": "Name*",
+        "dob": "Date of Birth*",
+        "customerType": "Customer Type*",
+        "address": "Address",
+        "notes": "Notes",
+        "table": "Table*",
+        "email": "Email*",
+        "placeholders": {
+            "phone": "Enter Phone number here…..",
+            "name": "Enter Name here…..",
+            "address": "Enter Address here…..",
+            "notes": "Enter Notes Here…..",
+            "email": "Enter Email here..."
+        },
+        "options": {
+            "premiumVip": "Premium VIP",
+            "vip": "VIP",
+            "select": "Select"
+        },
+        "save": "Save",
+        "creating": "Creating...",
+        "updating": "Updating..."
+    },
+    "delete": {
+        "title": "Delete Customer",
+        "deletedTitle": "Deleted",
+        "warning": "This is an Irreversible Process",
+        "cancel": "Cancel",
+        "confirm": "Delete",
+        "deleting": "Deleting...",
+        "continue": "Continue"
+    },
+    "success": {
+        "updatedTitle": "Updated",
+        "updatedMessage": "Customer has been updated successfully",
+        "detailsUpdatedMessage": "Customer details have been updated successfully"
+    },
+    "details": {
+        "gender": "Gender",
+        "dob": "DOB",
+        "visited": "No of Time Visited",
+        "loyaltyPoints": "Loyalty Points"
+    },
+    "validation": {
+        "requiredFields": "Please fill in all required fields",
+        "invalidPhone": "Phone must be between 10 and 15 characters",
+        "phoneRequired": "Phone number is required",
+        "createSuccess": "Customer created successfully",
+        "createError": "Failed to create customer",
+        "updateSuccess": "Customer updated successfully",
+        "updateError": "Failed to update customer",
+        "deleteSuccess": "Customer deleted successfully",
+        "deleteError": "Failed to delete customer",
+        "fetchError": "Failed to fetch customers"
+    },
+    "export": {
+        "downloadSuccess": "Customers downloaded successfully",
+        "noData": "No customers available to download",
+        "exporting": "Preparing download..."
+    },
+    "importModal": {
+        "title": "Import Customers",
+        "subtitle": "Upload a CSV file to bulk import customers into your database.",
+        "downloadTemplate": "Download CSV Template",
+        "dragDrop": "Click to upload or drag and drop a CSV file",
+        "selectedFile": "Selected file:",
+        "preview": "Preview ({{count}} customers found)",
+        "readyToImport": "{{count}} customer(s) ready to import",
+        "skippedRows": "{{count}} row(s) skipped (missing name or phone)",
+        "importing": "Importing ({{current}}/{{total}})...",
+        "importButton": "Import Customers",
+        "importSuccess": "Successfully imported {{count}} customer(s)",
+        "importPartial": "Imported {{success}} customer(s), {{failed}} failed",
+        "importError": "Failed to import customers",
+        "noValidRows": "No valid customer rows found in CSV. Please verify columns: Name, Phone, DOB.",
+        "cancel": "Cancel",
+        "close": "Close"
+    }
+}

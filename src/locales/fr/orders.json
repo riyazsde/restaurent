@@ -1,0 +1,69 @@
+{
+    "title": "Commandes",
+    "refresh": "Actualiser",
+    "ordersLoaded": "Commandes chargées",
+    "loading": "Chargement des commandes...",
+    "noOrders": "Aucune commande trouvée",
+    "searchPlaceholder": "Rechercher par n° de commande, client ou table...",
+    "noOrdersMatch": "Aucune commande ne correspond à votre recherche",
+    "status": {
+        "preparing": "En préparation",
+        "served": "Servi",
+        "cancelled": "Annulé",
+        "completed": "Terminé"
+    },
+    "actions": {
+        "printBill": "Imprimer la facture",
+        "cancel": "Annuler",
+        "complete": "Terminer",
+        "payAndComplete": "Payer et terminer",
+        "deleteItem": "Supprimer l'article",
+        "cancelling": "Annulation...",
+        "completing": "Finalisation...",
+        "continue": "Continuer",
+        "export": "Exporter CSV",
+        "exporting": "Exportation..."
+    },
+    "modals": {
+        "yourOrder": "Votre commande",
+        "checkSummary": "Vérifiez le résumé de votre commande",
+        "itemsNetTotal": "Total net des articles",
+        "taxes": "Taxes",
+        "total": "Total",
+        "cancelOrder": "Annuler la commande ?",
+        "irreversibleProcess": "Ceci est un processus irréversible",
+        "completeOrder": "Terminer la commande ?",
+        "markAsServed": "Marquer cette commande comme servie et terminée",
+        "paymentOptions": "Options de paiement",
+        "payWithCash": "Payer en espèces",
+        "giftCards": "Cartes-cadeaux",
+        "onlinePayments": "Paiements en ligne",
+        "cardPayments": "Paiements par carte",
+        "splitPayments": "Paiements partagés",
+        "pay": "Payer",
+        "readyToScan": "Prêt à scanner",
+        "transactionSuccessful": "Transaction réussie",
+        "paymentDone": "Paiement effectué",
+        "dishCreated": "Votre plat a été créé et sera mis à jour dans le menu dans quelques minutes",
+        "itemDeleted": "Article supprimé",
+        "foodPreparing": "D'autres plats sont en cours de préparation !"
+    },
+    "payment": {
+        "pending": "En attente",
+        "completed": "Terminé",
+        "paid": "Payé",
+        "success": "Succès",
+        "failed": "Échoué",
+        "cancelled": "Annulé",
+        "processing": "Traitement"
+    },
+    "messages": {
+        "itemCancelled": "Article annulé avec succès",
+        "itemCancelError": "Échec de l'annulation de l'article",
+        "orderUpdated": "Commande {{status}} avec succès",
+        "orderUpdateError": "Échec de la mise à jour du statut de la commande",
+        "fetchError": "Échec de la récupération des commandes",
+        "exportSuccess": "Commandes exportées avec succès !",
+        "exportFailed": "Échec de l'exportation des commandes"
+    }
+}

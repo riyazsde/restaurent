@@ -1,0 +1,59 @@
+{
+  "title": "Reports",
+  "showingData": "Showing Data's of {{period}}",
+  "loading": "Loading...",
+  "topSellers": "Top Sellers",
+  "topSellersSubtitle": "Best performing items by quantity sold",
+  "export": "Export",
+  "payments": "Payments",
+  "qty": "Qty",
+  "noTopSellers": "No top sellers data available",
+  "noPaymentData": "No payment data available",
+  "periods": {
+    "today": "Today",
+    "thisMonth": "This Month",
+    "sixMonth": "Six Month",
+    "oneYear": "One Year"
+  },
+  "filters": {
+    "allBranches": "All Branches",
+    "allChannels": "All Channels",
+    "allServices": "All Services"
+  },
+  "summary": {
+    "totalSummary": "Total Summary",
+    "itemsCount": "{{count}} items",
+    "totalQuantity": "Total Quantity",
+    "platesGlasses": "Plates / Glasses",
+    "totalRevenue": "Total Revenue",
+    "hundredPct": "100% of total",
+    "itemsMix": "Items Mix",
+    "ofTotalSales": "Of total sales",
+    "plated": "plated",
+    "ofTotal": "of total"
+  },
+  "paymentMethods": {
+    "card": "Card",
+    "cash": "Cash",
+    "applePay": "Apple Pay",
+    "gPay": "G Pay",
+    "giftCoupon": "Gift Coupon",
+    "giftCoupons": "Gift Coupons"
+  },
+  "metrics": {
+    "totalOrders": "Total Orders",
+    "avgOrderValue": "Avg Order Value",
+    "voids": "Voids",
+    "refunds": "Refunds",
+    "totalCustomer": "Total Customer",
+    "newCustomer": "New Customer",
+    "repeatCustomer": "Repeat Customer",
+    "netSales": "Net Sales",
+    "grossSales": "Gross Sales",
+    "tax": "Tax"
+  },
+  "messages": {
+    "fetchError": "Failed to fetch report data",
+    "exportSuccess": "Report exported successfully"
+  }
+}
