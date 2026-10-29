@@ -12,6 +12,7 @@ import { useAddons } from '../../hooks/queries/useAddons';
 import { useCategories } from '../../hooks/queries/useCategories';
 import { useTaxSetup } from '../../hooks/queries/useTaxSetup';
 import { POS_KEYS } from '../../utils/queryKeys';
+import { IMAGE_BASE_URL } from '../../services/fileUploadService';
 
 const CreateMenuItem = () => {
     const { t } = useTranslation('settings');
@@ -60,8 +61,8 @@ const CreateMenuItem = () => {
 
     // Hooks
     const { createMenuItem } = useMenuItems();
-    const { getVariants, createVariant, mapVariantToItem } = useVariants();
-    const { getAddons, createAddon, mapAddonToItem } = useAddons();
+    const { getVariants, createVariant } = useVariants();
+    const { getAddons, createAddon } = useAddons();
     const { getCategories } = useCategories();
     const { data: taxData = [] } = useTaxSetup();
 
@@ -69,28 +70,30 @@ const CreateMenuItem = () => {
     const availableAddons = getAddons.data || [];
     const availableCategories = getCategories.data || [];
 
+    // Resolve image to a full URL for the API
+    const resolveImageUrl = (image) => {
+        if (!image) return '';
+        if (image.startsWith('http')) return image;
+        return `${IMAGE_BASE_URL}${image}`;
+    };
+
     const handleSave = async (e) => {
         if (e && e.preventDefault) e.preventDefault();
 
+        // ---- Validation ----
         if (!formData.itemName || !formData.itemName.trim()) {
             return toast.error(t('menuItems.messages.titleRequired', 'Title is required'));
         }
         if (!formData.itemPrice && !formData.price) {
             return toast.error(t('menuItems.messages.priceRequired', 'Price is required'));
         }
+        if (!formData.itemsTypesId) {
+            return toast.error(t('menuItems.messages.categoryRequired', 'Category is required'));
+        }
 
         setIsSavingItem(true);
         try {
-            let catId = parseInt(formData.itemsTypesId, 10);
-            let matchedCat = availableCategories.find(c => Number(c.Items_types_id || c.id) === catId);
-            if (!matchedCat && availableCategories.length > 0) {
-                matchedCat = availableCategories.find(c => c.Status !== false) || availableCategories[0];
-                catId = Number(matchedCat.Items_types_id || matchedCat.id);
-            }
-            if (!catId && availableCategories.length > 0) {
-                catId = Number(availableCategories[0]?.Items_types_id || availableCategories[0]?.id);
-            }
-
+            const catId = parseInt(formData.itemsTypesId, 10);
             const finalPrice = parseFloat(formData.price || formData.itemPrice) || 0;
             const netPrice = parseFloat(formData.itemPrice || formData.price) || 0;
             const stockQty = parseInt(formData.currentStock || formData.itemStockQuantity, 10) || 0;
@@ -98,23 +101,16 @@ const CreateMenuItem = () => {
             const payload = {
                 Items_types_id: catId,
                 Emozi: formData.emozi || '🍕',
-                image: formData.image || 'https://example.com/default.jpg',
+                image: resolveImageUrl(formData.image),
                 Title: formData.itemName.trim(),
-                Name: formData.itemName.trim(),
-                'item-name': formData.itemName.trim(),
-                'item-code': formData.itemCode || `ITEM-${Date.now().toString().slice(-6)}`,
-                'item-size': formData.itemSize || 'Medium',
-                Price: finalPrice,
+                Description: formData.details || '',
                 Net_Price: netPrice,
-                'item-price': finalPrice,
+                Price: finalPrice,
                 'item-quantity': parseInt(formData.itemQuantity, 10) || 1,
                 'item-stock-quantity': stockQty,
-                currentStock: stockQty,
-                lowStockAlert: parseInt(formData.lowStockAlert, 10) || 0,
                 trackStock: Boolean(formData.trackStock),
-                Item_description: formData.details || '',
-                Description: formData.details || '',
-                Details: formData.details || '',
+                lowStockAlert: parseInt(formData.lowStockAlert, 10) || 0,
+                currentStock: stockQty,
                 Allergens: Array.isArray(formData.allergens) ? formData.allergens : [],
                 DietaryTags: Array.isArray(formData.dietaryTags) ? formData.dietaryTags : [],
                 Variants: selectedVariants,
@@ -122,62 +118,13 @@ const CreateMenuItem = () => {
                 Status: formData.Status !== false
             };
 
-            let resolvedTaxId = null;
-            const taxIdVal = formData.taxId;
-            if (taxIdVal && taxIdVal !== 'none') {
-                if (typeof taxIdVal === 'number' && taxIdVal > 0) {
-                    resolvedTaxId = taxIdVal;
-                } else if (typeof taxIdVal === 'string') {
-                    const trimmed = taxIdVal.trim();
-                    if (/^\d+$/.test(trimmed)) {
-                        resolvedTaxId = parseInt(trimmed, 10);
-                    } else if (Array.isArray(taxData) && taxData.length > 0) {
-                        const matched = taxData.find(t => {
-                            const id = t.Tax_setup_id ?? t.Tax_id ?? t.tax_id ?? t.id;
-                            const name = t.title || t.Tax_name || t.tax_name || t.name || 'Tax';
-                            const rate = t.rate ?? t.Rate ?? t.percentage ?? 0;
-                            return String(id) === trimmed || name.toLowerCase() === trimmed.toLowerCase() || `${name} (${rate}%)`.toLowerCase() === trimmed.toLowerCase();
-                        });
-                        if (matched) {
-                            const matchId = matched.Tax_setup_id ?? matched.Tax_id ?? matched.tax_id ?? matched.id;
-                            if (matchId && /^\d+$/.test(String(matchId))) {
-                                resolvedTaxId = parseInt(matchId, 10);
-                            }
-                        }
-                    }
-                }
+            // Tax: only send a numeric id (server ignores otherwise)
+            if (formData.taxId && formData.taxId !== 'none' && /^\d+$/.test(String(formData.taxId))) {
+                payload.Tax_id = parseInt(formData.taxId, 10);
             }
 
-            if (resolvedTaxId !== null) {
-                payload.Tax_id = resolvedTaxId;
-            }
-
-            const res = await createMenuItem.mutateAsync(payload);
-            const createdItemId = res?.Items_id || res?.id || res?.data?.Items_id || res?.data?.id;
-
-            // Map selected variants and addons to the newly created dish
-            if (createdItemId) {
-                try {
-                    const mappingPromises = [];
-                    for (const variantId of selectedVariants) {
-                        mappingPromises.push(
-                            mapVariantToItem.mutateAsync({ item_Variants_id: variantId, item_id: createdItemId, Status: true })
-                                .catch(err => console.error('Error mapping variant:', err))
-                        );
-                    }
-                    for (const addonId of selectedAddons) {
-                        mappingPromises.push(
-                            mapAddonToItem.mutateAsync({ item_Addons_id: addonId, item_id: createdItemId, Status: true })
-                                .catch(err => console.error('Error mapping addon:', err))
-                        );
-                    }
-                    if (mappingPromises.length > 0) {
-                        await Promise.allSettled(mappingPromises);
-                    }
-                } catch (mappingErr) {
-                    console.error('Error mapping variants/addons to new item:', mappingErr);
-                }
-            }
+            // Single create call — server persists Variants/Addons automatically
+            await createMenuItem.mutateAsync(payload);
 
             // Invalidate caches across the dashboard so POS and Menu update instantly
             await Promise.allSettled([
@@ -186,7 +133,6 @@ const CreateMenuItem = () => {
                 queryClient.invalidateQueries({ queryKey: ['MENU_ITEMS'] }),
                 queryClient.invalidateQueries({ queryKey: ['CATEGORIES'] }),
                 queryClient.invalidateQueries({ queryKey: ['categories'] }),
-                queryClient.refetchQueries({ queryKey: [POS_KEYS.POS_ITEMS] })
             ]);
 
             toast.success(t('menuItems.messages.dishCreatedSuccess', 'Dish created successfully!'));
@@ -251,7 +197,7 @@ const CreateMenuItem = () => {
 
     return (
         <div className="bg-transparent min-h-screen pb-20 font-poppins px-4 sm:px-6">
-            <MenuItemForm 
+            <MenuItemForm
                 formData={formData}
                 setFormData={setFormData}
                 isLoading={isSavingItem}
@@ -272,7 +218,7 @@ const CreateMenuItem = () => {
                 onBack={handleClose}
             />
 
-            <AddVariantModal 
+            <AddVariantModal
                 isOpen={showVariantModal}
                 onClose={() => setShowVariantModal(false)}
                 newVariant={newVariant}
@@ -281,7 +227,7 @@ const CreateMenuItem = () => {
                 isLoading={isCreatingVariant}
             />
 
-            <AddAddonModal 
+            <AddAddonModal
                 isOpen={showAddonModal}
                 onClose={() => setShowAddonModal(false)}
                 newAddon={newAddon}

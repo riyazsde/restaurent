@@ -9,7 +9,11 @@ import group from '../assets/group.svg'
 import { FaStar } from "react-icons/fa";
 import { toast } from 'react-toastify';
 import { useTranslation } from 'react-i18next';
-import { useEmployeeDetails, useEmployeePerformance } from '../../hooks/queries/useEmployee';
+import {
+    useEmployeeDetails,
+    useEmployeePerformance,
+    useDeleteEmployee,
+} from '../../hooks/queries/useEmployee';
 import { useRestaurant } from '../../hooks/queries/usePos';
 import { resolveCurrencySymbol } from '../../utils/currencyUtils';
 
@@ -24,6 +28,7 @@ const Performance = () => {
     const currency = resolveCurrencySymbol(restaurantData?.currency) || '';
 
     const [activeTab, setActiveTab] = useState("Details");
+    const [isModalOpen, setIsModalOpen] = useState(false); // State for the delete modal
     const userId = employeeId || employee?.user_id;
 
     // TanStack Query for employee details
@@ -33,6 +38,36 @@ const Performance = () => {
     const { data: performanceData = null, isLoading: isLoadingPerformance } = useEmployeePerformance(userId, {
         enabled: Boolean(userId && activeTab === "Performance")
     });
+
+    // Delete employee mutation
+    const { mutate: deleteEmployee, isPending: isDeleting } = useDeleteEmployee({
+        onSuccess: () => {
+            toast.success(t('performance.deleteSuccess', 'Employee deleted successfully'));
+            setIsModalOpen(false);
+            navigate('/dashboard/employee');
+        },
+        onError: (err) => {
+            toast.error(
+                err?.response?.data?.message ||
+                t('performance.deleteError', 'Failed to delete employee')
+            );
+        },
+    });
+
+    // Prefer the actual employee_id from API data, fall back to route param / state
+    const deleteId =
+        employeeData?.employee_id ||
+        employeeData?.employee_id_code ||
+        employeeId ||
+        employee?.user_id;
+
+    const handleDeleteConfirm = () => {
+        if (!deleteId) {
+            toast.error(t('performance.deleteError', 'Failed to delete employee'));
+            return;
+        }
+        deleteEmployee(deleteId);
+    };
 
     const InfoBox = ({ label, value, editable = false }) => (
         <div>
@@ -91,8 +126,14 @@ const Performance = () => {
                         </button>
                     </div>
                     <div className="flex-1 h-[1px] bg-gray-200 mb-3" />
-                    <button className="flex items-center gap-2 text-white bg-[#C21D00] px-4 py-2.5 rounded-md font-medium text-[14px] hover:bg-red-700 transition mb-[2px]">
-                        {t('performance.delete')}
+                    <button
+                        onClick={() => setIsModalOpen(true)}
+                        disabled={isDeleting || !deleteId}
+                        className="flex items-center gap-2 text-white bg-[#C21D00] px-4 py-2.5 rounded-md font-medium text-[14px] hover:bg-red-700 transition mb-[2px] disabled:opacity-60 disabled:cursor-not-allowed"
+                    >
+                        {isDeleting
+                            ? t('performance.deleting', 'Deleting...')
+                            : t('performance.delete')}
                         <Trash2 size={16} />
                     </button>
                 </div>
@@ -347,6 +388,47 @@ const Performance = () => {
                     )}
                 </div>
             </div>
+
+            {/* Delete Confirmation Modal */}
+            {isModalOpen && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm" style={{ fontFamily: 'Poppins' }}>
+                    <div className="bg-white rounded-3xl shadow-2xl w-[90%] max-w-[450px] p-8 text-center animate-in fade-in zoom-in duration-200">
+                        
+                        {/* Red Exclamation Icon */}
+                        <div className="mx-auto flex items-center justify-center w-14 h-14 rounded-full bg-[#FCE8E8] mb-5">
+                            <div className="flex items-center justify-center w-8 h-8 rounded-full bg-[#C21D00] text-white font-bold text-xl">
+                                !
+                            </div>
+                        </div>
+
+                        {/* Text Content */}
+                        <h3 className="text-[22px] font-semibold text-black mb-2">
+                            Are you Sure?
+                        </h3>
+                        <p className="text-[16px] text-gray-800 mb-8">
+                            This is an Irreversible Process?
+                        </p>
+
+                        {/* Action Buttons */}
+                        <div className="flex items-center justify-center gap-4">
+                            <button
+                                onClick={() => setIsModalOpen(false)}
+                                disabled={isDeleting}
+                                className="flex-1 px-4 py-2.5 border border-gray-300 rounded-md text-gray-700 font-medium text-[14px] hover:bg-gray-50 transition"
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                onClick={handleDeleteConfirm}
+                                disabled={isDeleting}
+                                className="flex-1 px-4 py-2.5 bg-[#C21D00] text-white rounded-md font-medium text-[14px] hover:bg-red-700 transition disabled:opacity-70 flex justify-center items-center"
+                            >
+                                {isDeleting ? 'Deleting...' : 'Delete Employee'}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </>
     )
 }

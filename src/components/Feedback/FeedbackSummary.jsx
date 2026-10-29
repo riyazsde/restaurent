@@ -4,15 +4,16 @@ import { useFeedbackSummary } from '../../hooks/queries/useFeedback';
 const FeedbackSummary = () => {
     const { data: response, isLoading } = useFeedbackSummary();
 
-    const data = (response && response.overallCounts) ? response : { overallCounts: [], metrics: [] };
+    // Fallback to prevent crashes if data is missing
+    const data = response || { overallCounts: [], metrics: [] };
 
     if (isLoading) {
         return (
-            <div className="flex flex-col lg:flex-row gap-6 animate-pulse">
-                <div className="w-full lg:w-[300px] h-[300px] bg-[#FDF4F9] rounded-2xl"></div>
-                <div className="flex-1 grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+            <div className="flex flex-col lg:flex-row gap-4 animate-pulse">
+                <div className="w-full lg:w-[320px] h-[320px] bg-[#FDF4F9] rounded-[20px]"></div>
+                <div className="flex-1 grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
                     {[1, 2, 3, 4, 5, 6].map(i => (
-                        <div key={i} className="bg-[#FDF4F9] h-[140px] rounded-2xl"></div>
+                        <div key={i} className="bg-[#FDF4F9] h-[148px] rounded-[20px]"></div>
                     ))}
                 </div>
             </div>
@@ -20,35 +21,39 @@ const FeedbackSummary = () => {
     }
 
     return (
-        <div className="flex flex-col lg:flex-row gap-6 font-poppins">
+        <div className="flex flex-col lg:flex-row gap-4 font-sans">
             {/* Left Tall Card - Overall Feedback Counts */}
-            <div className="w-full lg:w-[320px] bg-gradient-to-br from-[#F5E6EF] to-[#FCE7F3] rounded-2xl p-6 shadow-sm border border-pink-50/50">
-                <div className="flex justify-between items-center mb-6">
-                    <h3 className="text-[15px] font-extrabold text-black">Overall Feedback</h3>
-                    <span className="text-[15px] font-extrabold text-black">Peoples</span>
+            <div className="w-full lg:w-[320px] bg-gradient-to-b from-[#F8EEF4] to-[#FAF0F6] rounded-[20px] p-5 shadow-sm">
+                <div className="flex justify-between items-center mb-5 px-1">
+                    <h3 className="text-[14px] font-bold text-[#1A1A1A]">Overall Feedback</h3>
+                    <span className="text-[14px] font-bold text-[#1A1A1A]">Peoples</span>
                 </div>
                 
-                <div className="space-y-4">
+                <div className="space-y-3.5">
                     {data.overallCounts.map((item, idx) => (
-                        <div key={idx} className="flex justify-between items-center">
-                            <div className="flex items-center gap-2">
-                                <span className="text-xl">{item.emoji}</span>
-                                <span className="text-sm font-medium text-gray-800">{item.label}</span>
+                        <div key={idx} className="flex justify-between items-center px-1">
+                            <div className="flex items-center gap-2.5">
+                                <span className="text-[18px]">{item.emoji}</span>
+                                <span className="text-[13px] font-medium text-[#333]">{item.label}</span>
                             </div>
-                            <span className="text-sm font-medium text-gray-800">{item.count}</span>
+                            <span className="text-[13px] font-semibold text-[#333]">{item.count}</span>
                         </div>
                     ))}
                 </div>
             </div>
 
             {/* Right Grid - Individual Metrics */}
-            <div className="flex-1 grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+            <div className="flex-1 grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
                 {data.metrics.map((metric, idx) => (
-                    <div key={idx} className="bg-gradient-to-br from-[#F5E6EF] to-[#FCE7F3] rounded-2xl p-6 shadow-sm border border-pink-50/50 flex flex-col justify-between">
-                        <h3 className="text-[15px] font-extrabold text-black mb-8">{metric.title}</h3>
-                        <div className="flex items-center justify-center gap-2 mt-auto">
-                            <span className="text-3xl">{metric.emoji}</span>
-                            <span className="text-xl font-medium text-gray-800">{metric.label}</span>
+                    <div 
+                        key={idx} 
+                        className="bg-gradient-to-b from-[#F8EEF4] to-[#FAF0F6] rounded-[20px] p-5 shadow-sm flex flex-col justify-between min-h-[148px]"
+                    >
+                        <h3 className="text-[14px] font-bold text-[#1A1A1A] mb-4">{metric.title}</h3>
+                        
+                        <div className="flex items-center justify-center gap-2 mt-auto pb-2">
+                            <span className="text-[20px]">{metric.emoji}</span>
+                            <span className="text-[16px] font-semibold text-[#333]">{metric.label}</span>
                         </div>
                     </div>
                 ))}

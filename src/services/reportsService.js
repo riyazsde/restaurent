@@ -1,8 +1,13 @@
 import api from '../api/api';
 
 class ReportsService {
-  // Get report based on period and optional dashboard filter
-  async getReportByPeriod(period, customFilter = null) {
+  /**
+   * Get report based on period and optional dashboard filter.
+   * Accepts an optional custom date range (start_date / end_date) which is
+   * forwarded to the endpoint as query params.
+   * Normalizes both camelCase and PascalCase keys returned by the backend.
+   */
+  async getReportByPeriod(period, customFilter = null, startDate = null, endDate = null) {
     let endpoint = '/restaurant/reports/reports_today';
     let dashFilter = customFilter || 'week';
 
@@ -28,19 +33,44 @@ class ReportsService {
         dashFilter = customFilter || 'week';
     }
 
+    // Forward custom date range only when both ends are provided
+    const params = {};
+    if (startDate && endDate) {
+      params.start_date = startDate;
+      params.end_date = endDate;
+    }
+
     try {
       const [periodRes, dashRes] = await Promise.allSettled([
-        api.get(endpoint),
+        api.get(endpoint, { params }),
         api.get('/restaurant/reports/dashboard', { params: { filter: dashFilter } })
       ]);
 
-      const periodData = periodRes.status === 'fulfilled' ? (periodRes.value?.data?.data || periodRes.value?.data || {}) : {};
-      const dashData = dashRes.status === 'fulfilled' ? (dashRes.value?.data?.data || dashRes.value?.data || {}) : {};
+      const unwrap = (res) => {
+        if (res.status !== 'fulfilled') return {};
+        const body = res.value?.data;
+        if (body && typeof body === 'object') {
+          return body.data && typeof body.data === 'object' ? body.data : body;
+        }
+        return {};
+      };
 
-      // Combine period metrics with dashboard top sellers if period top sellers is empty
-      const topSellers = (dashData.TopSellers && dashData.TopSellers.length > 0)
-        ? dashData.TopSellers
-        : (periodData.topSellers || []);
+      const periodData = unwrap(periodRes);
+      const dashData = unwrap(dashRes);
+
+      const pickArray = (...candidates) => {
+        for (const c of candidates) {
+          if (Array.isArray(c) && c.length > 0) return c;
+        }
+        return [];
+      };
+
+      const topSellers = pickArray(
+        dashData.TopSellers,
+        dashData.topSellers,
+        periodData.topSellers,
+        periodData.TopSellers
+      );
 
       return {
         ...dashData,
@@ -53,7 +83,6 @@ class ReportsService {
     }
   }
 
-  // Get dashboard metrics with filter (week, month, year)
   async getDashboard(filter = 'week') {
     try {
       const response = await api.get('/restaurant/reports/dashboard', {
@@ -65,7 +94,6 @@ class ReportsService {
     }
   }
 
-  // Get restaurant-dashboard metrics with filter (this_week, this_month, 6_month, one_year)
   async getRestaurantDashboard(filter = 'this_week') {
     try {
       const response = await api.get('/restaurant/reports/restaurant-dashboard', {
@@ -77,12 +105,10 @@ class ReportsService {
     }
   }
 
-  // Get daily restaurant reports metrics
   async getDailyRestaurantReports() {
     return this.getReportByPeriod('Today');
   }
 
-  // Error handler
   handleError(error) {
     if (error.response) {
       return {

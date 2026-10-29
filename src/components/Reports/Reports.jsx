@@ -15,6 +15,8 @@ import burgerImg from '../assets/food.jpg';
 import pastaImg from '../assets/food1.jpg';
 import coffeeImg from '../assets/food2.jpg';
 
+const EMPTY_DISPLAY = '—';
+
 export default function ReportsSection() {
   const { t, i18n } = useTranslation('reports');
   const { data: restaurantData } = useRestaurant();
@@ -35,6 +37,11 @@ export default function ReportsSection() {
   const channelRef = useRef(null);
   const serviceRef = useRef(null);
 
+  // Date range picker state (ISO strings or null)
+  const [dateRange, setDateRange] = useState({ start: null, end: null });
+  const [openDatePicker, setOpenDatePicker] = useState(false);
+  const dateRef = useRef(null);
+
   const options = [
     { value: "Today", label: t('periods.today', 'Today') },
     { value: "This Month", label: t('periods.thisMonth', 'This Month') },
@@ -42,11 +49,13 @@ export default function ReportsSection() {
     { value: "One Year", label: t('periods.oneYear', 'One Year') }
   ];
 
-  // Helper to dynamically format amounts with restaurant currency matching Figma format
+  // Helper to format an amount; returns EMPTY_DISPLAY when the value is not a finite number
   const formatReportPrice = (amount) => {
+    const num = Number(amount);
+    if (!Number.isFinite(num)) return EMPTY_DISPLAY;
+
     const isEn = i18n?.language?.startsWith('en');
     const sym = resolveCurrencySymbol(restaurantData?.currency);
-    const num = Number(amount || 0);
     const isWhole = Number.isInteger(num);
     const formatted = isEn
       ? num.toLocaleString('en-US', {
@@ -64,15 +73,28 @@ export default function ReportsSection() {
     return `${formatted} ${sym}`;
   };
 
-  // TanStack Query for Data Fetching
+  // Plain number formatter (no currency) with safe empty state
+  const formatPlainNumber = (value, opts = {}) => {
+    const num = Number(value);
+    if (!Number.isFinite(num)) return EMPTY_DISPLAY;
+    const isEn = i18n?.language?.startsWith('en');
+    return num.toLocaleString(isEn ? 'en-US' : 'fr-FR', opts);
+  };
+
+  // TanStack Query — refetches when period OR custom date range changes
   const { data: reportData, isLoading, isError, error } = useQuery({
-    queryKey: ['reports', selected],
+    queryKey: ['reports', selected, dateRange.start, dateRange.end],
     queryFn: async () => {
-      const response = await reportsService.getReportByPeriod(selected);
-      if (!response.success && !response.data && !response.TotalOrders && !response.totalOrders) {
-        throw new Error(response.message || 'Failed to fetch report');
+      const response = await reportsService.getReportByPeriod(
+        selected,
+        null,
+        dateRange.start,
+        dateRange.end
+      );
+      if (!response || typeof response !== 'object') {
+        throw new Error('Failed to fetch report');
       }
-      return response.data || response;
+      return response;
     }
   });
 
@@ -99,135 +121,96 @@ export default function ReportsSection() {
       if (serviceRef.current && !serviceRef.current.contains(event.target)) {
         setOpenService(false);
       }
+      if (dateRef.current && !dateRef.current.contains(event.target)) {
+        setOpenDatePicker(false);
+      }
     }
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  // Top Sellers list matching Figma prototype with real API merge
+  // Top Sellers — only real data. No fabricated fallbacks.
   const topSellersList = useMemo(() => {
-    const defaultTopSellers = [
-      {
-        name: "Margherita Pizza",
-        desc: "Classic delight with 100% real mozzarella.",
-        badge: "Pizza",
-        badgeColor: "bg-[#F5EBFF] text-[#6A1B9A]",
-        image: pizzaImg,
-        plates: 368,
-        revXOF: 90,
-        revPct: 18.4,
-        prog: 18.6
-      },
-      {
-        name: "Veg Burger",
-        desc: "Grilled veg patty with cheese and house sauce.",
-        badge: "Burgers",
-        badgeColor: "bg-[#E6F4EA] text-[#137333]",
-        image: burgerImg,
-        plates: 287,
-        revXOF: 90,
-        revPct: 18.4,
-        prog: 18.6
-      },
-      {
-        name: "Pasta Alfredo",
-        desc: "Creamy white sauce with herbs and parmesan.",
-        badge: "Pasta",
-        badgeColor: "bg-[#FEF7E0] text-[#B06000]",
-        image: pastaImg,
-        plates: 245,
-        revXOF: 90,
-        revPct: 18.4,
-        prog: 18.6
-      },
-      {
-        name: "Cold Coffee",
-        desc: "Chilled coffee with ice.",
-        badge: "Beverages",
-        badgeColor: "bg-[#E8F0FE] text-[#1967D2]",
-        image: coffeeImg,
-        plates: 198,
-        revXOF: 90,
-        revPct: 18.4,
-        prog: 18.6
-      }
-    ];
-
-    const rawSellers = (reportData?.TopSellers || []).filter(
-      item => item.item_name && item.item_name !== 'Unknown' && Number(item.total_quantity_sold) > 0
+    const rawSellers = (reportData?.TopSellers || reportData?.topSellers || []).filter(
+      item =>
+        item?.item_name &&
+        item.item_name !== 'Unknown' &&
+        Number(item.total_quantity_sold) > 0
     );
 
-    if (rawSellers.length >= 3) {
-      const foodImages = [pizzaImg, burgerImg, pastaImg, coffeeImg];
-      const badges = [
-        { label: "Pizza", color: "bg-[#F5EBFF] text-[#6A1B9A]" },
-        { label: "Burgers", color: "bg-[#E6F4EA] text-[#137333]" },
-        { label: "Pasta", color: "bg-[#FEF7E0] text-[#B06000]" },
-        { label: "Beverages", color: "bg-[#E8F0FE] text-[#1967D2]" }
-      ];
+    if (rawSellers.length === 0) return [];
 
-      const totalQty = rawSellers.reduce((sum, it) => sum + Number(it.total_quantity_sold || 0), 0) || 1;
-
-      return rawSellers.slice(0, 4).map((item, idx) => {
-        const plates = Number(item.total_quantity_sold || 0);
-        const prog = Number(((plates / totalQty) * 100).toFixed(1));
-        const badgeInfo = badges[idx % badges.length];
-
-        return {
-          name: item.item_name,
-          desc: item.item_code || 'Best seller',
-          badge: badgeInfo.label,
-          badgeColor: badgeInfo.color,
-          image: foodImages[idx % foodImages.length],
-          plates: plates,
-          revXOF: item.item_price || 90,
-          revPct: prog,
-          prog: prog
-        };
-      });
-    }
-
-    return defaultTopSellers;
-  }, [reportData?.TopSellers]);
-
-  // Prepare payment data for pie chart
-  const paymentData = useMemo(() => {
-    const paymentMap = reportData?.payment || {};
-    const hasRealNonZeroData = Object.values(paymentMap).some(v => Number(v) > 0);
-
-    if (hasRealNonZeroData) {
-      const colorConfig = {
-        card: { color: "#CBA3D8", textColor: "#3B1E48", labelKey: "paymentMethods.card", defaultName: "Card" },
-        cash: { color: "#F6E9EB", textColor: "#1F2937", labelKey: "paymentMethods.cash", defaultName: "Cash" },
-        "apple pay": { color: "#D5869D", textColor: "#FFFFFF", labelKey: "paymentMethods.applePay", defaultName: "Apple pay" },
-        "g pay": { color: "#B93856", textColor: "#FFFFFF", labelKey: "paymentMethods.gPay", defaultName: "G pay" },
-        "gift coupon": { color: "#6A1B9A", textColor: "#FFFFFF", labelKey: "paymentMethods.giftCoupon", defaultName: "Gift Coupons" },
-        "gift coupons": { color: "#6A1B9A", textColor: "#FFFFFF", labelKey: "paymentMethods.giftCoupons", defaultName: "Gift Coupons" }
-      };
-
-      return Object.entries(paymentMap)
-        .map(([rawKey, val]) => {
-          const lower = rawKey.toLowerCase().trim();
-          const conf = colorConfig[lower] || { color: "#999999", textColor: "#FFFFFF", labelKey: null, defaultName: rawKey };
-          const displayName = conf.labelKey ? t(conf.labelKey, conf.defaultName) : conf.defaultName;
-          return {
-            name: displayName,
-            value: Number(val) || 0,
-            color: conf.color,
-            textColor: conf.textColor
-          };
-        })
-        .filter(item => item.value > 0);
-    }
-
-    // Exact fallback matching Figma prototype
-    return [
-      { name: t('paymentMethods.card', 'Card'), value: 166.82, color: "#CBA3D8", textColor: "#3B1E48" },
-      { name: t('paymentMethods.giftCoupons', 'Gift Coupons'), value: 138.78, color: "#6A1B9A", textColor: "#FFFFFF" },
-      { name: t('paymentMethods.cash', 'Cash'), value: 192.26, color: "#F6E9EB", textColor: "#1F2937" },
-      { name: t('paymentMethods.gPay', 'G pay'), value: 122.19, color: "#B93856", textColor: "#FFFFFF" },
-      { name: t('paymentMethods.applePay', 'Apple pay'), value: 221.04, color: "#D5869D", textColor: "#FFFFFF" },
+    const foodImages = [pizzaImg, burgerImg, pastaImg, coffeeImg];
+    const badges = [
+      { label: "Pizza", color: "bg-[#F5EBFF] text-[#6A1B9A]" },
+      { label: "Burgers", color: "bg-[#E6F4EA] text-[#137333]" },
+      { label: "Pasta", color: "bg-[#FEF7E0] text-[#B06000]" },
+      { label: "Beverages", color: "bg-[#E8F0FE] text-[#1967D2]" }
     ];
+
+    const totalQty =
+      rawSellers.reduce((sum, it) => sum + Number(it.total_quantity_sold || 0), 0) || 1;
+
+    return rawSellers.slice(0, 4).map((item, idx) => {
+      const plates = Number(item.total_quantity_sold || 0);
+      const prog = Number(((plates / totalQty) * 100).toFixed(1));
+      const badgeInfo = badges[idx % badges.length];
+
+      return {
+        name: item.item_name,
+        desc: item.item_code || 'Best seller',
+        badge: badgeInfo.label,
+        badgeColor: badgeInfo.color,
+        image: foodImages[idx % foodImages.length],
+        plates,
+        revXOF: item.item_price,
+        revPct: prog,
+        prog
+      };
+    });
+  }, [reportData?.TopSellers, reportData?.topSellers]);
+
+  // Payment data — respect real zero-value data
+  const { paymentData, hasPaymentData } = useMemo(() => {
+    const paymentMap = reportData?.payment || {};
+    const entries = Object.entries(paymentMap);
+
+    if (entries.length === 0) {
+      return { paymentData: [], hasPaymentData: false };
+    }
+
+    const colorConfig = {
+      card: { color: "#CBA3D8", textColor: "#3B1E48", labelKey: "paymentMethods.card", defaultName: "Card" },
+      cash: { color: "#F6E9EB", textColor: "#1F2937", labelKey: "paymentMethods.cash", defaultName: "Cash" },
+      "apple pay": { color: "#D5869D", textColor: "#FFFFFF", labelKey: "paymentMethods.applePay", defaultName: "Apple pay" },
+      "g pay": { color: "#B93856", textColor: "#FFFFFF", labelKey: "paymentMethods.gPay", defaultName: "G pay" },
+      "gift coupon": { color: "#6A1B9A", textColor: "#FFFFFF", labelKey: "paymentMethods.giftCoupon", defaultName: "Gift Coupons" },
+      "gift coupons": { color: "#6A1B9A", textColor: "#FFFFFF", labelKey: "paymentMethods.giftCoupons", defaultName: "Gift Coupons" }
+    };
+
+    const mapped = entries.map(([rawKey, val]) => {
+      const lower = rawKey.toLowerCase().trim();
+      const conf = colorConfig[lower] || {
+        color: "#999999",
+        textColor: "#FFFFFF",
+        labelKey: null,
+        defaultName: rawKey
+      };
+      const displayName = conf.labelKey ? t(conf.labelKey, conf.defaultName) : conf.defaultName;
+      return {
+        name: displayName,
+        value: Number(val) || 0,
+        color: conf.color,
+        textColor: conf.textColor
+      };
+    });
+
+    const withValues = mapped.filter(i => i.value > 0);
+
+    return {
+      paymentData: withValues.length > 0 ? withValues : mapped,
+      hasPaymentData: mapped.some(i => i.value > 0)
+    };
   }, [reportData?.payment, t]);
 
   // Legend items on the right of Payments
@@ -239,7 +222,7 @@ export default function ReportsSection() {
     { name: t('paymentMethods.giftCoupon', 'Gift Coupon'), color: "#6A1B9A" },
   ];
 
-  // Custom inside-slice label for PieChart matching Figma design
+  // Custom inside-slice label
   const renderCustomizedPieLabel = ({ cx, cy, midAngle, innerRadius, outerRadius, percent, name, value, textColor }) => {
     if (percent < 0.05) return null;
     const RADIAN = Math.PI / 180;
@@ -266,61 +249,68 @@ export default function ReportsSection() {
     );
   };
 
-  // 11 Stat Cards matching Figma grid layout 1:1
+  // Stat cards — no fabricated values
   const metrics = [
     {
       label: t('metrics.totalOrders', 'Total Orders'),
-      value: reportData?.totalOrders ?? reportData?.TotalOrders ?? 46
+      value: formatPlainNumber(reportData?.totalOrders ?? reportData?.TotalOrders)
     },
     {
       label: t('metrics.avgOrderValue', 'Avg Order Value'),
-      value: formatReportPrice(reportData?.avgOrderValue ?? 1899)
+      value: formatReportPrice(reportData?.avgOrderValue ?? reportData?.AvgOrderValue)
     },
     {
       label: t('metrics.voids', 'Voids'),
-      value: formatReportPrice(reportData?.voids ?? 1899)
+      value: formatReportPrice(reportData?.voids ?? reportData?.Voids)
     },
     {
       label: t('metrics.refunds', 'Refunds'),
-      value: formatReportPrice(reportData?.refunds ?? 1899)
+      value: formatReportPrice(reportData?.refunds ?? reportData?.Refunds)
     },
     {
       label: t('metrics.totalCustomer', 'Total Customer'),
-      value: (reportData?.totalCustomers ?? (Number(reportData?.newCustomers || 0) + Number(reportData?.repeatCustomers || 0))) || 68
+      value: formatPlainNumber(
+        reportData?.totalCustomers ??
+          (Number(reportData?.newCustomers || 0) + Number(reportData?.repeatCustomers || 0) || undefined)
+      )
     },
     {
       label: t('metrics.newCustomer', 'New Customer'),
-      value: reportData?.newCustomers ?? reportData?.NewCustomers ?? 8
+      value: formatPlainNumber(reportData?.newCustomers ?? reportData?.NewCustomers)
     },
     {
       label: t('metrics.repeatCustomer', 'Repeat Customer'),
-      value: reportData?.repeatCustomers ?? reportData?.RepeatCustomers ?? 60
+      value: formatPlainNumber(reportData?.repeatCustomers ?? reportData?.RepeatCustomers)
     },
     {
       label: t('metrics.totalCustomer', 'Total Customer'),
-      value: reportData?.totalCustomerOverall ?? 99
+      value: formatPlainNumber(reportData?.totalCustomerOverall ?? reportData?.TotalCustomerOverall)
     },
     {
       label: t('metrics.netSales', 'Net Sales'),
-      value: formatReportPrice(reportData?.netSales ?? reportData?.TotalSales ?? 11899)
+      value: formatReportPrice(reportData?.netSales ?? reportData?.TotalSales)
     },
     {
       label: t('metrics.grossSales', 'Gross Sales'),
-      value: formatReportPrice(reportData?.grossSales ?? (reportData?.TotalSales ? reportData.TotalSales * 1.1 : 9008))
+      value: formatReportPrice(reportData?.grossSales ?? reportData?.GrossSales)
     },
     {
       label: t('metrics.tax', 'Tax'),
-      value: formatReportPrice(reportData?.tax ?? (reportData?.TotalSales ? reportData.TotalSales * 0.1 : 2323))
+      value: formatReportPrice(reportData?.tax ?? reportData?.Tax)
     }
   ];
 
-  // CSV Export Action
+  // CSV Export
   const handleExport = () => {
     try {
       const itemsToExport = topSellersList;
+      if (itemsToExport.length === 0) {
+        toast.info(t('messages.nothingToExport', 'No data available to export'));
+        return;
+      }
       const csvHeader = "Item,Category,Plates Sold,Revenue,Share\n";
       const csvRows = itemsToExport
-        .map(i => `"${i.name}","${i.badge}",${i.plates},"${i.revXOF}","${i.prog}%"`)
+        .map(i => `"${i.name}","${i.badge}",${i.plates},"${i.revXOF ?? ''}","${i.prog}%"`)
         .join("\n");
       const blob = new Blob([csvHeader + csvRows], { type: 'text/csv;charset=utf-8;' });
       const url = URL.createObjectURL(blob);
@@ -351,27 +341,29 @@ export default function ReportsSection() {
     </div>
   );
 
-  // Date range display helper
+  // Date range display: user selection takes precedence over backend range
   const dateRangeDisplay = useMemo(() => {
-    if (reportData?.dateRange?.start && reportData?.dateRange?.end) {
-      try {
-        const s = new Date(reportData.dateRange.start);
-        const e = new Date(reportData.dateRange.end);
-        const loc = i18n?.language?.startsWith('fr') ? 'fr-FR' : 'en-US';
-        const startStr = s.toLocaleDateString(loc, { month: 'short', day: 'numeric' });
-        const endStr = e.toLocaleDateString(loc, { month: 'short', day: 'numeric', year: 'numeric' });
-        return `${startStr} - ${endStr}`;
-      } catch (err) {
-        return "May 19 - May 25, 2026";
-      }
-    }
-    return "May 19 - May 25, 2026";
-  }, [reportData?.dateRange, i18n?.language]);
+    const src = dateRange.start && dateRange.end
+      ? { start: dateRange.start, end: dateRange.end }
+      : reportData?.dateRange;
 
-  // Skeleton Loader Component
+    if (!src?.start || !src?.end) return EMPTY_DISPLAY;
+
+    try {
+      const s = new Date(src.start);
+      const e = new Date(src.end);
+      const loc = i18n?.language?.startsWith('fr') ? 'fr-FR' : 'en-US';
+      const startStr = s.toLocaleDateString(loc, { month: 'short', day: 'numeric' });
+      const endStr = e.toLocaleDateString(loc, { month: 'short', day: 'numeric', year: 'numeric' });
+      return `${startStr} - ${endStr}`;
+    } catch (err) {
+      return EMPTY_DISPLAY;
+    }
+  }, [dateRange, reportData?.dateRange, i18n?.language]);
+
+  // Skeleton Loader
   const ReportsSkeleton = () => (
     <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 animate-pulse">
-      {/* Left Column Skeleton */}
       <div className="lg:col-span-7 flex flex-col gap-6 min-w-0">
         <div className="p-[1.5px] rounded-[24px] bg-gray-200">
           <div className="bg-white rounded-[23px] p-6 shadow-sm">
@@ -381,12 +373,6 @@ export default function ReportsSection() {
                 <div className="h-4 bg-gray-200 rounded w-56"></div>
               </div>
               <div className="h-9 w-24 bg-gray-200 rounded-lg"></div>
-            </div>
-            <div className="flex flex-wrap gap-3 mb-6">
-              <div className="h-8 w-44 bg-gray-200 rounded-lg"></div>
-              <div className="h-8 w-32 bg-gray-200 rounded-lg"></div>
-              <div className="h-8 w-32 bg-gray-200 rounded-lg"></div>
-              <div className="h-8 w-32 bg-gray-200 rounded-lg"></div>
             </div>
             <div className="space-y-4">
               {[1, 2, 3, 4].map(i => (
@@ -399,16 +385,12 @@ export default function ReportsSection() {
                     </div>
                   </div>
                   <div className="h-6 w-16 bg-gray-200 rounded"></div>
-                  <div className="h-6 w-16 bg-gray-200 rounded"></div>
-                  <div className="h-6 w-20 bg-gray-200 rounded"></div>
                   <div className="h-6 w-20 bg-gray-200 rounded"></div>
                 </div>
               ))}
             </div>
-            <div className="mt-6 h-20 bg-gray-100 rounded-xl"></div>
           </div>
         </div>
-
         <div className="p-[1.5px] rounded-[24px] bg-gray-200">
           <div className="bg-white rounded-[23px] p-6 shadow-sm flex items-center justify-between min-h-[260px]">
             <div className="w-48 h-48 bg-gray-200 rounded-full mx-auto"></div>
@@ -420,8 +402,6 @@ export default function ReportsSection() {
           </div>
         </div>
       </div>
-
-      {/* Right Column Skeleton */}
       <div className="lg:col-span-5 grid grid-cols-2 gap-4 h-fit">
         {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11].map(i => (
           <div key={i} className="p-[1.5px] rounded-[20px] bg-gray-200 h-[105px]">
@@ -437,7 +417,6 @@ export default function ReportsSection() {
 
   return (
     <div className="p-4 sm:p-8 font-sans bg-[#F9FAFB] min-h-screen">
-      
       {/* Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8">
         <div>
@@ -450,8 +429,7 @@ export default function ReportsSection() {
             })}
           </p>
         </div>
-        
-        {/* Custom Period Dropdown */}
+
         <div className="relative mt-4 sm:mt-0" ref={periodDropdownRef}>
           <button
             onClick={() => setOpenPeriodDropdown(!openPeriodDropdown)}
@@ -461,7 +439,7 @@ export default function ReportsSection() {
             <span>{options.find(o => o.value === selected)?.label}</span>
             <FiChevronDown size={18} className={`transition-transform duration-200 ${openPeriodDropdown ? 'rotate-180' : ''}`} />
           </button>
-          
+
           {openPeriodDropdown && (
             <div className="absolute right-0 mt-2 w-52 bg-white rounded-xl shadow-[0_10px_35px_rgba(0,0,0,0.12)] border border-gray-100 p-2 z-50">
               <div className="flex flex-col">
@@ -491,15 +469,11 @@ export default function ReportsSection() {
         <ReportsSkeleton />
       ) : (
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-          
-          {/* LEFT COLUMN: Top Sellers & Payments */}
+          {/* LEFT COLUMN */}
           <div className="lg:col-span-7 flex flex-col gap-6 min-w-0">
-            
-            {/* TOP SELLERS CARD */}
+            {/* TOP SELLERS */}
             <div className="p-[1.5px] rounded-[24px] bg-gradient-to-r from-[#6A1B9A] to-[#D32F2F]">
               <div className="bg-white rounded-[23px] p-5 sm:p-6 shadow-sm overflow-hidden">
-                
-                {/* Header & Export Button */}
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
                   <div>
                     <h2 className="text-[22px] sm:text-[24px] font-bold text-black tracking-tight mb-0.5">
@@ -520,13 +494,71 @@ export default function ReportsSection() {
 
                 {/* Filter Row */}
                 <div className="flex flex-wrap items-center gap-2 mb-6 text-[11.5px] text-gray-700">
-                  {/* Date Filter */}
-                  <div className="flex items-center gap-1.5 px-2.5 py-1.5 border border-gray-200 rounded-lg bg-white shadow-xs font-medium cursor-default whitespace-nowrap">
-                    <FiCalendar size={13} className="text-gray-500 flex-shrink-0" />
-                    <span>{dateRangeDisplay}</span>
+                  {/* Interactive Date Range Picker */}
+                  <div className="relative" ref={dateRef}>
+                    <button
+                      onClick={() => setOpenDatePicker(!openDatePicker)}
+                      className="flex items-center gap-1.5 px-2.5 py-1.5 border border-gray-200 rounded-lg bg-white shadow-xs font-medium hover:bg-gray-50 transition-colors whitespace-nowrap"
+                    >
+                      <FiCalendar size={13} className="text-gray-500 flex-shrink-0" />
+                      <span>{dateRangeDisplay}</span>
+                      <FiChevronDown size={13} className={`text-gray-400 transition-transform duration-200 ${openDatePicker ? 'rotate-180' : ''}`} />
+                    </button>
+
+                    {openDatePicker && (
+                      <div className="absolute left-0 mt-1 bg-white rounded-lg shadow-lg border border-gray-100 p-3 z-40 w-64">
+                        <label className="block text-[11px] font-semibold text-gray-600 mb-1">
+                          {t('filters.startDate', 'Start date')}
+                        </label>
+                        <input
+                          type="date"
+                          value={dateRange.start ? dateRange.start.slice(0, 10) : ''}
+                          onChange={(e) =>
+                            setDateRange({
+                              ...dateRange,
+                              start: e.target.value ? `${e.target.value}T00:00:00.000Z` : null
+                            })
+                          }
+                          className="w-full mb-3 px-2 py-1.5 text-xs border border-gray-200 rounded focus:outline-none focus:ring-1 focus:ring-[#6A1B9A]"
+                        />
+
+                        <label className="block text-[11px] font-semibold text-gray-600 mb-1">
+                          {t('filters.endDate', 'End date')}
+                        </label>
+                        <input
+                          type="date"
+                          value={dateRange.end ? dateRange.end.slice(0, 10) : ''}
+                          onChange={(e) =>
+                            setDateRange({
+                              ...dateRange,
+                              end: e.target.value ? `${e.target.value}T23:59:59.999Z` : null
+                            })
+                          }
+                          className="w-full mb-3 px-2 py-1.5 text-xs border border-gray-200 rounded focus:outline-none focus:ring-1 focus:ring-[#6A1B9A]"
+                        />
+
+                        <div className="flex justify-between gap-2">
+                          <button
+                            onClick={() => {
+                              setDateRange({ start: null, end: null });
+                              setOpenDatePicker(false);
+                            }}
+                            className="text-[11px] px-2 py-1 text-gray-600 hover:bg-gray-50 rounded"
+                          >
+                            {t('filters.clear', 'Clear')}
+                          </button>
+                          <button
+                            onClick={() => setOpenDatePicker(false)}
+                            className="text-[11px] px-3 py-1 bg-[#6A1B9A] text-white rounded font-semibold hover:bg-[#5A1786]"
+                          >
+                            {t('filters.apply', 'Apply')}
+                          </button>
+                        </div>
+                      </div>
+                    )}
                   </div>
 
-                  {/* Branches Filter Dropdown */}
+                  {/* Branch */}
                   <div className="relative" ref={branchRef}>
                     <button
                       onClick={() => setOpenBranch(!openBranch)}
@@ -551,7 +583,7 @@ export default function ReportsSection() {
                     )}
                   </div>
 
-                  {/* Channels Filter Dropdown */}
+                  {/* Channel */}
                   <div className="relative" ref={channelRef}>
                     <button
                       onClick={() => setOpenChannel(!openChannel)}
@@ -576,7 +608,7 @@ export default function ReportsSection() {
                     )}
                   </div>
 
-                  {/* Services Filter Dropdown */}
+                  {/* Service */}
                   <div className="relative" ref={serviceRef}>
                     <button
                       onClick={() => setOpenService(!openService)}
@@ -602,84 +634,80 @@ export default function ReportsSection() {
                   </div>
                 </div>
 
-                {/* List of Top Sellers Items */}
-                <div className="divide-y divide-gray-100">
-                  {topSellersList.map((item, idx) => (
-                    <div key={idx} className="flex flex-wrap sm:flex-nowrap items-center justify-between py-3.5 gap-4">
-                      
-                      {/* Left: Image & Title */}
-                      <div className="flex items-center gap-3.5 flex-1 min-w-0">
-                        <div className="w-12 h-12 rounded-xl overflow-hidden flex-shrink-0 bg-gray-100 shadow-2xs">
-                          <img
-                            src={item.image}
-                            alt={item.name}
-                            className="w-full h-full object-cover"
-                            onError={(e) => {
-                              e.target.onerror = null;
-                              e.target.src = pizzaImg;
-                            }}
-                          />
-                        </div>
-                        <div className="min-w-0">
-                          <h4 className="text-[15px] font-bold text-black leading-tight truncate">
-                            {item.name}
-                          </h4>
-                          <p className="text-[12px] text-gray-500 leading-tight mt-1 truncate">
-                            {item.desc}
-                          </p>
-                        </div>
-                      </div>
-
-                      {/* Right Data Columns */}
-                      <div className="flex items-center gap-4 sm:gap-6 flex-shrink-0 flex-wrap sm:flex-nowrap w-full sm:w-auto justify-between sm:justify-end">
-                        
-                        {/* Category Badge */}
-                        <div className="w-20 flex-shrink-0">
-                          <span className={`px-2.5 py-1 rounded-[6px] text-[11px] font-bold tracking-wide ${item.badgeColor}`}>
-                            {item.badge}
-                          </span>
-                        </div>
-
-                        {/* Plated Count */}
-                        <div className="text-right w-16 flex-shrink-0">
-                          <div className="text-[14px] font-bold text-black">
-                            {item.plates}
-                          </div>
-                          <div className="text-[11px] text-gray-500">
-                            {t('summary.plated', 'plated')}
-                          </div>
-                        </div>
-
-                        {/* Revenue */}
-                        <div className="text-right w-24 flex-shrink-0">
-                          <div className="text-[14px] font-bold text-black">
-                            {formatReportPrice(item.revXOF)}
-                          </div>
-                          <div className="text-[11px] text-gray-500 whitespace-nowrap">
-                            {item.revPct}% {t('summary.ofTotal', 'of total')}
-                          </div>
-                        </div>
-
-                        {/* Progress Bar & Percentage */}
-                        <div className="flex flex-col items-end gap-1 w-20 sm:w-24 flex-shrink-0">
-                          <span className="text-[12px] font-bold text-black leading-none">
-                            {item.prog}%
-                          </span>
-                          <div className="w-full h-[6px] bg-gray-200 rounded-full overflow-hidden">
-                            <div
-                              className="h-full rounded-full bg-gradient-to-r from-[#6A1B9A] to-[#D32F2F]"
-                              style={{ width: `${Math.min(item.prog, 100)}%` }}
+                {/* Top Sellers List */}
+                {topSellersList.length === 0 ? (
+                  <div className="py-12 text-center text-gray-500 text-sm">
+                    {t('messages.noTopSellers', 'No top sellers available for this period')}
+                  </div>
+                ) : (
+                  <div className="divide-y divide-gray-100">
+                    {topSellersList.map((item, idx) => (
+                      <div key={idx} className="flex flex-wrap sm:flex-nowrap items-center justify-between py-3.5 gap-4">
+                        <div className="flex items-center gap-3.5 flex-1 min-w-0">
+                          <div className="w-12 h-12 rounded-xl overflow-hidden flex-shrink-0 bg-gray-100 shadow-2xs">
+                            <img
+                              src={item.image}
+                              alt={item.name}
+                              className="w-full h-full object-cover"
+                              onError={(e) => {
+                                e.target.onerror = null;
+                                e.target.src = pizzaImg;
+                              }}
                             />
                           </div>
+                          <div className="min-w-0">
+                            <h4 className="text-[15px] font-bold text-black leading-tight truncate">
+                              {item.name}
+                            </h4>
+                            <p className="text-[12px] text-gray-500 leading-tight mt-1 truncate">
+                              {item.desc}
+                            </p>
+                          </div>
                         </div>
 
+                        <div className="flex items-center gap-4 sm:gap-6 flex-shrink-0 flex-wrap sm:flex-nowrap w-full sm:w-auto justify-between sm:justify-end">
+                          <div className="w-20 flex-shrink-0">
+                            <span className={`px-2.5 py-1 rounded-[6px] text-[11px] font-bold tracking-wide ${item.badgeColor}`}>
+                              {item.badge}
+                            </span>
+                          </div>
+
+                          <div className="text-right w-16 flex-shrink-0">
+                            <div className="text-[14px] font-bold text-black">
+                              {formatPlainNumber(item.plates)}
+                            </div>
+                            <div className="text-[11px] text-gray-500">
+                              {t('summary.plated', 'plated')}
+                            </div>
+                          </div>
+
+                          <div className="text-right w-24 flex-shrink-0">
+                            <div className="text-[14px] font-bold text-black">
+                              {formatReportPrice(item.revXOF)}
+                            </div>
+                            <div className="text-[11px] text-gray-500 whitespace-nowrap">
+                              {item.revPct}% {t('summary.ofTotal', 'of total')}
+                            </div>
+                          </div>
+
+                          <div className="flex flex-col items-end gap-1 w-20 sm:w-24 flex-shrink-0">
+                            <span className="text-[12px] font-bold text-black leading-none">
+                              {item.prog}%
+                            </span>
+                            <div className="w-full h-[6px] bg-gray-200 rounded-full overflow-hidden">
+                              <div
+                                className="h-full rounded-full bg-gradient-to-r from-[#6A1B9A] to-[#D32F2F]"
+                                style={{ width: `${Math.min(item.prog, 100)}%` }}
+                              />
+                            </div>
+                          </div>
+                        </div>
                       </div>
+                    ))}
+                  </div>
+                )}
 
-                    </div>
-                  ))}
-                </div>
-
-                {/* Footer Total Summary Box */}
+                {/* Footer summary — computed from real data only */}
                 <div className="mt-6 flex flex-wrap items-center justify-between bg-[#FBF9FD] rounded-2xl p-4 border border-[#F0EBF5] gap-4">
                   <div className="flex items-center gap-3">
                     <div className="w-10 h-10 bg-[#EFE8F9] rounded-xl flex items-center justify-center text-[#6A1B9A] flex-shrink-0">
@@ -690,18 +718,20 @@ export default function ReportsSection() {
                         {t('summary.totalSummary', 'Total Summary')}
                       </h4>
                       <p className="text-[12px] text-gray-500">
-                        {t('summary.itemsCount', '{{count}} items', { count: 10 })}
+                        {t('summary.itemsCount', '{{count}} items', { count: topSellersList.length })}
                       </p>
                     </div>
                   </div>
-                  
+
                   <div className="flex items-center gap-6 sm:gap-8 flex-wrap">
                     <div>
                       <div className="text-[11px] text-gray-500 mb-0.5">
                         {t('summary.totalQuantity', 'Total Quantity')}
                       </div>
                       <div className="text-[15px] font-bold text-black">
-                        1,274
+                        {formatPlainNumber(
+                          topSellersList.reduce((s, i) => s + (Number(i.plates) || 0), 0)
+                        )}
                       </div>
                       <div className="text-[10px] text-gray-400">
                         {t('summary.platesGlasses', 'Plates / Glasses')}
@@ -713,92 +743,59 @@ export default function ReportsSection() {
                         {t('summary.totalRevenue', 'Total Revenue')}
                       </div>
                       <div className="text-[15px] font-bold text-black">
-                        {formatReportPrice(9000)}
+                        {formatReportPrice(reportData?.netSales ?? reportData?.TotalSales)}
                       </div>
                       <div className="text-[10px] text-gray-400">
                         {t('summary.hundredPct', '100% of total')}
                       </div>
                     </div>
-
-                    <div className="flex items-center gap-3">
-                      <div>
-                        <div className="text-[11px] text-gray-500 mb-0.5">
-                          {t('summary.itemsMix', 'Items Mix')}
-                        </div>
-                        <div className="text-[15px] font-bold text-black">
-                          51.5%
-                        </div>
-                        <div className="text-[10px] text-gray-400">
-                          {t('summary.ofTotalSales', 'Of total sales')}
-                        </div>
-                      </div>
-
-                      {/* SVG Circular Progress Ring */}
-                      <div className="relative w-8 h-8 flex items-center justify-center flex-shrink-0">
-                        <svg className="w-8 h-8 transform -rotate-90" viewBox="0 0 36 36">
-                          <path
-                            className="text-gray-200"
-                            strokeWidth="3.8"
-                            stroke="currentColor"
-                            fill="none"
-                            d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
-                          />
-                          <path
-                            stroke="#6A1B9A"
-                            strokeWidth="3.8"
-                            strokeDasharray="51.5, 100"
-                            strokeLinecap="round"
-                            fill="none"
-                            d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
-                          />
-                        </svg>
-                      </div>
-                    </div>
                   </div>
                 </div>
-
               </div>
             </div>
 
-            {/* PAYMENTS CARD */}
+            {/* PAYMENTS */}
             <div className="p-[1.5px] rounded-[24px] bg-gradient-to-r from-[#6A1B9A] to-[#D32F2F]">
               <div className="bg-white rounded-[23px] p-6 shadow-sm">
-                
                 <h2 className="text-[22px] font-bold text-black mb-4">
                   {t('payments', 'Payments')}
                 </h2>
-                
+
                 <div className="flex flex-col sm:flex-row items-center justify-around gap-6">
-                  {/* Pie Chart */}
                   <div className="w-[230px] h-[230px] relative flex items-center justify-center">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <PieChart>
-                        <Pie
-                          data={paymentData}
-                          cx="50%"
-                          cy="50%"
-                          innerRadius={0}
-                          outerRadius={105}
-                          dataKey="value"
-                          stroke="#FFFFFF"
-                          strokeWidth={1.5}
-                          labelLine={false}
-                          label={renderCustomizedPieLabel}
-                          isAnimationActive={false}
-                        >
-                          {paymentData.map((entry, index) => (
-                            <Cell key={`cell-${index}`} fill={entry.color} />
-                          ))}
-                        </Pie>
-                        <Tooltip
-                          formatter={(val, name) => [`${val}`, name]}
-                          contentStyle={{ borderRadius: '8px', border: '1px solid #E5E7EB', fontSize: '12px' }}
-                        />
-                      </PieChart>
-                    </ResponsiveContainer>
+                    {hasPaymentData ? (
+                      <ResponsiveContainer width="100%" height="100%">
+                        <PieChart>
+                          <Pie
+                            data={paymentData}
+                            cx="50%"
+                            cy="50%"
+                            innerRadius={0}
+                            outerRadius={105}
+                            dataKey="value"
+                            stroke="#FFFFFF"
+                            strokeWidth={1.5}
+                            labelLine={false}
+                            label={renderCustomizedPieLabel}
+                            isAnimationActive={false}
+                          >
+                            {paymentData.map((entry, index) => (
+                              <Cell key={`cell-${index}`} fill={entry.color} />
+                            ))}
+                          </Pie>
+                          <Tooltip
+                            formatter={(val, name) => [`${val}`, name]}
+                            contentStyle={{ borderRadius: '8px', border: '1px solid #E5E7EB', fontSize: '12px' }}
+                          />
+                        </PieChart>
+                      </ResponsiveContainer>
+                    ) : (
+                      <div className="w-48 h-48 rounded-full border-8 border-dashed border-gray-200 flex items-center justify-center text-gray-400 text-sm text-center px-6">
+                        {t('messages.noPaymentData', 'No payment data for this period')}
+                      </div>
+                    )}
                   </div>
-                  
-                  {/* Legend matching Figma */}
+
                   <div className="flex flex-col gap-3.5 min-w-[150px]">
                     {legendItems.map((item, i) => (
                       <div key={i} className="flex items-center gap-3">
@@ -813,19 +810,16 @@ export default function ReportsSection() {
                     ))}
                   </div>
                 </div>
-
               </div>
             </div>
-
           </div>
 
-          {/* RIGHT COLUMN: 11 Stat Cards in 2-Column Grid */}
+          {/* RIGHT COLUMN — stat cards */}
           <div className="lg:col-span-5 grid grid-cols-2 gap-4 h-fit">
             {metrics.map((m, idx) => (
               <StatCard key={idx} label={m.label} value={m.value} />
             ))}
           </div>
-
         </div>
       )}
     </div>

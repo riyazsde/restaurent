@@ -1,70 +1,114 @@
 import { useQuery, useMutation } from '@tanstack/react-query';
 import feedbackService from '../../services/feedbackService';
-import reviewService from '../../services/reviewService';
 
-const getStarEmoji = (starCount) => {
-    if (starCount >= 5) return '😍';
-    if (starCount >= 4) return '😊';
-    if (starCount >= 3) return '😐';
-    if (starCount >= 2) return '😕';
-    return '😡';
+// ---------------------------------------------------------------------------
+// Label ↔ emoji mapping (matches Figma)
+// ---------------------------------------------------------------------------
+const LABEL_TO_EMOJI = {
+    'Loved it': '😍',
+    'Good':     '😊',
+    'Average':  '😐',
+    'Bad':      '😕',
+    'Worst':    '😡',
 };
+const LABEL_ORDER = ['Loved it', 'Good', 'Average', 'Bad', 'Worst'];
 
-const getStarLabel = (starCount) => {
-    if (starCount >= 5) return 'Loved it';
-    if (starCount >= 4) return 'Good';
-    if (starCount >= 3) return 'Average';
-    if (starCount >= 2) return 'Bad';
-    return 'Worst';
-};
+const emojiFor = (label) => LABEL_TO_EMOJI[label] ?? '😐';
 
+// ---------------------------------------------------------------------------
+// Fetch every page of /master/feedback/getall
+// ---------------------------------------------------------------------------
+async function fetchAllFeedbacks(params = {}) {
+    const perPage = 100;
+    let page = 1;
+    let all = [];
+    let totalPages = 1;
+
+    do {
+        const res = await feedbackService.getAllFeedbacks({
+            ...params,
+            page,
+            limit: perPage,
+        });
+        const payload = res?.data ?? {};
+        const list = payload.feedbacks ?? [];
+        all = all.concat(list);
+        totalPages = payload?.pagination?.total_pages ?? 1;
+        page += 1;
+    } while (page <= totalPages);
+
+    return all;
+}
+
+// ---------------------------------------------------------------------------
+// Aggregate `ratings` into overall counts + per-category dominant
+// ---------------------------------------------------------------------------
+const CATEGORIES = [
+    { key: 'overall_feedback', title: 'Overall Feedback' },
+    { key: 'food_quality',     title: 'Food Quality' },
+    { key: 'ambiance',         title: 'Ambiance' },
+    { key: 'staff_behavior',   title: 'Staff Behavior' },
+    { key: 'services',         title: 'Services' },
+    { key: 'would_recommend',  title: 'Would You Recommend?' },
+];
+
+function aggregate(records) {
+    // overall_feedback counts → left-hand list
+    const overallMap = { 'Loved it': 0, 'Good': 0, 'Average': 0, 'Bad': 0, 'Worst': 0 };
+    records.forEach((r) => {
+        const label = r?.ratings?.overall_feedback;
+        if (label && overallMap[label] !== undefined) overallMap[label] += 1;
+    });
+
+    const overallCounts = LABEL_ORDER.map((label) => ({
+        label,
+        emoji: emojiFor(label),
+        count: overallMap[label],
+    }));
+
+    // Per-category dominant label → 6 metric cards
+    const metrics = CATEGORIES.map(({ key, title }) => {
+        const counts = { 'Loved it': 0, 'Good': 0, 'Average': 0, 'Bad': 0, 'Worst': 0 };
+        records.forEach((r) => {
+            const label = r?.ratings?.[key];
+            if (label && counts[label] !== undefined) counts[label] += 1;
+        });
+
+        const total = Object.values(counts).reduce((s, n) => s + n, 0);
+        if (total === 0) {
+            return { title, emoji: '😐', label: 'No data' };
+        }
+
+        // Pick the label with the highest count (ties → order in LABEL_ORDER)
+        const dominant = LABEL_ORDER.reduce(
+            (best, label) => (counts[label] > counts[best] ? label : best),
+            LABEL_ORDER[0]
+        );
+
+        return { title, emoji: emojiFor(dominant), label: dominant };
+    });
+
+    return { overallCounts, metrics };
+}
+
+// ---------------------------------------------------------------------------
+// Summary hook
+// ---------------------------------------------------------------------------
 export const useFeedbackSummary = (filters = {}) => {
     return useQuery({
         queryKey: ['feedbackSummary', filters],
         queryFn: async () => {
-            const [feedbackTypesRes, reviewsRes] = await Promise.all([
-                feedbackService.getAllFeedbackTypes(1, 100),
-                reviewService.getAllReviews(1, 100)
-            ]);
-
-            const reviews = reviewsRes?.data?.reviews || [];
-            const feedbackTypes = feedbackTypesRes?.data?.feedback_types || [];
-
-            // 1. Calculate overall counts
-            const summaryMap = { 'Loved it': 0, 'Good': 0, 'Average': 0, 'Bad': 0, 'Worst': 0 };
-            reviews.forEach(review => {
-                const label = getStarLabel(review.ReviewStarCount);
-                if (summaryMap[label] !== undefined) summaryMap[label]++;
-            });
-
-            const overallCounts = [
-                { label: 'Loved it', emoji: '😍', count: summaryMap['Loved it'] },
-                { label: 'Good', emoji: '😊', count: summaryMap['Good'] },
-                { label: 'Average', emoji: '😐', count: summaryMap['Average'] },
-                { label: 'Bad', emoji: '😕', count: summaryMap['Bad'] },
-                { label: 'Worst', emoji: '😡', count: summaryMap['Worst'] }
-            ];
-
-            // 2. Calculate category metrics
-            const metrics = feedbackTypes.map(ft => {
-                const categoryReviews = reviews.filter(r => r.Review_Type_id?.Review_type_id === ft.feedback_type_id);
-                if (categoryReviews.length === 0) {
-                    return { title: ft.feedback_type, emoji: '😐', label: 'No data' };
-                }
-                const avgStars = categoryReviews.reduce((sum, r) => sum + r.ReviewStarCount, 0) / categoryReviews.length;
-                return {
-                    title: ft.feedback_type,
-                    emoji: getStarEmoji(avgStars),
-                    label: getStarLabel(avgStars)
-                };
-            });
-
-            return { overallCounts, metrics };
+            const records = await fetchAllFeedbacks(filters);
+            return aggregate(records);
         },
         keepPreviousData: true,
+        staleTime: 60_000,
     });
 };
 
+// ---------------------------------------------------------------------------
+// Other hooks (unchanged)
+// ---------------------------------------------------------------------------
 export const useFeedbacks = (params = { page: 1, limit: 10 }) => {
     return useQuery({
         queryKey: ['feedbacks', params],
@@ -84,22 +128,11 @@ export const useFeedbackTypes = (page = 1, limit = 100) => {
     });
 };
 
-export const useReviews = (page = 1, limit = 100) => {
-    return useQuery({
-        queryKey: ['reviews', page, limit],
-        queryFn: async () => {
-            const res = await reviewService.getAllReviews(page, limit);
-            return res?.data?.reviews || res?.data || [];
-        },
-        staleTime: 60 * 1000,
-    });
-};
-
 export const useGetFeedbackByIdMutation = () => {
     return useMutation({
         mutationFn: async (id) => {
             const res = await feedbackService.getFeedbackById(id);
             return res?.data || res;
-        }
+        },
     });
 };
