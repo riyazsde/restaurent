@@ -177,10 +177,7 @@ const LandingPage = () => {
           <button onClick={() => document.getElementById('about')?.scrollIntoView({ behavior: 'smooth' })} className="text-gray-300 hover:text-white transition-colors cursor-pointer" style={{ color: '#d1d5db' }}>About Us</button>
         </div>
         <div className="flex items-center gap-2">
-          <LanguageSelector
-            variant="auth"
-            className="absolute right-0 top-[calc(100%+0.5rem)] sm:static"
-          />
+          
           <button
             onClick={() => {
               if (isLoggedIn) {
