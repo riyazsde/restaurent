@@ -13,7 +13,7 @@ const RegisterPage = () => {
     const navigate = useNavigate();
     const [businessName, setBusinessName] = useState("");
     const [businessType, setBusinessType] = useState("Restaurant");
-    const [countryId, setCountryId] = useState("1");
+    const [countryId, setCountryId] = useState("");
     
     // TanStack Query for countries
     const { data: rawCountries = [] } = useCountries();
@@ -63,6 +63,11 @@ const RegisterPage = () => {
             return;
         }
 
+        if (!countryId) {
+            toast.error(t('register.countryRequired', 'Please select your country.'));
+            return;
+        }
+
         if (!password) {
             toast.error(t('register.passwordRequired', 'Please enter a password.'));
             return;
@@ -78,7 +83,7 @@ const RegisterPage = () => {
                 name: businessName.trim(),
                 businessName: businessName.trim(),
                 businessType,
-                Country_id: Number(countryId) || 1,
+                Country_id: Number(countryId),
                 email: email.trim(),
                 password,
                 confirmPassword,
@@ -196,10 +201,12 @@ const RegisterPage = () => {
                                     {t('register.country', 'Country')}
                                 </label>
                                 <select
+                                    required
                                     value={countryId}
                                     onChange={(e) => setCountryId(e.target.value)}
                                     className="w-full p-2.5 md:p-3 rounded-md bg-gradient-to-b from-[#fbefff] to-[#fdf4f4] text-gray-700 focus:outline-none focus:ring-1 focus:ring-purple-400 text-sm md:text-base cursor-pointer"
                                 >
+                                    <option value="">{t('register.countryPlaceholder', 'Select Country')}</option>
                                     {countries.map((c) => (
                                         <option key={c.id} value={c.id}>{c.name}</option>
                                     ))}
