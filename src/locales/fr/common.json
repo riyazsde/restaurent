@@ -174,6 +174,8 @@
   "floorPlan": {
     "title": "Table",
     "subtitle": "Plan d'étage",
+    "selectFloor": "Sélectionner un étage",
+    "noFloors": "Aucun étage disponible",
     "all": "Tous",
     "reserved": "Réservé",
     "ready": "Prêt",
@@ -202,6 +204,8 @@
     "processing": "Traitement...",
     "paymentSuccess": "Paiement réussi !",
     "paymentSuccessDesc": "Votre paiement a été effectué avec succès.",
+    "orderUpdateSuccess": "Commande mise à jour avec succès.",
+    "orderUpdateError": "Échec de la mise à jour de la commande.",
     "totalPayment": "Paiement total",
     "orderNumber": "Numéro de commande",
     "dateTime": "Date et heure",

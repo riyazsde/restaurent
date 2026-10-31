@@ -65,7 +65,7 @@ const SlotModal = ({
             const hourNum = parseInt(h, 10);
             const ampm = hourNum >= 12 ? 'PM' : 'AM';
             const h12 = hourNum % 12 || 12;
-            formattedTime = `${String(h12).padStart(2, '0')}:${m} ${ampm.toLowerCase()}`;
+            formattedTime = `${String(h12).padStart(2, '0')}:${m} ${ampm}`;
         }
 
         onSave({

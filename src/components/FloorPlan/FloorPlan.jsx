@@ -50,6 +50,10 @@ const formatShortTableCode = (table, fallbackIndex = 0) => {
     return `t-${String(fallbackIndex + 1).padStart(2, "0")}`;
 };
 
+const getFloorId = (floor) => floor?.Floor_id ?? floor?._id ?? floor?.id ?? floor?.floor_id;
+const getFloorName = (floor, index) =>
+    floor?.Floor_Name || floor?.floor_name || floor?.Name || floor?.name || `Floor ${index + 1}`;
+
 const getTableSizeVariant = (table, index = 0) => {
     const capacity = Number(table?.["Seating-Persons_Count"] || table?.capacity || 0);
     if (capacity >= 6 || table?.isLarge) return "large"; // 4 chairs top & bottom
@@ -209,12 +213,17 @@ export default function FloorPlan() {
     const [activeFloorId, setActiveFloorId] = useState(location.state?.floorId || null);
 
     useEffect(() => {
-        if (location.state?.floorId) {
-            setActiveFloorId(location.state.floorId);
-        } else if (floors.length > 0 && !activeFloorId) {
-            setActiveFloorId(floors[0].Floor_id || floors[0]._id);
-        }
-    }, [floors, activeFloorId, location.state?.floorId]);
+        if (floors.length === 0) return;
+        setActiveFloorId((currentFloorId) => {
+            if (currentFloorId && floors.some((floor) => String(getFloorId(floor)) === String(currentFloorId))) {
+                return currentFloorId;
+            }
+            const routeFloor = floors.find(
+                (floor) => String(getFloorId(floor)) === String(location.state?.floorId)
+            );
+            return getFloorId(routeFloor || floors[0]);
+        });
+    }, [floors, location.state?.floorId]);
 
     const { data: floorMap = {}, isLoading: isMapLoading } = useFloorMap(activeFloorId);
     const { data: floorWithTables } = useFloorWithTables(activeFloorId);
@@ -266,9 +275,22 @@ export default function FloorPlan() {
                 ? (floorWithTables.tables || floorWithTables.Tables).filter((tItem) => tItem?.Table_id || tItem?._id)
                 : [];
 
-        // 3. Merge with allRestaurantTables so all tables are visible on the floor plan
+        // Include restaurant tables only when they belong to the selected floor.
+        const selectedFloorTables = (Array.isArray(allRestaurantTables) ? allRestaurantTables : []).filter((table) => {
+            const tableFloorId =
+                table?.Floor_id ??
+                table?.floor_id?.Floor_id ??
+                table?.floor_id?._id ??
+                table?.floor_id ??
+                table?.Floor?.Floor_id ??
+                table?.Floor?._id ??
+                table?.floor?.Floor_id ??
+                table?.floor?._id;
+            return tableFloorId != null && String(tableFloorId) === String(activeFloorId);
+        });
+
         const combinedMap = new Map();
-        [...mappedList, ...floorTablesList, ...(Array.isArray(allRestaurantTables) ? allRestaurantTables : [])].forEach(
+        [...mappedList, ...floorTablesList, ...selectedFloorTables].forEach(
             (tbl, i) => {
                 if (!tbl) return;
                 const key = String(tbl.Table_id || tbl.table_id || tbl._id || `idx-${i}`);
@@ -332,7 +354,7 @@ export default function FloorPlan() {
                 isLarge: sizeVariant === "large"
             };
         });
-    }, [floorMap, floorWithTables, allRestaurantTables, myOrders]);
+    }, [floorMap, floorWithTables, allRestaurantTables, myOrders, activeFloorId]);
 
     const displayedTables = useMemo(() => {
         if (activeStatus === "All") return allTables;
@@ -414,11 +436,13 @@ export default function FloorPlan() {
                 Status: true
             };
             const res = await updateOrderMutation.mutateAsync(payload);
-            if (res && res.success === false) {
-                setItems(oldItems);
+            if (res?.success === false) {
+                throw new Error(res.message || t("floorPlan.orderUpdateError", "Failed to update order."));
             }
-        } catch {
+            toast.success(t("floorPlan.orderUpdateSuccess", "Order updated successfully."));
+        } catch (error) {
             setItems(oldItems);
+            toast.error(error?.message || t("floorPlan.orderUpdateError", "Failed to update order."));
         }
     };
 
@@ -646,7 +670,7 @@ export default function FloorPlan() {
         <div className="bg-white min-h-screen px-6 py-5 font-['Poppins'] overflow-x-auto hide-scrollbar scrollbar-hide">
             {/* Top Header matching Figma node 196-58278 */}
             <div className="flex flex-col lg:flex-row lg:items-center justify-between mb-8 gap-4">
-                <h1 className="text-[28px] font-bold text-black">
+                <h1 className="text-[18px] font-bold text-black">
                     {t("floorPlan.title", "Table")}{" "}
                     <span className="text-[#555555] font-semibold">
                         ({t("floorPlan.subtitle", "Floor Plan")})
@@ -654,7 +678,30 @@ export default function FloorPlan() {
                 </h1>
 
                 {/* Filter Buttons & Edit Tables Button */}
-                <div className="flex flex-wrap items-center gap-4">
+                <div className="flex flex-wrap items-center gap-2">
+                    <label className="sr-only" htmlFor="floor-plan-floor-select">
+                        {t("floorPlan.selectFloor", "Select floor")}
+                    </label>
+                    <select
+                        id="floor-plan-floor-select"
+                        value={activeFloorId == null ? "" : String(activeFloorId)}
+                        onChange={(event) => setActiveFloorId(event.target.value)}
+                        disabled={isFloorsLoading || floors.length === 0}
+                        className="min-w-[112px] rounded-md border border-[#6A1B9A] bg-white px-3 py-1.5 text-sm font-medium text-[#6A1B9A] outline-none focus:ring-2 focus:ring-purple-200 disabled:cursor-not-allowed disabled:opacity-60"
+                    >
+                        {floors.length === 0 && (
+                            <option value="">{t("floorPlan.noFloors", "No floors available")}</option>
+                        )}
+                        {floors.map((floor, index) => {
+                            const floorId = getFloorId(floor);
+                            return (
+                                <option key={floorId || index} value={floorId}>
+                                    {getFloorName(floor, index)}
+                                </option>
+                            );
+                        })}
+                    </select>
+
                     <button
                         onClick={() => setActiveStatus("All")}
                         className={`px-5 py-1.5 rounded-md font-medium text-sm transition-all border ${

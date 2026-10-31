@@ -1,10 +1,10 @@
 import api from "../api/api";
 
 const slotsService = {
-    // Get slots by authenticated user
+    // Get configured slots for the authenticated restaurant
     getSlotsByAuth: async () => {
         try {
-            const response = await api.get('/restaurant/restaurant_slot/getbyauth');
+            const response = await api.get('/restaurant/restaurant_slot/items');
             return response.data;
         } catch (error) {
             console.error('Error fetching slots:', error);
@@ -12,10 +12,10 @@ const slotsService = {
         }
     },
 
-    // Create new slots
+    // Create a configured slot
     createSlots: async (slotsData) => {
         try {
-            const response = await api.post('/restaurant/restaurant_slot/create', slotsData);
+            const response = await api.post('/restaurant/restaurant_slot/items', slotsData);
             return response.data;
         } catch (error) {
             console.error('Error creating slots:', error);
@@ -23,10 +23,10 @@ const slotsService = {
         }
     },
 
-    // Update existing slots
-    updateSlots: async (slotsData) => {
+    // Update a configured slot by ID
+    updateSlots: async (id, slotsData) => {
         try {
-            const response = await api.put('/restaurant/restaurant_slot/update', slotsData);
+            const response = await api.put(`/restaurant/restaurant_slot/items/${id}`, slotsData);
             return response.data;
         } catch (error) {
             console.error('Error updating slots:', error);
@@ -46,10 +46,10 @@ const slotsService = {
         }
     },
 
-    // Delete slot by ID (DELETE /restaurant/restaurant_slot/delete/:id)
+    // Delete a configured slot by ID
     deleteSlot: async (id) => {
         try {
-            const response = await api.delete(`/restaurant/restaurant_slot/delete/${id}`);
+            const response = await api.delete(`/restaurant/restaurant_slot/items/${id}`);
             return response.data;
         } catch (error) {
             console.error('Error deleting slot:', error);

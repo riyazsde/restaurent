@@ -114,10 +114,10 @@ export const useSlots = (options = {}) => {
         queryKey: RESERVATION_KEYS.SLOTS,
         queryFn: async () => {
             const res = await slotsService.getSlotsByAuth();
-            if (res && res.success !== false) {
-                return res.data || [];
+            if (!res || res.success === false) {
+                throw new Error(res?.message || 'Failed to load restaurant slots');
             }
-            return [];
+            return Array.isArray(res.data) ? res.data : [];
         },
         ...options
     });
@@ -146,7 +146,7 @@ export const useGeneratedSlots = (tableId = null, options = {}) => {
 export const useUpdateSlots = (options = {}) => {
     const queryClient = useQueryClient();
     return useMutation({
-        mutationFn: (payload) => slotsService.updateSlots(payload),
+        mutationFn: ({ id, ...data }) => slotsService.updateSlots(id, data),
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: RESERVATION_KEYS.SLOTS });
             queryClient.invalidateQueries({ queryKey: ['generatedSlots'] });
@@ -226,4 +226,3 @@ export const useSaveAvailability = (options = {}) => {
         ...options
     });
 };
-

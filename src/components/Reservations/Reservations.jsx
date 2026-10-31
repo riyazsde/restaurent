@@ -29,34 +29,6 @@ import SearchBar from '../common/SearchBar';
 import GradientOutlineButton from '../common/GradientOutlineButton';
 import useSearchStore from '../../store/searchStore';
 import SlotModal from './SlotModal';
-import slotsService from '../../services/slotsService';
-import { getCookie } from '../../utils/cookies';
-import { COOKIE_NAMES } from '../../utils/constants';
-
-// Default Figma slots matching prototype node 196-66260
-const DEFAULT_FIGMA_SLOTS = {
-    Morning: [
-        { slot_id: 'morning-07', from: '07:00 am', to: '08:00 am', label: '07:00 am', slots: 'Morning', slots_time: '07:00 AM - 08:00 AM', hour24: 7, isFull: true },
-        { slot_id: 'morning-08', from: '08:00 am', to: '09:00 am', label: '08:00 am', slots: 'Morning', slots_time: '08:00 AM - 09:00 AM', hour24: 8, isFull: true },
-        { slot_id: 'morning-09', from: '09:00 am', to: '10:00 am', label: '09:00 am', slots: 'Morning', slots_time: '09:00 AM - 10:00 AM', hour24: 9, isFull: true },
-        { slot_id: 'morning-10', from: '10:00 am', to: '11:00 am', label: '10:00 am', slots: 'Morning', slots_time: '10:00 AM - 11:00 AM', hour24: 10, isFull: false },
-        { slot_id: 'morning-11', from: '11:00 am', to: '12:00 pm', label: '11:00 am', slots: 'Morning', slots_time: '11:00 AM - 12:00 PM', hour24: 11, isFull: false }
-    ],
-    Lunch: [
-        { slot_id: 'lunch-07', from: '07:00 am', to: '08:00 am', label: '07:00 am', slots: 'Lunch', slots_time: '07:00 AM - 08:00 AM', hour24: 7, isFull: true },
-        { slot_id: 'lunch-08', from: '08:00 am', to: '09:00 am', label: '08:00 am', slots: 'Lunch', slots_time: '08:00 AM - 09:00 AM', hour24: 8, isFull: true },
-        { slot_id: 'lunch-09', from: '09:00 am', to: '10:00 am', label: '09:00 am', slots: 'Lunch', slots_time: '09:00 AM - 10:00 AM', hour24: 9, isFull: true },
-        { slot_id: 'lunch-10', from: '10:00 am', to: '11:00 am', label: '10:00 am', slots: 'Lunch', slots_time: '10:00 AM - 11:00 AM', hour24: 10, isFull: false },
-        { slot_id: 'lunch-11', from: '11:00 am', to: '12:00 pm', label: '11:00 am', slots: 'Lunch', slots_time: '11:00 AM - 12:00 PM', hour24: 11, isFull: false }
-    ],
-    Dinner: [
-        { slot_id: 'dinner-18', from: '06:00 pm', to: '07:00 pm', label: '06:00 pm', slots: 'Dinner', slots_time: '06:00 PM - 07:00 PM', hour24: 18, isFull: true },
-        { slot_id: 'dinner-19', from: '07:00 pm', to: '08:00 pm', label: '07:00 pm', slots: 'Dinner', slots_time: '07:00 PM - 08:00 PM', hour24: 19, isFull: true },
-        { slot_id: 'dinner-20', from: '08:00 pm', to: '09:00 pm', label: '08:00 pm', slots: 'Dinner', slots_time: '08:00 PM - 09:00 PM', hour24: 20, isFull: true },
-        { slot_id: 'dinner-22', from: '10:00 pm', to: '11:00 pm', label: '10:00 pm', slots: 'Dinner', slots_time: '10:00 PM - 11:00 PM', hour24: 22, isFull: false },
-        { slot_id: 'dinner-23', from: '11:00 pm', to: '12:00 am', label: '11:00 pm', slots: 'Dinner', slots_time: '11:00 PM - 12:00 AM', hour24: 23, isFull: true }
-    ]
-};
 
 // Figma sample reservations for fallback display matching prototype node 196-66260
 const FIGMA_SAMPLE_RESERVATIONS = [
@@ -90,6 +62,61 @@ const FIGMA_ALL_SAMPLE_RESERVATIONS = Array.from({ length: 9 }, (_, i) => ({
     slots: 'Lunch',
     slots_time: '04:10 PM - 05:10 PM'
 }));
+
+const normalizeSlotCategory = (category) => {
+    const normalized = String(category || '').toLowerCase();
+    if (normalized === 'morning') return 'Morning';
+    if (normalized === 'lunch') return 'Lunch';
+    if (normalized === 'dinner') return 'Dinner';
+    return '';
+};
+
+const convertSlotTimeTo24Hour = (time) => {
+    const match = String(time || '').trim().match(/^(\d{1,2}):(\d{2})(?:\s*(AM|PM))?$/i);
+    if (!match) return '';
+
+    let hours = Number(match[1]);
+    const minutes = Number(match[2]);
+    if (minutes > 59 || hours > 23) return '';
+
+    if (match[3]) {
+        const period = match[3].toUpperCase();
+        hours = hours % 12;
+        if (period === 'PM') hours += 12;
+    }
+
+    return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`;
+};
+
+const convertSlotTimeTo12Hour = (time) => {
+    const time24 = convertSlotTimeTo24Hour(time);
+    if (!time24) return String(time || '');
+    const [hours, minutes] = time24.split(':').map(Number);
+    const period = hours >= 12 ? 'PM' : 'AM';
+    return `${String(hours % 12 || 12).padStart(2, '0')}:${String(minutes).padStart(2, '0')} ${period}`;
+};
+
+const getSlotTimeRange = (startTime) => {
+    const time24 = convertSlotTimeTo24Hour(startTime);
+    if (!time24) return '';
+    const [hours, minutes] = time24.split(':').map(Number);
+    const endTime = `${String((hours + 1) % 24).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`;
+    return `${convertSlotTimeTo12Hour(time24)} - ${convertSlotTimeTo12Hour(endTime)}`;
+};
+
+const getLocalDateValue = (date) => {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+};
+
+const getReservationDateValue = (value) => {
+    if (!value) return '';
+    if (/^\d{4}-\d{2}-\d{2}$/.test(value)) return value;
+    const date = new Date(value);
+    return isNaN(date.getTime()) ? '' : getLocalDateValue(date);
+};
 
 
 const ReservationCard = ({ reservation, onEdit, onDelete, customers, tables }) => {
@@ -339,8 +366,13 @@ const Reservations = () => {
     const { data: rawCustomers = [] } = useCustomers();
     const { data: rawFloors = [] } = useFloors();
     const { getTables } = useTables();
-    const { data: rawSlotsDataApi, isLoading: isLoadingSlotsQuery, refetch: refetchSlots } = useSlots();
-    const { data: generatedSlotsApi = [], isLoading: isLoadingGeneratedSlots, refetch: refetchGeneratedSlots } = useGeneratedSlots();
+    const {
+        data: rawSlotsDataApi,
+        isLoading: isLoadingSlotsQuery,
+        isError: isSlotsError,
+        refetch: refetchSlots
+    } = useSlots();
+    const { data: generatedSlotsApi = [], refetch: refetchGeneratedSlots } = useGeneratedSlots();
 
     const createReservationMutation = useCreateReservation();
     const updateReservationMutation = useUpdateReservation();
@@ -364,7 +396,7 @@ const Reservations = () => {
     const [selectedReservation, setSelectedReservation] = useState(null);
 
     const isLoadingReservations = isLoadingReservationsQuery || searchReservationsMutation.isPending;
-    const isLoadingSlots = isLoadingSlotsQuery && isLoadingGeneratedSlots;
+    const isLoadingSlots = isLoadingSlotsQuery;
 
     // Form Data - Add / Edit Reservation
     const [selectedCustomer, setSelectedCustomer] = useState('');
@@ -386,14 +418,6 @@ const Reservations = () => {
     const [newNotes, setNewNotes] = useState('');
 
     // Helpers to prevent selecting old dates in calendars
-    const getMinDateTime = () => {
-        const now = new Date();
-        const year = now.getFullYear();
-        const month = String(now.getMonth() + 1).padStart(2, '0');
-        const day = String(now.getDate()).padStart(2, '0');
-        return `${year}-${month}-${day}T00:00`;
-    };
-
     const getTodayDateString = () => {
         const now = new Date();
         const year = now.getFullYear();
@@ -452,8 +476,32 @@ const Reservations = () => {
         const transformedSlots = [];
 
         if (rawSlotsDataApi) {
+            const apiSlots = Array.isArray(rawSlotsDataApi)
+                ? rawSlotsDataApi
+                : Array.isArray(rawSlotsDataApi.data)
+                ? rawSlotsDataApi.data
+                : [];
+
+            apiSlots.forEach((slot) => {
+                const category = normalizeSlotCategory(slot?.slot_type);
+                if (!slot?._id || !category || !slot?.time) return;
+
+                const from = convertSlotTimeTo12Hour(slot.time);
+                transformedSlots.push({
+                    slot_id: slot._id,
+                    slots: category,
+                    from,
+                    to: getSlotTimeRange(from).split(' - ')[1] || from,
+                    slots_time: getSlotTimeRange(from),
+                    label: from,
+                    notes: slot.notes || '',
+                    isCustom: true,
+                    isPersisted: true
+                });
+            });
+
             const apiData = Array.isArray(rawSlotsDataApi)
-                ? rawSlotsDataApi[0]
+                ? null
                 : rawSlotsDataApi.data || rawSlotsDataApi;
 
             // 1. Custom restaurant slots (configured in database)
@@ -471,7 +519,8 @@ const Reservations = () => {
                                 to: timeSlot.to,
                                 label: timeSlot.from,
                                 notes: timeSlot.notes || '',
-                                isCustom: true
+                                isCustom: true,
+                                isPersisted: Boolean(timeSlot._id)
                             });
                         });
                     }
@@ -544,6 +593,7 @@ const Reservations = () => {
         if (slots.length > 0) {
             const seenByCat = { Morning: new Set(), Lunch: new Set(), Dinner: new Set() };
             slots.forEach((s) => {
+                if (!s.isPersisted) return;
                 const cat = result[s.slots] ? s.slots : categorizeTimeSlot(s.from);
                 const key = (s.from || s.slots_time || '').toLowerCase().trim();
                 if (result[cat] && !seenByCat[cat].has(key)) {
@@ -556,28 +606,12 @@ const Reservations = () => {
             });
         }
 
-        // Fallback to the Figma slots for any category that has no backend slots yet
-        ['Morning', 'Lunch', 'Dinner'].forEach((cat) => {
-            if (result[cat].length === 0) {
-                result[cat] = DEFAULT_FIGMA_SLOTS[cat];
-            }
-        });
-
         return result;
     }, [slots]);
 
     // Convert "09:00 AM" to "09:00" (24-hour format for input)
     const convertTo24Hour = (time12h) => {
-        if (!time12h) return '';
-        const parts = time12h.trim().split(' ');
-        if (parts.length < 2) return time12h;
-        const [time, modifier] = parts;
-        let [hours, minutes] = time.split(':');
-        if (hours === '12') hours = '00';
-        if (modifier.toUpperCase() === 'PM') {
-            hours = parseInt(hours, 10) + 12;
-        }
-        return `${hours.toString().padStart(2, '0')}:${minutes || '00'}`;
+        return convertSlotTimeTo24Hour(time12h);
     };
 
     // Convert "09:00" (24-hour) to "09:00 AM"
@@ -619,36 +653,20 @@ const Reservations = () => {
         try {
             setIsSlotSubmitting(true);
             const targetId = slotToDelete.slot_id;
-
-            // If it has a numeric id on backend
-            if (targetId && /^\d+$/.test(String(targetId))) {
-                try {
-                    await deleteSlotMutation.mutateAsync(targetId);
-                } catch (e) {
-                    console.log('Backend slot delete note:', e);
-                }
+            if (!slotToDelete.isPersisted || !targetId) {
+                throw new Error(t('validation.invalidSlot'));
             }
-
-            // Remove from local slots state
-            setSlots((prev) =>
-                prev.filter(
-                    (s) => s.slot_id !== slotToDelete.slot_id && s.from !== slotToDelete.from
-                )
-            );
+            const response = await deleteSlotMutation.mutateAsync(targetId);
+            if (response?.success === false) {
+                throw new Error(response.message || t('validation.deleteError'));
+            }
             toast.success(t('slots.deleteSuccess', 'Slot deleted successfully'));
             setShowDeleteSlotConfirm(false);
             setSlotToDelete(null);
             fetchSlots();
         } catch (error) {
             console.error('Error deleting slot:', error);
-            setSlots((prev) =>
-                prev.filter(
-                    (s) => s.slot_id !== slotToDelete.slot_id && s.from !== slotToDelete.from
-                )
-            );
-            toast.success(t('slots.deleteSuccess', 'Slot deleted successfully'));
-            setShowDeleteSlotConfirm(false);
-            setSlotToDelete(null);
+            toast.error(error.message || t('validation.slotsUpdateError', 'Failed to delete slot'));
         } finally {
             setIsSlotSubmitting(false);
         }
@@ -657,121 +675,29 @@ const Reservations = () => {
     const handleSaveSlot = async (slotData) => {
         try {
             setIsSlotSubmitting(true);
-            const rawUser = getCookie(COOKIE_NAMES.USER_DATA);
-            const userId = rawUser?.user_id || rawUser?.id || 18;
+            const payload = {
+                slot_type: slotData.slots.toLowerCase(),
+                time: slotData.from,
+                notes: slotData.notes
+            };
 
-            // Compute end time 1 hour later
-            let endTime = '';
-            if (slotData.from) {
-                const parts = slotData.from.trim().split(' ');
-                if (parts.length === 2) {
-                    const [timePart, modifier] = parts;
-                    const [h, m] = timePart.split(':');
-                    let hourNum = parseInt(h, 10);
-                    let mod = modifier.toUpperCase();
-                    if (hourNum === 11 && mod === 'AM') {
-                        hourNum = 12;
-                        mod = 'PM';
-                    } else if (hourNum === 11 && mod === 'PM') {
-                        hourNum = 12;
-                        mod = 'AM';
-                    } else if (hourNum === 12) {
-                        hourNum = 1;
-                    } else {
-                        hourNum += 1;
-                    }
-                    endTime = `${String(hourNum).padStart(2, '0')}:${m} ${mod.toLowerCase()}`;
+            if (slotData.isEdit && selectedSlotToEdit?.isPersisted && selectedSlotToEdit.slot_id) {
+                const response = await updateSlotsMutation.mutateAsync({
+                    id: selectedSlotToEdit.slot_id,
+                    ...payload
+                });
+                if (response?.success === false) {
+                    throw new Error(response.message || t('validation.updateError'));
                 }
-            }
-            if (!endTime) endTime = slotData.from;
-
-            if (slotData.isEdit && selectedSlotToEdit) {
-                // Update in local state
-                const updatedSlotItem = {
-                    ...selectedSlotToEdit,
-                    slots: slotData.slots,
-                    from: slotData.from,
-                    to: endTime,
-                    slots_time: `${slotData.from} - ${endTime}`,
-                    label: slotData.from,
-                    notes: slotData.notes
-                };
-
-                setSlots((prev) =>
-                    prev.map((s) =>
-                        s.slot_id === selectedSlotToEdit.slot_id || s.from === selectedSlotToEdit.from
-                            ? updatedSlotItem
-                            : s
-                    )
-                );
-
-                // Attempt backend update if restaurant slot exists
-                try {
-                    const apiData = rawSlotsDataApi?.data || rawSlotsDataApi;
-                    const restaurantSlotId = apiData?.Restaurant_slot_id;
-                    if (restaurantSlotId) {
-                        await updateSlotsMutation.mutateAsync({
-                            id: restaurantSlotId,
-                            Restaurant_slot_id: restaurantSlotId,
-                            slots: [
-                                {
-                                    day: 'Monday',
-                                    slot: [{ from: slotData.from, to: endTime }]
-                                }
-                            ]
-                        });
-                    }
-                } catch (e) {
-                    console.log('Background slot sync note:', e);
-                }
-
                 toast.success(t('slots.updateSuccess', 'Slot updated successfully'));
             } else {
-                // Create new slot item
-                const newSlotId = `slot-${Date.now()}`;
-                const newSlotItem = {
-                    slot_id: newSlotId,
-                    slots: slotData.slots,
-                    from: slotData.from,
-                    to: endTime,
-                    slots_time: `${slotData.from} - ${endTime}`,
-                    label: slotData.from,
-                    notes: slotData.notes,
-                    isFull: false
-                };
-
-                setSlots((prev) => [...prev, newSlotItem]);
-
-                // Call create / update slot endpoint
-                try {
-                    const apiData = rawSlotsDataApi?.data || rawSlotsDataApi;
-                    const restaurantSlotId = apiData?.Restaurant_slot_id;
-                    if (restaurantSlotId) {
-                        await updateSlotsMutation.mutateAsync({
-                            id: restaurantSlotId,
-                            Restaurant_slot_id: restaurantSlotId,
-                            slots: [
-                                {
-                                    day: 'Monday',
-                                    slot: [{ from: slotData.from, to: endTime }]
-                                }
-                            ]
-                        });
-                    } else {
-                        await createSlotsMutation.mutateAsync({
-                            user_id: userId,
-                            slots: [
-                                {
-                                    day: 'Monday',
-                                    slot: [{ from: slotData.from, to: endTime }]
-                                }
-                            ]
-                        });
-                    }
-                } catch (e) {
-                    console.log('Background slot sync note:', e);
+                if (slotData.isEdit) {
+                    throw new Error(t('validation.invalidSlot'));
                 }
-
+                const response = await createSlotsMutation.mutateAsync(payload);
+                if (response?.success === false) {
+                    throw new Error(response.message || t('validation.createError'));
+                }
                 toast.success(t('slots.addSuccess', 'Slot added successfully'));
             }
 
@@ -915,15 +841,7 @@ const Reservations = () => {
         }
         resetReservationForm();
         const now = new Date();
-        let targetHour = slot.hour24;
-        if (targetHour === undefined) {
-            const time24 = convertTo24Hour(slot.from || '10:00 AM');
-            targetHour = parseInt(time24.split(':')[0], 10) || 10;
-        }
-        now.setHours(targetHour, 0, 0, 0);
-        const tzOffset = now.getTimezoneOffset() * 60000;
-        const localISOTime = new Date(now.getTime() - tzOffset).toISOString().slice(0, 16);
-        setReservationDate(localISOTime);
+        setReservationDate(getLocalDateValue(now));
         setSelectedSlot(slot.slot_id);
         setShowAddReservation(true);
     };
@@ -994,9 +912,14 @@ const Reservations = () => {
             toast.error(t('validation.selectDate'));
             return;
         }
-        const todayStart = new Date();
-        todayStart.setHours(0, 0, 0, 0);
-        if (new Date(reservationDate) < todayStart) {
+        const selectedSlotData = slots.find(
+            (slot) => slot.isPersisted && String(slot.slot_id) === String(selectedSlot)
+        );
+        if (!selectedSlotData) {
+            toast.error(t('validation.selectSlot'));
+            return;
+        }
+        if (reservationDate < getTodayDateString()) {
             toast.error(t('validation.pastDateNotAllowed'));
             return;
         }
@@ -1011,16 +934,6 @@ const Reservations = () => {
 
         setIsLoading(true);
         try {
-            const date = new Date(reservationDate);
-            const hours = date.getHours();
-            let category = 'Dinner';
-            if (hours >= 5 && hours < 12) category = 'Morning';
-            else if (hours >= 12 && hours < 17) category = 'Lunch';
-
-            const start12 = convertTo12Hour(`${String(hours).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`);
-            const endDate = new Date(date.getTime() + 60 * 60 * 1000);
-            const end12 = convertTo12Hour(`${String(endDate.getHours()).padStart(2, '0')}:${String(endDate.getMinutes()).padStart(2, '0')}`);
-
             const tableData = allTables.find((tb) => tb.Table_id === selectedTables[0]) || tables.find((tb) => tb.Table_id === selectedTables[0]);
             const floorId = selectedFloor
                 ? parseInt(selectedFloor, 10)
@@ -1032,17 +945,16 @@ const Reservations = () => {
             const reservationData = {
                 Reservations_online: activeTab === 'online',
                 Customer_id: parseInt(selectedCustomer, 10),
-                slots: category,
-                slots_time: `${start12} - ${end12}`,
+                slots: selectedSlotData.slots,
+                slots_time: selectedSlotData.slots_time,
                 title: defaultTitle,
                 Floor: floorId,
                 Capacity_count: getTotalCapacity() || parseInt(peopleCount, 10),
                 people_count: parseInt(peopleCount, 10),
                 PaymentStatus: paymentStatus,
                 Table_id: selectedTables[0],
-                Date_time: new Date(reservationDate).toISOString(),
-                Notes: notes,
-                Status: true
+                Date_time: reservationDate,
+                Notes: notes
             };
 
             if (selectedTables[1]) {
@@ -1050,13 +962,13 @@ const Reservations = () => {
             }
 
             const response = await createReservationMutation.mutateAsync(reservationData);
-            if (response.success || response.data) {
+            if (response?.success === true) {
                 toast.success(t('validation.createSuccess'));
                 resetReservationForm();
                 setShowAddReservation(false);
                 fetchReservations();
             } else {
-                toast.error(response.message || t('validation.createError'));
+                toast.error(response?.message || t('validation.createError'));
             }
         } catch (error) {
             toast.error(error.message || t('validation.createError'));
@@ -1116,17 +1028,21 @@ const Reservations = () => {
         setSelectedCustomer(reservation.Customer_id?.toString() || '');
         setSelectedFloor(reservation.Floor?.toString() || '');
         setSelectedTables([reservation.Table_id, reservation.Addone_Table_id].filter(Boolean));
-        setSelectedSlot(slots.find((s) => s.slots === reservation.slots)?.slot_id?.toString() || '');
         setReservationTitle(reservation.title || '');
-        if (reservation.Date_time) {
-            const d = new Date(reservation.Date_time);
-            if (!isNaN(d.getTime())) {
-                const tzOffset = d.getTimezoneOffset() * 60000;
-                setReservationDate(new Date(d.getTime() - tzOffset).toISOString().slice(0, 16));
-            }
-        } else {
-            setReservationDate('');
-        }
+        const reservationDate = reservation.Date_time ? new Date(reservation.Date_time) : null;
+        const reservationStartTime =
+            reservation.slots_time?.split('-')[0]?.trim() ||
+            (reservationDate && !isNaN(reservationDate.getTime())
+                ? convertSlotTimeTo12Hour(`${String(reservationDate.getHours()).padStart(2, '0')}:${String(reservationDate.getMinutes()).padStart(2, '0')}`)
+                : '');
+        const matchingSlot = slots.find(
+            (slot) =>
+                slot.isPersisted &&
+                slot.slots === normalizeSlotCategory(reservation.slots) &&
+                convertSlotTimeTo24Hour(slot.from) === convertSlotTimeTo24Hour(reservationStartTime)
+        );
+        setSelectedSlot(matchingSlot?.slot_id?.toString() || '');
+        setReservationDate(getReservationDateValue(reservation.Date_time));
         setPeopleCount(reservation.people_count?.toString() || '1');
         setPaymentStatus(reservation.PaymentStatus || 'UnPaid');
         setNotes(reservation.Notes || '');
@@ -1155,11 +1071,10 @@ const Reservations = () => {
         setIsLoading(true);
         try {
             if (reservationDate) {
-                const chosen = new Date(reservationDate);
-                const todayStart = new Date();
-                todayStart.setHours(0, 0, 0, 0);
-                const originalDate = selectedReservation?.Date_time ? new Date(selectedReservation.Date_time) : null;
-                if (chosen < todayStart && (!originalDate || chosen.getTime() !== originalDate.getTime())) {
+                if (
+                    getReservationDateValue(reservationDate) < getTodayDateString() &&
+                    getReservationDateValue(reservationDate) !== getReservationDateValue(selectedReservation.Date_time)
+                ) {
                     toast.error(t('validation.pastDateNotAllowed'));
                     setIsLoading(false);
                     return;
@@ -1167,7 +1082,7 @@ const Reservations = () => {
             }
 
             const selectedSlotData = slots.find(
-                (s) => String(s.slot_id) === String(selectedSlot)
+                (s) => s.isPersisted && String(s.slot_id) === String(selectedSlot)
             );
 
             const dateObj = reservationDate ? new Date(reservationDate) : new Date(selectedReservation.Date_time || Date.now());
@@ -1197,7 +1112,7 @@ const Reservations = () => {
                 people_count: parseInt(peopleCount || selectedReservation.people_count || 1, 10),
                 PaymentStatus: paymentStatus || selectedReservation.PaymentStatus || 'UnPaid',
                 Table_id: selectedTables[0] || selectedReservation.Table_id,
-                Date_time: reservationDate ? new Date(reservationDate).toISOString() : selectedReservation.Date_time,
+                Date_time: reservationDate || getReservationDateValue(selectedReservation.Date_time),
                 Notes: notes !== undefined ? notes : selectedReservation.Notes || '',
                 Status: true
             };
@@ -1433,6 +1348,8 @@ const Reservations = () => {
                 <div className="space-y-8 pt-2">
                     {isLoadingSlots ? (
                         <SlotSkeleton />
+                    ) : isSlotsError ? (
+                        <p className="text-sm text-red-600">{t('slots.loadError')}</p>
                     ) : (
                         <>
                             {['Morning', 'Lunch', 'Dinner'].map((timeOfDay) => {
@@ -1452,6 +1369,9 @@ const Reservations = () => {
                                                 <span>+ New</span>
                                             </button>
                                         </div>
+                                        {categorySlots.length === 0 ? (
+                                            <p className="text-sm text-gray-500">{t('slots.noSlots')}</p>
+                                        ) : (
                                         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3.5 sm:gap-4">
                                             {categorySlots.map((slot) => {
                                                 const isFull = isSlotBooked(slot);
@@ -1501,6 +1421,7 @@ const Reservations = () => {
                                                 );
                                             })}
                                         </div>
+                                        )}
                                     </div>
                                 );
                             })}
@@ -1629,21 +1550,17 @@ const Reservations = () => {
                                         {t('form.date')}
                                     </label>
                                     <input
-                                        type="datetime-local"
-                                        min={getMinDateTime()}
+                                        type="date"
+                                        min={getTodayDateString()}
                                         value={reservationDate}
                                         onChange={(e) => {
                                             const val = e.target.value;
-                                            if (val) {
-                                                const chosen = new Date(val);
-                                                const todayStart = new Date();
-                                                todayStart.setHours(0, 0, 0, 0);
-                                                if (chosen < todayStart) {
-                                                    toast.error(t('validation.pastDateNotAllowed'));
-                                                    return;
-                                                }
+                                            if (val && val < getTodayDateString()) {
+                                                toast.error(t('validation.pastDateNotAllowed'));
+                                                return;
                                             }
                                             setReservationDate(val);
+                                            setSelectedSlot('');
                                         }}
                                         className="bg-[#FAF5F8] w-full border border-[#C2185B] rounded-xl px-3 py-2.5 text-sm text-gray-700 focus:outline-none"
                                     />
@@ -1691,6 +1608,28 @@ const Reservations = () => {
                                             })}
                                         </div>
                                     )}
+                                </div>
+                            </div>
+
+                            <div>
+                                <label className="block text-sm font-medium mb-1.5 text-[#1E1E1E]">
+                                    {t('form.slot')}*
+                                </label>
+                                <div className="relative">
+                                    <select
+                                        value={selectedSlot}
+                                        onChange={(e) => setSelectedSlot(e.target.value)}
+                                        className="bg-[#FAF5F8] w-full border border-[#C2185B] rounded-xl px-3 py-2.5 text-sm text-gray-700 focus:outline-none appearance-none cursor-pointer pr-9"
+                                        required
+                                    >
+                                        <option value="">{t('form.options.selectSlot')}</option>
+                                        {slots.filter((slot) => slot.isPersisted).map((slot) => (
+                                            <option key={slot.slot_id} value={slot.slot_id}>
+                                                {t(`slots.${slot.slots.toLowerCase()}`)} - {slot.slots_time}
+                                            </option>
+                                        ))}
+                                    </select>
+                                    <FiChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-600 pointer-events-none" />
                                 </div>
                             </div>
 
@@ -1886,24 +1825,22 @@ const Reservations = () => {
                                         {t('form.date')}
                                     </label>
                                     <input
-                                        type="datetime-local"
+                                        type="date"
                                         min={
-                                            selectedReservation?.Date_time && new Date(selectedReservation.Date_time) < new Date(new Date().setHours(0, 0, 0, 0))
+                                            getReservationDateValue(selectedReservation?.Date_time) < getTodayDateString()
                                                 ? undefined
-                                                : getMinDateTime()
+                                                : getTodayDateString()
                                         }
                                         value={reservationDate}
                                         onChange={(e) => {
                                             const val = e.target.value;
-                                            if (val) {
-                                                const chosen = new Date(val);
-                                                const todayStart = new Date();
-                                                todayStart.setHours(0, 0, 0, 0);
-                                                const originalDate = selectedReservation?.Date_time ? new Date(selectedReservation.Date_time) : null;
-                                                if (chosen < todayStart && (!originalDate || chosen.getTime() !== originalDate.getTime())) {
-                                                    toast.error(t('validation.pastDateNotAllowed'));
-                                                    return;
-                                                }
+                                            if (
+                                                val &&
+                                                val < getTodayDateString() &&
+                                                val !== getReservationDateValue(selectedReservation?.Date_time)
+                                            ) {
+                                                toast.error(t('validation.pastDateNotAllowed'));
+                                                return;
                                             }
                                             setReservationDate(val);
                                         }}

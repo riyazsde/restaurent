@@ -174,6 +174,8 @@
   "floorPlan": {
     "title": "Table",
     "subtitle": "Floor Plan",
+    "selectFloor": "Select floor",
+    "noFloors": "No floors available",
     "all": "All",
     "reserved": "Reserved",
     "ready": "Ready",
@@ -202,6 +204,8 @@
     "processing": "Processing...",
     "paymentSuccess": "Payment Success!",
     "paymentSuccessDesc": "Your payment has been successfully done.",
+    "orderUpdateSuccess": "Order updated successfully.",
+    "orderUpdateError": "Failed to update order.",
     "totalPayment": "Total Payment",
     "orderNumber": "Order Number",
     "dateTime": "Date & Time",
