@@ -1,13 +1,36 @@
 import React, { useState } from 'react';
 import { FiX, FiPlus, FiChevronDown, FiTrash2 } from 'react-icons/fi';
-import { useMenuItems } from '../../hooks/queries/useMenuItems';
+import { useTranslation } from 'react-i18next';
+import { useQuery } from '@tanstack/react-query';
+import itemsService from '../../services/itemsService';
 
 const AddNewItemModal = ({ isOpen, onClose, onAdd, tabId }) => {
-    const { getMenuItems } = useMenuItems();
-    const { data: menuItems = [] } = getMenuItems;
-    
-    // Optionally filter only active items, or items categorized as drinks if available
-    const activeItems = Array.isArray(menuItems) ? menuItems.filter(item => item.Status !== false) : [];
+    const { t } = useTranslation('common');
+    const { data: drinksResponse } = useQuery({
+        queryKey: ['barDrinkItemsList'],
+        queryFn: () => itemsService.getItemsList({ type: 'Drink', status: 'active' }),
+        enabled: isOpen,
+        staleTime: 5 * 60 * 1000
+    });
+
+    const itemList = Array.isArray(drinksResponse?.data)
+        ? drinksResponse.data
+        : Array.isArray(drinksResponse?.data?.items)
+        ? drinksResponse.data.items
+        : Array.isArray(drinksResponse?.items)
+        ? drinksResponse.items
+        : Array.isArray(drinksResponse)
+        ? drinksResponse
+        : [];
+    const activeItems = itemList.filter((item) => {
+        const status = item?.Status ?? item?.status;
+        return ![false, 0, 'false', 'inactive', 'hidden'].includes(
+            typeof status === 'string' ? status.toLowerCase() : status
+        );
+    });
+    const getItemId = (item) => item?.Items_id ?? item?._id ?? item?.id;
+    const getItemName = (item) =>
+        item?.Title || item?.['item-name'] || item?.item_name || item?.Item_Name || item?.name || item?.Name;
 
     const [items, setItems] = useState([{ id: 1, drink_item_id: '', modifier: '' }]);
 
@@ -33,7 +56,9 @@ const AddNewItemModal = ({ isOpen, onClose, onAdd, tabId }) => {
         
         // Pass array of valid items back to parent
         onAdd(tabId, validItems.map(item => ({
-            drink_item_id: parseInt(item.drink_item_id, 10),
+            drink_item_id: /^\d+$/.test(item.drink_item_id)
+                ? parseInt(item.drink_item_id, 10)
+                : item.drink_item_id,
             quantity: 1,
             modifiers: item.modifier ? [item.modifier] : []
         })));
@@ -75,14 +100,23 @@ const AddNewItemModal = ({ isOpen, onClose, onAdd, tabId }) => {
                                     <select
                                         value={item.drink_item_id}
                                         onChange={(e) => handleUpdateItem(item.id, 'drink_item_id', e.target.value)}
-                                        className="w-full pl-4 pr-10 py-3 border border-gray-200 rounded-lg text-[15px] focus:outline-none focus:border-pink-500 appearance-none bg-white"
+                                        className="w-full pl-4 pr-10 py-3 border border-gray-200 rounded-lg text-[15px] text-gray-900 focus:outline-none focus:border-pink-500 appearance-none bg-white"
                                     >
-                                        <option value="" disabled>-- Choose an item --</option>
-                                        {activeItems.map(menuItem => (
-                                            <option key={menuItem.Items_id} value={menuItem.Items_id}>
-                                                {menuItem['item-name']}
-                                            </option>
-                                        ))}
+                                        <option value="" disabled className="text-gray-500 bg-white">
+                                            {activeItems.length
+                                                ? t('bar.addNewItem.chooseItem', '-- Choose an item --')
+                                                : t('bar.addNewItem.noItemsAvailable', 'No items available')}
+                                        </option>
+                                        {activeItems.map((menuItem, index) => {
+                                            const itemId = getItemId(menuItem);
+                                            const itemName = getItemName(menuItem);
+                                            if (itemId == null || !itemName) return null;
+                                            return (
+                                                <option key={itemId || index} value={itemId} className="text-gray-900 bg-white">
+                                                    {itemName}
+                                                </option>
+                                            );
+                                        })}
                                     </select>
                                     <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-gray-500">
                                         <FiChevronDown size={20} />

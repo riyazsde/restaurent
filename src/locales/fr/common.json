@@ -502,6 +502,10 @@
         "clientName": "Le nom du client est requis",
         "tableNo": "Le numéro de table est requis"
       }
+    },
+    "addNewItem": {
+      "chooseItem": "-- Choisir un article --",
+      "noItemsAvailable": "Aucun article disponible"
     }
   },
   "devices": {
