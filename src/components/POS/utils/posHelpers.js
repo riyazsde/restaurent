@@ -159,7 +159,8 @@ export const buildPosOrderPayload = ({
     restaurantId,
     kitchenId,
     taxAmount = 0,
-    posType = 'Food'
+    posType = 'Food',
+    slot
 }) => {
     const customerId = selectedCustomer?.Customer_id || selectedCustomer?.id;
     const tableId = selectedTable?.table_id?.Table_id || selectedTable?.Table_id || selectedTable?.id;
@@ -193,6 +194,12 @@ export const buildPosOrderPayload = ({
 
     if (diningOption === 'Dine in' && tableId) {
         payload.Table_id = tableId;
+    }
+
+    if (slot) {
+        payload.Restaurant_slot_id = slot._id;
+        payload.Slot_Type = slot.slot_type;
+        payload.Slot_Time = slot.time;
     }
 
     return payload;

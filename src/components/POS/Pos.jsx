@@ -46,7 +46,7 @@ const POS = () => {
                 </div>
 
                 {/* Main Content Skeleton */}
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 items-start">
                     {/* Left Panel Skeleton */}
                     <div className="lg:col-span-2 relative p-[1.5px] rounded-[28px] bg-gradient-to-b from-[#6A1B9A] to-[#D32F2F]">
                         <div className="bg-white rounded-[26.5px] p-5 sm:p-6 h-full flex flex-col">
@@ -161,8 +161,8 @@ const POS = () => {
             {/* Main POS Content Grid */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
                 {/* Left Panel: Categories, Search, Dish Cards with Figma Gradient Border */}
-                <div className="lg:col-span-2 relative p-[1.5px] rounded-[28px] bg-gradient-to-b from-[#6A1B9A] to-[#D32F2F] shadow-sm">
-                    <div className="bg-white rounded-[26.5px] p-5 sm:p-6 h-full flex flex-col">
+                <div className="lg:col-span-2 relative self-start p-[1.5px] rounded-[28px] bg-gradient-to-b from-[#6A1B9A] to-[#D32F2F] shadow-sm">
+                    <div className="bg-white rounded-[26.5px] p-5 sm:p-6 flex flex-col">
                         {/* Top Controls Row: Categories + Search + Grid Toggle */}
                         <div className="flex flex-col sm:flex-row gap-3 mb-6 items-stretch sm:items-center justify-between w-full">
                             {/* Horizontal Categories Scroll Container */}
@@ -220,7 +220,7 @@ const POS = () => {
                         </div>
 
                         {/* Dish Cards Display Area */}
-                        <div className="flex-1 overflow-y-auto max-h-[640px] xl:max-h-[720px] pr-1">
+                        <div className="overflow-y-auto max-h-[640px] xl:max-h-[720px] pr-1">
                             {pos.filteredItems.length === 0 ? (
                                 <div className="flex flex-col items-center justify-center py-20 text-gray-400">
                                     <p className="text-base font-medium">No dishes found</p>
@@ -358,6 +358,8 @@ const POS = () => {
                         diningOption={pos.diningOption}
                         handleDiningOptionSelect={pos.handleDiningOptionSelect}
                         selectedTable={pos.selectedTable}
+                        selectedSlot={pos.selectedSlot}
+                        setSelectedSlot={pos.setSelectedSlot}
                         tables={pos.tables}
                         floors={pos.floors}
                         showTableSelection={pos.showTableSelection}

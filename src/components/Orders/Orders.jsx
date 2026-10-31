@@ -37,8 +37,41 @@ const OrderCard = ({ order, onRefresh }) => {
     const [showDeleteModal, setShowDeleteModal] = useState(false);
     const [updatingOrderStatus, setUpdatingOrderStatus] = useState(false);
     const [updatingItemIndex, setUpdatingItemIndex] = useState(null);
+    const [downloadingBill, setDownloadingBill] = useState(false);
     const updateOrderStatusMutation = useUpdateOrderStatus();
     const updateOrderItemStatusMutation = useUpdateOrderItemStatus();
+
+    const handleDownloadBill = async () => {
+        const orderId = order?.POS_Order_id ?? order?.id ?? order?.Order_id;
+        if (!orderId) {
+            toast.error(t('messages.billDownloadError'));
+            return;
+        }
+
+        setDownloadingBill(true);
+        try {
+            const pdfBlob = await posService.getOrderPdf(orderId);
+            if (!(pdfBlob instanceof Blob) || pdfBlob.size === 0) {
+                throw new Error('The order PDF response was empty or invalid.');
+            }
+
+            const pdfUrl = URL.createObjectURL(pdfBlob);
+            const downloadLink = document.createElement('a');
+            downloadLink.href = pdfUrl;
+            downloadLink.download = `order-${orderId}.pdf`;
+            document.body.appendChild(downloadLink);
+            downloadLink.click();
+            downloadLink.remove();
+            window.setTimeout(() => URL.revokeObjectURL(pdfUrl), 60_000);
+            setOpen(false);
+            setShowModal2(false);
+        } catch (error) {
+            console.error('Failed to download order PDF:', error);
+            toast.error(error?.message || t('messages.billDownloadError'));
+        } finally {
+            setDownloadingBill(false);
+        }
+    };
 
     // Get real data from order object
     const orderItemsList = order?.items || [];
@@ -242,7 +275,7 @@ const OrderCard = ({ order, onRefresh }) => {
                                             <div className="flex justify-between items-start mb-6">
                                                 <div style={{ fontFamily: 'Manrope' }} className="text-start">
                                                     <h2 className="text-[28px] font-semibold">{t('modals.yourOrder')}</h2>
-                                                    <p className="text-[20px] pt-8 text-[#C71585] font-medium bg-gradient-to-b from-[#6A1B9A] to-[#D32F2F] bg-clip-text text-transparent">{t('modals.checkSummary')}</p>
+                                                    <p className="text-[20px] pt-2 text-[#C71585] font-medium bg-gradient-to-b from-[#6A1B9A] to-[#D32F2F] bg-clip-text text-transparent">{t('modals.checkSummary')}</p>
                                                 </div>
                                                 <button
                                                     onClick={() => setShowModal2(false)}
@@ -297,13 +330,13 @@ const OrderCard = ({ order, onRefresh }) => {
                                             </div>
 
                                             {/* CTA Button */}
-                                            <button onClick={() => {
-                                                setOpen(false);       // ✅ Close dropdown first
-                                                setShowModal2(false);  // ✅ Then open the modal
-                                            }} style={{ background: 'linear-gradient(180deg, #6A1B9A 0%, #D32F2F 100%)' }}
-                                                className="w-full mt-6 py-3 text-white font-medium rounded-lg text-[20px]  hover:opacity-90 transition"
+                                            <button
+                                                onClick={handleDownloadBill}
+                                                disabled={downloadingBill}
+                                                style={{ background: 'linear-gradient(180deg, #6A1B9A 0%, #D32F2F 100%)' }}
+                                                className="w-full mt-6 py-3 text-white font-medium rounded-lg text-[20px] hover:opacity-90 transition disabled:opacity-60 disabled:cursor-wait"
                                             >
-                                                {t('actions.printBill')}
+                                                {downloadingBill ? t('actions.downloadingBill') : t('actions.printBill')}
                                             </button>
                                         </div>
                                     </div>
@@ -821,5 +854,4 @@ const Orders = () => {
 };
 
 export default Orders;
-
 

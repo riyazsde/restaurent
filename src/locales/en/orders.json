@@ -14,6 +14,7 @@
     },
     "actions": {
         "printBill": "Print Bill",
+        "downloadingBill": "Downloading...",
         "cancel": "Cancel",
         "complete": "Complete",
         "payAndComplete": "Pay and Complete",
@@ -64,6 +65,7 @@
         "orderUpdateError": "Failed to update order status",
         "fetchError": "Failed to fetch orders",
         "exportSuccess": "Orders exported successfully!",
-        "exportFailed": "Failed to export orders"
+        "exportFailed": "Failed to export orders",
+        "billDownloadError": "Failed to download the order PDF"
     }
 }

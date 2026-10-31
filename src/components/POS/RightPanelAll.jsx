@@ -10,12 +10,13 @@ import { IoCheckmarkCircle } from 'react-icons/io5';
 import { FaClock } from 'react-icons/fa';
 import { toast } from 'react-toastify';
 import { useQuery } from '@tanstack/react-query';
-import { ApiFactory } from '../../core/ApiFactory'; // <-- adjust path
+import api from '../../api/api';
 import { usePaymentOptions, useCreatePayment, useCreatePosOrder, useTaxSetup, useRestaurant } from '../../hooks/queries/usePos';
 import useAuthStore from '../../store/authStore';
 import { useCustomers, useCreateCustomer, useUpdateCustomer, useSearchCustomersMutation } from '../../hooks/queries/useCustomers';
 import { useTables } from '../../hooks/queries/useTables';
 import { useKitchenStations } from '../../hooks/queries/useKitchen';
+import posService from '../../services/posService';
 import Dropdown from '../common/Dropdown';
 import { useTranslation } from 'react-i18next';
 import { useDragScroll } from './hooks/useDragScroll';
@@ -31,17 +32,15 @@ import PosCheckoutModal from './modals/PosCheckoutModal';
 import invoiceService from '../../services/invoiceService';
 
 /* ------------------------------------------------------------------ */
-/* Inline hook: fetch generated slots for a table (ApiFactory)         */
+/* Fetch configured restaurant slots for the selected table           */
 /* ------------------------------------------------------------------ */
-const useGeneratedSlots = (tableId) => {
+const useRestaurantSlots = () => {
     return useQuery({
-        queryKey: ['restaurant-slots', tableId],
+        queryKey: ['restaurant-slot-items'],
         queryFn: async () => {
-            const response = await ApiFactory('GENERATED_SLOTS', { table_id: tableId });
-            // ApiFactory returns response.data → { success, days, data: { generated_slots: [...] } }
-            return response;
+            const response = await api.get('/restaurant/restaurant_slot/items');
+            return response.data;
         },
-        enabled: !!tableId,
         staleTime: 60 * 1000,
     });
 };
@@ -55,27 +54,20 @@ const SLOT_TYPE_LABELS = {
     dinner: 'Dinner',
 };
 
-const SlotChip = ({ slot, selected, onSelect, t }) => {
-    const isUnavailable = slot.status === 'Unavailable' && !slot.available;
-    const isFull = slot.full === true;
-    const disabled = isUnavailable || isFull;
-
+const SlotChip = ({ slot, selected, onSelect }) => {
     return (
         <button
             type="button"
-            disabled={disabled}
-            onClick={() => !disabled && onSelect(slot)}
-            title={disabled ? t('slotUnavailable', 'Unavailable') : slot.slots_time}
+            onClick={() => onSelect(slot)}
+            title={slot.time}
             className={[
                 'px-2.5 py-1.5 rounded-lg text-[11px] font-medium border transition-all',
                 selected
                     ? 'bg-gradient-to-b from-[#6A1B9A] to-[#D32F2F] text-white border-transparent shadow-sm'
-                    : disabled
-                    ? 'bg-gray-50 text-gray-400 border-gray-200 cursor-not-allowed line-through'
                     : 'bg-white text-gray-800 border-purple-200 hover:border-purple-500 hover:bg-purple-50',
             ].join(' ')}
         >
-            {slot.slots_time || `${slot.from} - ${slot.to}`}
+            {slot.time}
         </button>
     );
 };
@@ -90,42 +82,14 @@ const SlotPicker = ({
 }) => {
     const { t } = useTranslation(['pos', 'common']);
 
-    const days = useMemo(() => {
-        // response is the object returned by ApiFactory: { success, days, data: { generated_slots: [...] } }
-        const raw = response?.data?.generated_slots;
-        if (!Array.isArray(raw)) return [];
-        return raw.map((d) => ({
-            date: d.date,
-            day: d.day,
-            morning: d.grouped_slots?.morning || [],
-            lunch: d.grouped_slots?.lunch || [],
-            dinner: d.grouped_slots?.dinner || [],
-        }));
+    const slotsByType = useMemo(() => {
+        const slots = Array.isArray(response?.data) ? response.data : [];
+        return slots.reduce((groups, slot) => {
+            const type = String(slot.slot_type || '').toLowerCase();
+            if (groups[type]) groups[type].push(slot);
+            return groups;
+        }, { morning: [], lunch: [], dinner: [] });
     }, [response]);
-
-    const [activeDate, setActiveDate] = useState(null);
-
-    useEffect(() => {
-        if (days.length === 0) {
-            setActiveDate(null);
-            return;
-        }
-        setActiveDate((prev) =>
-            prev && days.some((d) => d.date === prev) ? prev : days[0].date
-        );
-    }, [days]);
-
-    useEffect(() => {
-        if (selectedSlot?.date && selectedSlot.date !== activeDate) {
-            setActiveDate(selectedSlot.date);
-        }
-    }, [selectedSlot?.date]); // eslint-disable-line react-hooks/exhaustive-deps
-
-    const activeDay = days.find((d) => d.date === activeDate) || null;
-
-    const workingHours = response?.data
-        ? `${response.data.opening_time} - ${response.data.closing_time}`
-        : '';
 
     if (!tableId) {
         return (
@@ -148,7 +112,7 @@ const SlotPicker = ({
             </div>
         );
     }
-    if (days.length === 0) {
+    if (Object.values(slotsByType).every((slots) => slots.length === 0)) {
         return (
             <div className="mb-3 text-[11px] text-gray-500 px-2 py-2 bg-gray-50 rounded-lg">
                 {t('noSlots', 'No slots available for this table')}
@@ -165,88 +129,41 @@ const SlotPicker = ({
                         {t('selectSlot', 'Select Time Slot')}
                     </span>
                 </div>
-                {workingHours && (
-                    <span className="text-[10px] text-gray-500">{workingHours}</span>
-                )}
             </div>
 
-            <div className="flex gap-1.5 overflow-x-auto px-2 py-2 border-b border-gray-100 hide-scrollbar">
-                {days.map((d) => {
-                    const isActive = d.date === activeDate;
-                    const dateObj = new Date(d.date);
-                    const dateNum = dateObj.getDate();
-                    const month = dateObj.toLocaleString('en-US', { month: 'short' });
-                    return (
-                        <button
-                            key={d.date}
-                            type="button"
-                            onClick={() => setActiveDate(d.date)}
-                            className={[
-                                'flex flex-col items-center min-w-[46px] px-2 py-1.5 rounded-lg text-[10px] transition-colors',
-                                isActive
-                                    ? 'bg-gradient-to-b from-[#6A1B9A] to-[#D32F2F] text-white shadow-sm'
-                                    : 'bg-gray-50 text-gray-600 hover:bg-purple-50',
-                            ].join(' ')}
-                        >
-                            <span className="font-semibold text-[10px] uppercase">
-                                {d.day?.slice(0, 3)}
-                            </span>
-                            <span className="text-[13px] font-bold leading-none mt-0.5">
-                                {dateNum}
-                            </span>
-                            <span className="text-[9px] opacity-80">{month}</span>
-                        </button>
-                    );
-                })}
-            </div>
-
-            {activeDay && (
-                <div className="px-2 py-2 space-y-2 max-h-[220px] overflow-y-auto hide-scrollbar">
+            <div className="px-2 py-2 space-y-2 max-h-[220px] overflow-y-auto hide-scrollbar">
                     {['morning', 'lunch', 'dinner'].map((type) => {
-                        const list = activeDay[type];
-                        if (!list || list.length === 0) return null;
+                        const list = slotsByType[type];
+                        if (list.length === 0) return null;
                         return (
                             <div key={type}>
                                 <div className="flex items-center gap-1.5 mb-1.5">
                                     <span className="text-[10px] font-bold uppercase tracking-wider text-purple-700">
-                                        {SLOT_TYPE_LABELS[type]}
+                                        {t(`slotTypes.${type}`, SLOT_TYPE_LABELS[type])}
                                     </span>
                                     <span className="text-[9px] text-gray-400">
                                         ({list.length})
                                     </span>
                                 </div>
                                 <div className="flex flex-wrap gap-1.5">
-                                    {list.map((slot) => {
-                                        const enriched = {
-                                            ...slot,
-                                            date: activeDay.date,
-                                            day: activeDay.day,
-                                        };
-                                        const isSelected =
-                                            selectedSlot?.date === enriched.date &&
-                                            selectedSlot?.from === enriched.from &&
-                                            selectedSlot?.to === enriched.to;
-                                        return (
-                                            <SlotChip
-                                                key={`${type}_${slot.from}_${slot.to}`}
-                                                slot={enriched}
-                                                selected={isSelected}
-                                                onSelect={onSelectSlot}
-                                                t={t}
-                                            />
-                                        );
-                                    })}
+                                    {list.map((slot) => (
+                                        <SlotChip
+                                            key={slot._id}
+                                            slot={slot}
+                                            selected={selectedSlot?._id === slot._id}
+                                            onSelect={onSelectSlot}
+                                        />
+                                    ))}
                                 </div>
                             </div>
                         );
                     })}
                 </div>
-            )}
 
             {selectedSlot && (
                 <div className="px-3 py-1.5 bg-purple-50 border-t border-purple-100 flex items-center justify-between">
                     <span className="text-[10px] text-purple-700 font-medium">
-                        ✓ {selectedSlot.day}, {selectedSlot.date} · {selectedSlot.slots_time}
+                        ✓ {t(`slotTypes.${selectedSlot.slot_type}`, selectedSlot.slot_type)} · {selectedSlot.time}
                     </span>
                     <button
                         type="button"
@@ -268,12 +185,13 @@ const RightPanelAll = ({
     selectedDining,
     onDiningTypeSelect,
     onDropdownToggle,
-    showBoxes,
     setShowBoxes,
     cartItems: cartItemsProp,
     setCartItems: setCartItemsProp,
     selectedCustomer: selectedCustomerProp,
     setSelectedCustomer: setSelectedCustomerProp,
+    selectedSlot: selectedSlotProp,
+    setSelectedSlot: setSelectedSlotProp,
     customers: customersProp,
     customerSearchTerm: customerSearchTermProp,
     setCustomerSearchTerm: setCustomerSearchTermProp,
@@ -339,13 +257,16 @@ const RightPanelAll = ({
     const [createdOrderId, setCreatedOrderId] = useState(null);
     const [orderTotal, setOrderTotal] = useState(0);
     const [isCreatingOrder, setIsCreatingOrder] = useState(false);
+    const [isPrintingPdf, setIsPrintingPdf] = useState(false);
     const [isProcessingPayment, setIsProcessingPayment] = useState(false);
     const [showReceiptModal, setShowReceiptModal] = useState(false);
     const [paymentReceipt, setPaymentReceipt] = useState(null);
     const receiptRef = useRef(null);
 
     /* -------------------- SLOT STATE -------------------- */
-    const [selectedSlot, setSelectedSlot] = useState(null);
+    const [localSelectedSlot, setLocalSelectedSlot] = useState(null);
+    const selectedSlot = selectedSlotProp === undefined ? localSelectedSlot : selectedSlotProp;
+    const setSelectedSlot = setSelectedSlotProp || setLocalSelectedSlot;
     /* ---------------------------------------------------- */
 
     useEffect(() => {
@@ -429,11 +350,8 @@ const RightPanelAll = ({
         data: slotsResponse,
         isLoading: slotsLoading,
         isError: slotsError,
-    } = useGeneratedSlots(activeTableId);
+    } = useRestaurantSlots();
 
-    useEffect(() => {
-        setSelectedSlot(null);
-    }, [activeTableId]);
     /* ---------------------------------------------------- */
 
     const handleOpenNewCustomerModal = () => {
@@ -820,6 +738,8 @@ const RightPanelAll = ({
     };
 
     const createOrderForPayment = async () => {
+        if (createdOrderId) return createdOrderId;
+
         const customer = useNewProps ? selectedCustomerProp : selectedCustomer;
         const dining = useNewProps ? diningOptionProp : selectedDining;
         const table = useNewProps ? selectedTableProp : selectedTable;
@@ -836,21 +756,16 @@ const RightPanelAll = ({
                 restaurantId: undefined,
                 kitchenId: kitchenData?.Kitchen_id || kitchenData?.[0]?.Kitchen_id || 1,
                 taxAmount: useNewProps ? taxAmountProp : calculateTax(),
-                slot: selectedSlot
-                    ? {
-                          slot_date: selectedSlot.date,
-                          slot_from: selectedSlot.from,
-                          slot_to: selectedSlot.to,
-                          slot_type: selectedSlot.slot_type,
-                          slots_time: selectedSlot.slots_time,
-                      }
-                    : null,
+                slot: selectedSlot,
             });
 
             const response = await createPosOrderMutation.mutateAsync(orderData);
 
             if (response.success) {
-                const posOrderId = response.data.POS_Order_id;
+                const posOrderId = response.data?.POS_Order_id || response.data?.Order_id;
+                if (!posOrderId) {
+                    throw new Error('The created order response did not include an order ID.');
+                }
                 setCreatedOrderId(posOrderId);
                 setOrderTotal(response.data.Total);
                 try {
@@ -858,7 +773,7 @@ const RightPanelAll = ({
                 } catch (invErr) {
                     console.warn('POS invoice auto-generation note:', invErr);
                 }
-                return true;
+                return posOrderId;
             } else {
                 toast.error('Failed to create order: ' + (response.message || 'Unknown error'));
                 return false;
@@ -893,7 +808,7 @@ const RightPanelAll = ({
             return false;
         }
         if (dining === 'Dine in' && !selectedSlot) {
-            toast.warn(t('selectSlot', 'Please select a time slot for Dine in'));
+            toast.warn(t('pleaseSelectSlot', 'Please select a time slot for Dine in'));
             return false;
         }
         return true;
@@ -904,8 +819,36 @@ const RightPanelAll = ({
         setShowBillModal(true);
     };
 
-    const handlePrintBillNow = () => {
-        window.print();
+    const handlePrintBillNow = async () => {
+        const pdfWindow = window.open('', '_blank');
+        if (!pdfWindow) {
+            toast.error(t('pdfPopupBlocked', 'Allow pop-ups to open the order PDF.'));
+            return;
+        }
+
+        setIsPrintingPdf(true);
+        try {
+            const orderId = await createOrderForPayment();
+            if (!orderId) {
+                pdfWindow.close();
+                return;
+            }
+
+            const pdfBlob = await posService.getOrderPdf(orderId);
+            if (!(pdfBlob instanceof Blob) || pdfBlob.size === 0) {
+                throw new Error('The order PDF response was empty or invalid.');
+            }
+
+            const pdfUrl = URL.createObjectURL(pdfBlob);
+            pdfWindow.location.href = pdfUrl;
+            window.setTimeout(() => URL.revokeObjectURL(pdfUrl), 60_000);
+        } catch (error) {
+            console.error('Failed to print POS order PDF:', error);
+            pdfWindow.close();
+            toast.error(error.message || t('pdfPrintError', 'Unable to open the order PDF.'));
+        } finally {
+            setIsPrintingPdf(false);
+        }
     };
 
     const handleGenerateBill = async () => {
@@ -1076,11 +1019,9 @@ const RightPanelAll = ({
             }
 
             if (selectedSlot) {
-                orderData.Slot_Date = selectedSlot.date;
-                orderData.Slot_From = selectedSlot.from;
-                orderData.Slot_To = selectedSlot.to;
+                orderData.Restaurant_slot_id = selectedSlot._id;
                 orderData.Slot_Type = selectedSlot.slot_type;
-                orderData.Slot_Time = selectedSlot.slots_time;
+                orderData.Slot_Time = selectedSlot.time;
             }
 
             const response = await createPosOrderMutation.mutateAsync(orderData);
@@ -1164,9 +1105,9 @@ const RightPanelAll = ({
 
     return (
         <>
-            <div className="bg-white border border-[#D95A82] rounded-2xl shadow-sm flex flex-col justify-between h-[710px]">
+            <div className="bg-white border border-[#D95A82] rounded-2xl shadow-sm flex flex-col min-h-[710px]">
 
-                <div className='border-b border-gray-200'>
+                <div className='border-b border-gray-200 flex-shrink-0'>
                     <div className='p-4'>
                         <div className="mb-4">
                             <div className="flex items-center gap-2">
@@ -1392,8 +1333,8 @@ const RightPanelAll = ({
                         />
                     </div>
                 </div>
-                <div ref={scrollRef} className="h-[500px] overflow-y-auto hide-scrollbar mt-4 px-4 pb-4">
-                    {(useNewProps ? cartItems.length > 0 : (showBoxes && cartItems.length > 0)) ? (
+                <div ref={scrollRef} className="flex-1 min-h-[160px] max-h-[360px] overflow-y-auto hide-scrollbar mt-4 px-4 pb-4">
+                    {cartItems.length > 0 ? (
                         cartItems.map((item, index) => {
                             const { basePrice, variantPrice, addonPrice, totalPrice } = calculateItemPrices(item);
 
@@ -1513,7 +1454,7 @@ const RightPanelAll = ({
                     </>
                 )}
 
-                <div className='border-t border-[#6A1B9A] '>
+                <div className='border-t border-[#6A1B9A] flex-shrink-0'>
                     <div className='p-4'>
                         {cartItems.length > 0 && (
                             <div className="mb-4 space-y-2 bg-gray-50 p-3 rounded-lg">
@@ -2080,7 +2021,7 @@ const RightPanelAll = ({
                                             <div className="flex justify-between">
                                                 <span className="text-gray-500">{t('slot', 'Slot')}:</span>
                                                 <span className="font-semibold">
-                                                    {selectedSlot.day}, {selectedSlot.date} · {selectedSlot.slots_time}
+                                                    {t(`slotTypes.${selectedSlot.slot_type}`, selectedSlot.slot_type)} · {selectedSlot.time}
                                                 </span>
                                             </div>
                                         )}
@@ -2157,10 +2098,18 @@ const RightPanelAll = ({
                             <div className="p-4 border-t border-gray-100 flex gap-3 bg-gray-50/70">
                                 <button
                                     onClick={handlePrintBillNow}
-                                    className="flex-1 py-3 bg-gradient-to-r from-[#6A1B9A] to-[#D32F2F] text-white rounded-xl font-semibold text-sm hover:opacity-90 active:scale-95 transition-all shadow-md flex items-center justify-center gap-2"
+                                    disabled={isPrintingPdf || isCreatingOrder}
+                                    aria-busy={isPrintingPdf || isCreatingOrder}
+                                    className="flex-1 py-3 bg-gradient-to-r from-[#6A1B9A] to-[#D32F2F] text-white rounded-xl font-semibold text-sm hover:opacity-90 active:scale-95 transition-all shadow-md flex items-center justify-center gap-2 disabled:opacity-60 disabled:cursor-wait"
                                 >
-                                    <FaPrint className="text-base" />
-                                    {t('printBill', 'Print bill')}
+                                    {isPrintingPdf || isCreatingOrder ? (
+                                        t('generatingOrderPdf', 'Generating PDF...')
+                                    ) : (
+                                        <>
+                                            <FaPrint className="text-base" />
+                                            {t('printBill', 'Print bill')}
+                                        </>
+                                    )}
                                 </button>
                                 <button
                                     onClick={() => setShowBillModal(false)}
@@ -2203,7 +2152,7 @@ const RightPanelAll = ({
                         <div className="flex justify-between">
                             <span className="text-gray-600">{t('slot', 'Slot')}:</span>
                             <span className="font-semibold">
-                                {selectedSlot.day}, {selectedSlot.date} · {selectedSlot.slots_time}
+                                {t(`slotTypes.${selectedSlot.slot_type}`, selectedSlot.slot_type)} · {selectedSlot.time}
                             </span>
                         </div>
                     )}

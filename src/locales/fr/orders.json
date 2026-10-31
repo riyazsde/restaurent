@@ -14,6 +14,7 @@
     },
     "actions": {
         "printBill": "Imprimer la facture",
+        "downloadingBill": "Téléchargement...",
         "cancel": "Annuler",
         "complete": "Terminer",
         "payAndComplete": "Payer et terminer",
@@ -64,6 +65,7 @@
         "orderUpdateError": "Échec de la mise à jour du statut de la commande",
         "fetchError": "Échec de la récupération des commandes",
         "exportSuccess": "Commandes exportées avec succès !",
-        "exportFailed": "Échec de l'exportation des commandes"
+        "exportFailed": "Échec de l'exportation des commandes",
+        "billDownloadError": "Échec du téléchargement du PDF de la commande"
     }
 }

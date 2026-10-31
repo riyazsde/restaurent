@@ -24,7 +24,9 @@ export const posOrderApi = {
         }
     },
     deleteItem: (orderId, itemId) => api.delete(`/restaurant/pos_order/delete-item/${orderId}/${itemId}`),
-    printBill: (orderId) => api.get(`/restaurant/pos_order/getbyid/${orderId}/pdf`),
+    printBill: (orderId) => api.get(`/restaurant/pos_order/getbyid/${orderId}/pdf`, {
+        responseType: 'blob'
+    }),
     createCustomer: (data) => api.post('/restaurant/customer/create', data),
     updateCustomer: (data) => api.put('/restaurant/customer/update', data)
 };

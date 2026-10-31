@@ -24,12 +24,14 @@ import {
     validateOrderPrerequisites,
     formatCurrency
 } from '../utils/posHelpers';
+import { clearPosDraft, loadPosDraft, savePosDraft } from '../utils/posDraftStorage';
 
 /**
  * Main workflow hook encapsulating state, data queries, and actions for POS
  */
 export const usePosWorkflow = () => {
     const { i18n } = useTranslation();
+    const [initialPosDraft] = useState(loadPosDraft);
 
     // UI Mode & Segmented Tab
     const [selectedTab, setSelectedTab] = useState('All');
@@ -38,7 +40,7 @@ export const usePosWorkflow = () => {
     const [showBoxes, setShowBoxes] = useState(false);
     const [showBoxes3, setShowBoxes3] = useState(false);
     const [dropdownOpen, setDropdownOpen] = useState(false);
-    const [selectedDining, setSelectedDining] = useState(null);
+    const [selectedDining, setSelectedDining] = useState(() => initialPosDraft.selectedDining ?? null);
 
     // Modals
     const [isQrMenuOrdersOpen, setIsQrMenuOrdersOpen] = useState(false);
@@ -259,13 +261,14 @@ export const usePosWorkflow = () => {
     const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
 
     // Dining & Table Selection
-    const [diningOption, setDiningOption] = useState(null);
-    const [selectedFloor, setSelectedFloor] = useState(null);
-    const [selectedTable, setSelectedTable] = useState(null);
+    const [diningOption, setDiningOption] = useState(() => initialPosDraft.diningOption ?? null);
+    const [selectedFloor, setSelectedFloor] = useState(() => initialPosDraft.selectedFloor ?? null);
+    const [selectedTable, setSelectedTable] = useState(() => initialPosDraft.selectedTable ?? null);
     const [showTableSelection, setShowTableSelection] = useState(false);
 
     // Cart Items State
-    const [cartItems, setCartItems] = useState([]);
+    const [cartItems, setCartItems] = useState(() => initialPosDraft.cartItems ?? []);
+    const [selectedSlot, setSelectedSlot] = useState(() => initialPosDraft.selectedSlot ?? null);
 
     // Variant / Addon Selection Modal
     const [isModalOpen, setIsModalOpen] = useState(false);
@@ -294,11 +297,21 @@ export const usePosWorkflow = () => {
 
     // Tab Reset Effect
     useEffect(() => {
-        setSelectedDining(null);
         setShowBoxes(false);
         setShowBoxes3(false);
         setDropdownOpen(false);
     }, [selectedTab]);
+
+    useEffect(() => {
+        savePosDraft({
+            cartItems,
+            selectedDining,
+            diningOption,
+            selectedTable,
+            selectedFloor,
+            selectedSlot,
+        });
+    }, [cartItems, selectedDining, diningOption, selectedTable, selectedFloor, selectedSlot]);
 
     // Dynamic Reactive Totals
     const { subTotal, taxAmount, total } = useMemo(() => {
@@ -504,11 +517,14 @@ export const usePosWorkflow = () => {
     };
 
     const resetPOS = () => {
+        clearPosDraft();
         setCartItems([]);
+        setSelectedDining(null);
         setSelectedCustomer(null);
         setDiningOption(null);
         setSelectedTable(null);
         setSelectedFloor(null);
+        setSelectedSlot(null);
         setSelectedCategory('All');
         setSelectedCategoryId(null);
         setItemSearchTerm('');
@@ -593,6 +609,8 @@ export const usePosWorkflow = () => {
         setSelectedFloor,
         selectedTable,
         setSelectedTable,
+        selectedSlot,
+        setSelectedSlot,
         showTableSelection,
         setShowTableSelection,
         handleDiningOptionSelect,
