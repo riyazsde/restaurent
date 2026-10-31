@@ -8,6 +8,7 @@ import { planApi } from '../api/plan.api';
 import { websiteApi } from '../api/website.api';
 import logo from './assets/LOGOPlande.svg';
 import useAuthStore from '../store/authStore';
+import useLanguageStore from '../store/languageStore';
 import { getCookie } from '../utils/cookies';
 import { COOKIE_NAMES } from '../utils/constants';
 import LanguageSelector from './LanguageSelector/LanguageSelector';
@@ -16,7 +17,9 @@ const LandingPage = () => {
   const navigate = useNavigate();
   const heroRef = useRef(null);
   const { isAuthenticated, userRole, initAuth } = useAuthStore();
-
+  const { setLanguageForAuth } = useLanguageStore();
+  const testimonialsRef = useRef(null);
+  const [currentTestimonial, setCurrentTestimonial] = useState(0);
   useEffect(() => {
     initAuth();
   }, [initAuth]);
@@ -28,7 +31,24 @@ const LandingPage = () => {
   const [activePlan, setActivePlan] = useState('bundle');
   const [isSubscribed, setIsSubscribed] = useState(false);
   const [isPastHero, setIsPastHero] = useState(false);
+  const TESTIMONIAL_COUNT = 3;
+  const TESTIMONIAL_SCROLL_STEP = 600;
 
+  const scrollTestimonialsPrev = () => {
+    testimonialsRef.current?.scrollBy({ left: -TESTIMONIAL_SCROLL_STEP, behavior: 'smooth' });
+  };
+
+  const scrollTestimonialsNext = () => {
+    testimonialsRef.current?.scrollBy({ left: TESTIMONIAL_SCROLL_STEP, behavior: 'smooth' });
+  };
+
+  const handleTestimonialsScroll = () => {
+    const el = testimonialsRef.current;
+    if (!el) return;
+    const index = Math.round(el.scrollLeft / TESTIMONIAL_SCROLL_STEP);
+    const clamped = Math.max(0, Math.min(TESTIMONIAL_COUNT - 1, index));
+    setCurrentTestimonial(clamped);
+  };
   useEffect(() => {
     const handleScroll = () => {
       if (heroRef.current) {
@@ -177,12 +197,13 @@ const LandingPage = () => {
           <button onClick={() => document.getElementById('about')?.scrollIntoView({ behavior: 'smooth' })} className="text-gray-300 hover:text-white transition-colors cursor-pointer" style={{ color: '#d1d5db' }}>About Us</button>
         </div>
         <div className="flex items-center gap-2">
-          
+
           <button
-            onClick={() => {
+            onClick={async () => {
               if (isLoggedIn) {
                 navigate(userRole === 'Employee' ? '/employee/quick-order' : '/dashboard/home');
               } else {
+                await setLanguageForAuth('en');
                 navigate('/register');
               }
             }}
@@ -650,29 +671,87 @@ const LandingPage = () => {
       </section>
 
       {/* Testimonials Section */}
+      {/* Testimonials Section */}
       <section className="py-24 bg-white overflow-hidden">
         <div className="container mx-auto px-6 max-w-7xl">
           <div className="flex flex-col md:flex-row md:items-end justify-between mb-16 gap-6">
-            <h2 className="text-3xl md:text-[42px] font-medium text-[#1A1A1A] leading-tight">What our clients say</h2>
-            <div className="flex gap-4">
-              <button className="w-12 h-12 rounded-full bg-[#F3F4F6] flex items-center justify-center text-[#4B5563] hover:bg-gray-200 transition-colors">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5">
+            <h2 className="text-3xl md:text-[42px] font-medium text-[#1A1A1A] leading-tight">
+              What our clients say
+            </h2>
+
+            {/* Carousel controls */}
+            <div className="flex gap-4" role="group" aria-label="Testimonial navigation">
+              <button
+                type="button"
+                aria-label="Previous testimonial"
+                aria-controls="testimonials-carousel"
+                onClick={scrollTestimonialsPrev}
+                disabled={currentTestimonial === 0}
+                className="w-12 h-12 rounded-full bg-[#F3F4F6] flex items-center justify-center text-[#4B5563] hover:bg-gray-200 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[#702283] focus-visible:ring-offset-2 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-[#F3F4F6]"
+              >
+                <svg
+                  aria-hidden="true"
+                  focusable="false"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  className="w-5 h-5"
+                >
                   <path d="M19 12H5M12 19l-7-7 7-7" />
                 </svg>
               </button>
-              <button className="w-12 h-12 rounded-full bg-gradient-to-br from-[#702283] to-[#E53935] flex items-center justify-center text-white hover:opacity-90 transition-opacity shadow-lg">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5">
+
+              <button
+                type="button"
+                aria-label="Next testimonial"
+                aria-controls="testimonials-carousel"
+                onClick={scrollTestimonialsNext}
+                disabled={currentTestimonial === TESTIMONIAL_COUNT - 1}
+                className="w-12 h-12 rounded-full bg-gradient-to-br from-[#702283] to-[#E53935] flex items-center justify-center text-white hover:opacity-90 transition-opacity shadow-lg focus:outline-none focus-visible:ring-2 focus-visible:ring-[#702283] focus-visible:ring-offset-2 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:opacity-40"
+              >
+                <svg
+                  aria-hidden="true"
+                  focusable="false"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  className="w-5 h-5"
+                >
                   <path d="M5 12h14M12 5l7 7-7 7" />
                 </svg>
               </button>
             </div>
           </div>
 
-          {/* Carousel Container */}
-          <div className="flex gap-8 overflow-x-auto snap-x snap-mandatory pb-8 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
+          {/* Polite live region for screen readers */}
+          <p className="sr-only" aria-live="polite" aria-atomic="true">
+            {`Testimonial ${currentTestimonial + 1} of ${TESTIMONIAL_COUNT}`}
+          </p>
 
+          {/* Carousel Container */}
+          <div
+            id="testimonials-carousel"
+            ref={testimonialsRef}
+            onScroll={handleTestimonialsScroll}
+            role="region"
+            aria-roledescription="carousel"
+            aria-label="Client testimonials"
+            tabIndex={0}
+            className="flex gap-8 overflow-x-auto snap-x snap-mandatory pb-8 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#702283] focus-visible:ring-offset-2 rounded-3xl"
+          >
             {/* Card 1 */}
-            <div className="bg-[#050505] text-white rounded-3xl p-12 md:p-16 min-w-[300px] w-[600px] flex-shrink-0 snap-start flex flex-col items-center justify-center">
+            <div
+              role="group"
+              aria-roledescription="slide"
+              aria-label={`Testimonial 1 of ${TESTIMONIAL_COUNT}`}
+              className="bg-[#050505] text-white rounded-3xl p-12 md:p-16 min-w-[300px] w-[600px] flex-shrink-0 snap-start flex flex-col items-center justify-center"
+            >
               <div className="text-center mb-10 text-[15px]">
                 <span className="font-semibold text-gray-100">Manuel Rikob</span>
                 <span className="text-[#6B7280] mx-3">•</span>
@@ -684,7 +763,12 @@ const LandingPage = () => {
             </div>
 
             {/* Card 2 */}
-            <div className="bg-[#050505] text-white rounded-3xl p-12 md:p-16 min-w-[300px] w-[600px] flex-shrink-0 snap-start flex flex-col items-center justify-center">
+            <div
+              role="group"
+              aria-roledescription="slide"
+              aria-label={`Testimonial 2 of ${TESTIMONIAL_COUNT}`}
+              className="bg-[#050505] text-white rounded-3xl p-12 md:p-16 min-w-[300px] w-[600px] flex-shrink-0 snap-start flex flex-col items-center justify-center"
+            >
               <div className="text-center mb-10 text-[15px]">
                 <span className="font-semibold text-gray-100">Manuel Rikob</span>
                 <span className="text-[#6B7280] mx-3">•</span>
@@ -696,7 +780,12 @@ const LandingPage = () => {
             </div>
 
             {/* Card 3 */}
-            <div className="bg-[#050505] text-white rounded-3xl p-12 md:p-16 min-w-[300px] w-[600px] flex-shrink-0 snap-start flex flex-col items-center justify-center">
+            <div
+              role="group"
+              aria-roledescription="slide"
+              aria-label={`Testimonial 3 of ${TESTIMONIAL_COUNT}`}
+              className="bg-[#050505] text-white rounded-3xl p-12 md:p-16 min-w-[300px] w-[600px] flex-shrink-0 snap-start flex flex-col items-center justify-center"
+            >
               <div className="text-center mb-10 text-[15px]">
                 <span className="font-semibold text-gray-100">Manuel Rikob</span>
                 <span className="text-[#6B7280] mx-3">•</span>
@@ -706,7 +795,6 @@ const LandingPage = () => {
                 "Working with Master in me has been an incredibly painless and enjoyable experience."
               </p>
             </div>
-
           </div>
         </div>
       </section>
@@ -828,8 +916,8 @@ const LandingPage = () => {
 
                   {/* Action button skeleton */}
                   <div className={`w-full h-12 rounded-xl ${i === 1
-                      ? 'bg-gradient-to-r from-brand-primary/40 to-brand-secondary/40 shadow-sm'
-                      : 'bg-gray-100 border-2 border-gray-200'
+                    ? 'bg-gradient-to-r from-brand-primary/40 to-brand-secondary/40 shadow-sm'
+                    : 'bg-gray-100 border-2 border-gray-200'
                     }`}></div>
                 </div>
               ))

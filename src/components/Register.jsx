@@ -150,8 +150,8 @@ const RegisterPage = () => {
             </div>
 
             {/* Right Side */}
-            <div style={{ fontFamily: 'Poppins' }} className="w-full md:w-1/2 overflow-y-auto flex items-center justify-center relative z-10 py-8">
-                <div className="max-w-md bg-white rounded-xl mx-4 w-full p-4 md:p-8 mt-4 md:mt-20 space-y-5 shadow-sm">
+            <div style={{ fontFamily: 'Poppins' }} className="w-full md:w-1/2 overflow-y-auto flex items-start justify-center relative z-10 py-8">
+                <div className="max-w-md bg-white rounded-xl mx-4 my-4 md:my-8 w-full p-4 md:p-8 space-y-5 shadow-sm">
                     <div className="flex justify-between items-center mb-4 md:mb-8">
                         <h3 className="text-[20px] md:text-[24px] font-semibold text-[#1F2937]">
                             {t('register.title', 'Register')}
