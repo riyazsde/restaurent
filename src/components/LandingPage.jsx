@@ -12,7 +12,6 @@ import useAuthStore from '../store/authStore';
 import useLanguageStore from '../store/languageStore';
 import { getCookie } from '../utils/cookies';
 import { COOKIE_NAMES } from '../utils/constants';
-import LanguageSelector from './LanguageSelector/LanguageSelector';
 
 const LandingPage = () => {
   const navigate = useNavigate();
@@ -205,7 +204,6 @@ const LandingPage = () => {
           <button onClick={() => document.getElementById('about')?.scrollIntoView({ behavior: 'smooth' })} className="text-gray-300 hover:text-white transition-colors cursor-pointer" style={{ color: '#d1d5db' }}>About Us</button>
         </div>
         <div className="flex items-center gap-2">
-          <LanguageSelector className="hidden sm:block" />
           <button
             onClick={async () => {
               if (isLoggedIn) {
