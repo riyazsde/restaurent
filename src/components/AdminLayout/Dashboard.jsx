@@ -3,7 +3,7 @@ import React, { useRef, useEffect, useState, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useQuery } from '@tanstack/react-query';
 import {
-    BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip,
+    BarChart, Bar, Cell, XAxis, YAxis, CartesianGrid, Tooltip,
     LineChart, Line, ResponsiveContainer, Area, AreaChart
 } from 'recharts';
 import { FaUserFriends, FaChair, FaWineGlassAlt } from 'react-icons/fa';
@@ -313,13 +313,13 @@ const DashboardSection = () => {
                                                     <Tooltip cursor={{ fill: 'transparent' }} />
                                                     <Bar dataKey="value" radius={[4, 4, 0, 0]}>
                                                         {barData.map((entry, index) => (
-                                                            <cell key={`cell-${index}`} fill="url(#colorUv)" />
+                                                            <Cell key={`cell-${index}`} fill="url(#repeatCustomerGradient)" />
                                                         ))}
                                                     </Bar>
                                                     <defs>
-                                                        <linearGradient id="colorUv" x1="0" y1="0" x2="0" y2="1">
-                                                            <stop offset="0%" stopColor="#d32f2f" />
-                                                            <stop offset="100%" stopColor="#6A1B9A" />
+                                                        <linearGradient id="repeatCustomerGradient" x1="0" y1="0" x2="0" y2="1">
+                                                            <stop offset="0%" stopColor="#6A1B9A" />
+                                                            <stop offset="100%" stopColor="#D32F2F" />
                                                         </linearGradient>
                                                     </defs>
                                                 </BarChart>
@@ -788,5 +788,4 @@ const DashboardSection = () => {
 
 
 export default DashboardSection;
-
 
