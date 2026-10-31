@@ -508,7 +508,42 @@
       "noItemsAvailable": "No items available"
     }
   },
-  "devices": {
+    "publicSite": {
+      "mobileFeature": {
+        "title": "Mobile and remote access",
+        "description": "Use a supported mobile device to take orders and access your restaurant account remotely."
+      },
+      "howItWorks": {
+        "title": "How It Works",
+        "steps": {
+          "signUp": {
+            "title": "Create Your Account",
+            "description": "Enter your details and choose a plan."
+          },
+          "uploadItems": {
+            "title": "Add Your Menu",
+            "description": "Add your dishes, beverages, and desserts."
+          },
+          "automate": {
+            "title": "Simplify Daily Operations",
+            "description": "Use the POS to manage orders and routine tasks."
+          }
+        }
+      },
+      "team": {
+        "eyebrow": "Team Triaxx",
+        "title": "POS tools designed for restaurant and bar workflows",
+        "description": "Triaxx POS brings order management, inventory, payments, and reporting together in one platform, with customization options for different business needs.",
+        "valueStatement": "We build POS software for restaurants and bars. Review the features included in your plan to see how they fit your team's workflow."
+      },
+      "experience": {
+        "titlePrefix": "The",
+        "titleSuffix": "Experience",
+        "remoteAccessTitle": "Access your restaurant remotely",
+        "remoteAccessDescription": "Use Triaxx POS on a supported mobile device to access your restaurant account. Access to business data requires authorization."
+      }
+    },
+    "devices": {
     "title": "My Devices",
     "refresh": "Refresh",
     "refreshing": "Refreshing devices...",

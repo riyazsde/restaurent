@@ -508,7 +508,42 @@
       "noItemsAvailable": "Aucun article disponible"
     }
   },
-  "devices": {
+    "publicSite": {
+      "mobileFeature": {
+        "title": "Accès mobile et à distance",
+        "description": "Utilisez un appareil mobile compatible pour prendre des commandes et accéder à distance au compte de votre restaurant."
+      },
+      "howItWorks": {
+        "title": "Comment ça marche",
+        "steps": {
+          "signUp": {
+            "title": "Créez votre compte",
+            "description": "Saisissez vos informations et choisissez une formule."
+          },
+          "uploadItems": {
+            "title": "Ajoutez votre menu",
+            "description": "Ajoutez vos plats, boissons et desserts."
+          },
+          "automate": {
+            "title": "Simplifiez vos opérations quotidiennes",
+            "description": "Utilisez le POS pour gérer les commandes et les tâches courantes."
+          }
+        }
+      },
+      "team": {
+        "eyebrow": "L'équipe Triaxx",
+        "title": "Des outils POS conçus pour les restaurants et les bars",
+        "description": "Triaxx POS réunit la gestion des commandes, des stocks, des paiements et des rapports sur une seule plateforme, avec des options de personnalisation adaptées aux différents besoins.",
+        "valueStatement": "Nous développons des logiciels POS pour les restaurants et les bars. Consultez les fonctionnalités incluses dans votre formule pour voir comment elles répondent aux besoins de votre équipe."
+      },
+      "experience": {
+        "titlePrefix": "L'expérience",
+        "titleSuffix": "",
+        "remoteAccessTitle": "Accédez à votre restaurant à distance",
+        "remoteAccessDescription": "Utilisez Triaxx POS sur un appareil mobile compatible pour accéder au compte de votre restaurant. L'accès aux données professionnelles nécessite une autorisation."
+      }
+    },
+    "devices": {
     "title": "Mes Appareils",
     "refresh": "Actualiser",
     "refreshing": "Actualisation des appareils...",

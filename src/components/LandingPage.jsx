@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { ArrowRight, CheckCircle, Zap, Users, Play, Check } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { features } from '../core/data';
 import { ModalFactory } from './factories/ModalFactory';
 import { useQuery } from '@tanstack/react-query';
@@ -15,6 +16,7 @@ import LanguageSelector from './LanguageSelector/LanguageSelector';
 
 const LandingPage = () => {
   const navigate = useNavigate();
+  const { t } = useTranslation('common');
   const heroRef = useRef(null);
   const { isAuthenticated, userRole, initAuth } = useAuthStore();
   const { setLanguageForAuth } = useLanguageStore();
@@ -112,7 +114,13 @@ const LandingPage = () => {
       description: f.description || '',
       img: f.image || f.img || 'https://images.unsplash.com/photo-1556742049-0cfed4f6a45d?auto=format&fit=crop&w=600&q=80'
     }))
-    : features;
+    : features.map(feature => feature.title === 'Mobile & Remote access'
+      ? {
+        ...feature,
+        title: t('publicSite.mobileFeature.title'),
+        description: t('publicSite.mobileFeature.description')
+      }
+      : feature);
 
   // Normalize Statistics: if activeStats from API are present, render them; otherwise fallback with original API count
   const rawStats = statsData?.data?.data || statsData?.data?.result || (Array.isArray(statsData?.data) ? statsData?.data : []);
@@ -197,7 +205,7 @@ const LandingPage = () => {
           <button onClick={() => document.getElementById('about')?.scrollIntoView({ behavior: 'smooth' })} className="text-gray-300 hover:text-white transition-colors cursor-pointer" style={{ color: '#d1d5db' }}>About Us</button>
         </div>
         <div className="flex items-center gap-2">
-
+          <LanguageSelector className="hidden sm:block" />
           <button
             onClick={async () => {
               if (isLoggedIn) {
@@ -340,7 +348,9 @@ const LandingPage = () => {
           <div className="flex flex-col lg:flex-row gap-16 items-center">
 
             <div className="lg:w-1/2">
-              <h2 className="text-4xl md:text-[42px] font-medium mb-16 text-[#1A1A1A]">How It Works</h2>
+              <h2 className="text-4xl md:text-[42px] font-medium mb-16 text-[#1A1A1A]">
+                {t('publicSite.howItWorks.title')}
+              </h2>
 
               <div className="relative space-y-8 w-full max-w-[480px]">
 
@@ -354,8 +364,8 @@ const LandingPage = () => {
                       </svg>
                     </div>
                     <div>
-                      <h3 className="text-[16px] font-medium text-gray-900">Sign Up and Create Account</h3>
-                      <p className="text-[12px] text-gray-500 mt-1">Fill out your details and choose your plan.</p>
+                      <h3 className="text-[16px] font-medium text-gray-900">{t('publicSite.howItWorks.steps.signUp.title')}</h3>
+                      <p className="text-[12px] text-gray-500 mt-1">{t('publicSite.howItWorks.steps.signUp.description')}</p>
                     </div>
                   </div>
                 </div>
@@ -369,8 +379,8 @@ const LandingPage = () => {
                       </svg>
                     </div>
                     <div>
-                      <h3 className="text-[16px] font-medium text-gray-900">Upload Your Items</h3>
-                      <p className="text-[12px] text-gray-500 mt-1">Add your Dishes, Beverages and Desserts.</p>
+                      <h3 className="text-[16px] font-medium text-gray-900">{t('publicSite.howItWorks.steps.uploadItems.title')}</h3>
+                      <p className="text-[12px] text-gray-500 mt-1">{t('publicSite.howItWorks.steps.uploadItems.description')}</p>
                     </div>
                   </div>
                   <div className="text-[100px] md:text-[120px] font-light text-[#F0F2F5] leading-none select-none tracking-tighter">02</div>
@@ -388,8 +398,8 @@ const LandingPage = () => {
                       </svg>
                     </div>
                     <div>
-                      <h3 className="text-[16px] font-medium text-gray-900">Automize the Work</h3>
-                      <p className="text-[12px] text-gray-500 mt-1">Let our POS Manage all the Complex Works.</p>
+                      <h3 className="text-[16px] font-medium text-gray-900">{t('publicSite.howItWorks.steps.automate.title')}</h3>
+                      <p className="text-[12px] text-gray-500 mt-1">{t('publicSite.howItWorks.steps.automate.description')}</p>
                     </div>
                   </div>
                 </div>
@@ -530,13 +540,13 @@ const LandingPage = () => {
         <div className="container mx-auto px-6 max-w-7xl">
           <div className="flex flex-col lg:flex-row gap-16 items-center">
             <div className="lg:w-1/2 lg:pr-12">
-              <h2 className="text-[#A2386E] text-[20px] font-semibold mb-4">Team Triaxx</h2>
+              <h2 className="text-[#A2386E] text-[20px] font-semibold mb-4">{t('publicSite.team.eyebrow')}</h2>
               <h3 className="text-3xl md:text-[34px] font-bold mb-8 leading-[1.3]">
-                Our Team Made a POS Software with Most Powerful Automization and Customization Features
+                {t('publicSite.team.title')}
               </h3>
 
               <p className="text-gray-400 mb-10 leading-[1.7] text-[16px]">
-                Sell at events or in areas with spotty internet and keep making sales, even during an internet outage.
+                {t('publicSite.team.description')}
               </p>
 
               <div className="flex flex-wrap items-center gap-8 mb-10">
@@ -550,7 +560,7 @@ const LandingPage = () => {
               </div>
 
               <p className="text-gray-400 leading-[1.7] text-[16px]">
-                Triaxx has development a Product with Great value to the restaurant's and Bar's. We believe that the customization work and everything you pay for is worth the investment.
+                {t('publicSite.team.valueStatement')}
               </p>
             </div>
             <div className="lg:w-1/2">
@@ -805,17 +815,24 @@ const LandingPage = () => {
           {/* Block 1 */}
           <div className="bg-[#050505] text-white p-12 lg:p-20 flex flex-col justify-center items-center text-center min-h-[400px] lg:min-h-[500px]">
             <h2 className="text-[34px] md:text-[44px] font-bold leading-tight tracking-tight">
-              The <span className="text-[#A2386E]">Triaxx</span><br />Experience
+              {t('publicSite.experience.titlePrefix')}{' '}
+              <span className="text-[#A2386E]">Triaxx</span>
+              {t('publicSite.experience.titleSuffix') && (
+                <>
+                  <br />
+                  {t('publicSite.experience.titleSuffix')}
+                </>
+              )}
             </h2>
           </div>
 
           {/* Block 2 */}
           <div className="bg-white text-[#1A1A1A] p-12 lg:p-20 flex flex-col justify-center items-center text-center min-h-[400px] lg:min-h-[500px]">
             <h3 className="text-[20px] md:text-[26px] font-bold mb-6 leading-tight">
-              Access from any part<br />of the globe
+              {t('publicSite.experience.remoteAccessTitle')}
             </h3>
             <p className="text-[#4B5563] text-[16px] leading-[1.7] max-w-[400px]">
-              Get Trivaxx on mobile and access it from any part of the globe seamlessly. All your data's are stored securely and can be accessed by authorization
+              {t('publicSite.experience.remoteAccessDescription')}
             </p>
           </div>
 
