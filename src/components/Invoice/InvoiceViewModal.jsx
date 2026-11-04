@@ -35,9 +35,14 @@ const InvoiceViewModal = ({
     const paymentMethod = raw.payment_method || raw.order?.payment_method || 'Cash';
 
     // Extract items list
-    const itemsList = Array.isArray(raw.items) && raw.items.length > 0
-        ? raw.items
-        : (Array.isArray(raw.order?.items) ? raw.order.items : []);
+    const itemsList = [
+        raw.items,
+        raw.order?.items,
+        raw.order?.order_items,
+        raw.Order_id?.items,
+        raw.Order_id?.order_items,
+        raw.order_items
+    ].find(items => Array.isArray(items) && items.length > 0) || [];
 
     const rawSubtotal = raw.SubTotal ?? raw.subtotal ?? raw.order?.SubTotal ?? 0;
     const rawTax = raw.Tax ?? raw.tax ?? raw.order?.Tax ?? 0;
@@ -131,21 +136,57 @@ const InvoiceViewModal = ({
                         ) : (
                             <div className="space-y-2">
                                 {itemsList.map((it, idx) => {
-                                    const qty = it.item_Quentry || it.quantity || 1;
                                     const rawDetails = it.Item || it.itemDetails || it;
-                                    const name = rawDetails['item-name'] || rawDetails.item_name || rawDetails.Title || rawDetails.Name || `Item #${it.item_id || idx + 1}`;
-                                    const price = Number(rawDetails.Price ?? rawDetails['item-price'] ?? rawDetails.prices ?? rawDetails.price ?? 0);
-                                    const lineTotal = price > 0 ? price * qty : 0;
+                                    const qty = Number(it.item_Quentry ?? it.quantity ?? 1);
+                                    const name = it.item_name || it['item-name'] || it.Title || it.Name ||
+                                        rawDetails['item-name'] || rawDetails.item_name || rawDetails.Title ||
+                                        rawDetails.Name || rawDetails.name || `Item #${it.item_id || idx + 1}`;
+                                    const readAmount = (...values) => {
+                                        const value = values.find(candidate => candidate !== null && candidate !== undefined && candidate !== '');
+                                        const amount = Number(value);
+                                        return Number.isFinite(amount) ? { amount, found: value !== undefined } : { amount: 0, found: false };
+                                    };
+                                    const basePrice = readAmount(it.item_price, it.itemPrice, rawDetails.item_price, rawDetails.itemPrice);
+                                    const variantPrice = readAmount(it.variant_price, it.variantPrice);
+                                    const addonPrice = readAmount(it.addon_price, it.addonPrice);
+                                    const savedUnitPrice = readAmount(it.unit_price, it.unitPrice, it.price);
+                                    const catalogUnitPrice = readAmount(
+                                        rawDetails.Price,
+                                        rawDetails['item-price'],
+                                        rawDetails.prices,
+                                        rawDetails.price
+                                    );
+                                    const unitPrice = savedUnitPrice.found
+                                        ? savedUnitPrice
+                                        : basePrice.found
+                                            ? { amount: basePrice.amount + variantPrice.amount + addonPrice.amount, found: true }
+                                            : catalogUnitPrice;
+                                    const savedLineTotal = readAmount(it.line_total, it.lineTotal, it.total_price, it.Total_price);
+                                    const lineTotal = savedLineTotal.found
+                                        ? savedLineTotal
+                                        : unitPrice.found
+                                            ? { amount: unitPrice.amount * qty, found: true }
+                                            : { amount: 0, found: false };
+                                    const variant = it.variant_name || it.variantName || it.Variant?.Variants ||
+                                        it.item_Variants_id?.Variants || it.variantDetails?.Variants;
+                                    const addons = it.addon_names || it.addonNames || it.Addons?.map?.(addon => addon.Addons).filter(Boolean).join(', ');
 
                                     return (
                                         <div key={idx} className="flex justify-between items-center text-xs py-1 border-b border-gray-100 last:border-b-0">
                                             <div className="flex-1 pr-2">
-                                                <span className="font-semibold text-gray-800">{qty} × </span>
-                                                <span className="text-gray-700">{name}</span>
-                                                {it.item_size && <span className="text-gray-400 text-[10px] ml-1">({it.item_size})</span>}
+                                                <div>
+                                                    <span className="font-semibold text-gray-800">{qty} × </span>
+                                                    <span className="text-gray-700">{name}</span>
+                                                    {it.item_size && <span className="text-gray-400 text-[10px] ml-1">({it.item_size})</span>}
+                                                </div>
+                                                {variant && <div className="text-gray-500 text-[10px]">{t('modal.variant', 'Variant')}: {variant}</div>}
+                                                {addons && <div className="text-gray-500 text-[10px]">{t('modal.addons', 'Add-ons')}: {addons}</div>}
+                                                <div className="text-gray-500 text-[10px]">
+                                                    {t('modal.unitPrice', 'Unit price')}: {unitPrice.found ? formatCurrency(unitPrice.amount, currency) : '-'}
+                                                </div>
                                             </div>
                                             <span className="font-semibold text-gray-800 shrink-0">
-                                                {lineTotal > 0 ? formatCurrency(lineTotal, currency) : '-'}
+                                                {t('modal.lineTotal', 'Line total')}: {lineTotal.found ? formatCurrency(lineTotal.amount, currency) : '-'}
                                             </span>
                                         </div>
                                     );

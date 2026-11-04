@@ -268,7 +268,9 @@ export default function ReportsSection() {
       value: formatReportPrice(reportData?.refunds ?? reportData?.Refunds)
     },
     {
-      label: t('metrics.totalCustomer', 'Total Customer'),
+      label: t('metrics.totalCustomersForPeriod', 'Customers ({{period}})', {
+        period: options.find(option => option.value === selected)?.label || selected
+      }),
       value: formatPlainNumber(
         reportData?.totalCustomers ??
           (Number(reportData?.newCustomers || 0) + Number(reportData?.repeatCustomers || 0) || undefined)
@@ -283,7 +285,7 @@ export default function ReportsSection() {
       value: formatPlainNumber(reportData?.repeatCustomers ?? reportData?.RepeatCustomers)
     },
     {
-      label: t('metrics.totalCustomer', 'Total Customer'),
+      label: t('metrics.overallCustomers', 'Total Customers (Overall)'),
       value: formatPlainNumber(reportData?.totalCustomerOverall ?? reportData?.TotalCustomerOverall)
     },
     {

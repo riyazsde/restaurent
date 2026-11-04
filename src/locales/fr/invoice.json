@@ -3,7 +3,7 @@
   "searchPlaceholder": "Rechercher une facture",
   "search": "Rechercher",
   "showing": "Affichage de {{count}} facture(s)",
-  "showingToday": "Affichage des factures d'aujourd'hui",
+  "showingAllDates": "Affichage des factures pour toutes les dates",
   "noInvoices": "Aucune facture trouvée.",
   "na": "N/D",
   "table": {
@@ -47,6 +47,10 @@
   },
   "modal": {
     "title": "Détails de la facture",
+    "unitPrice": "Prix unitaire",
+    "lineTotal": "Total de la ligne",
+    "variant": "Variante",
+    "addons": "Suppléments",
     "officialReceipt": "Reçu de facture officiel",
     "customer": "Client",
     "orderedItems": "Articles commandés",

@@ -9,6 +9,10 @@
     "searchPlaceholder": "Search Reservations",
     "search": "Search",
     "showingToday": "Showing Reservations for Today",
+    "showingPeriod": "Showing Reservations for {{period}}",
+    "showingDateRange": "Showing Reservations from {{from}} to {{to}}",
+    "showingFromDate": "Showing Reservations from {{date}}",
+    "showingThroughDate": "Showing Reservations through {{date}}",
     "tabs": {
         "slots": "Slots",
         "all": "All",

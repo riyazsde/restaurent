@@ -194,11 +194,8 @@ const AdminLayout = () => {
     },
   ];
 
-  const handleNavItemClick = (e, path) => {
-    e.preventDefault();
-    e.stopPropagation();
+  const handleNavItemClick = () => {
     clearSearch();
-    navigate(path);
     // Close sidebar on mobile
     if (window.innerWidth < 1024) {
       setTimeout(() => {
@@ -251,7 +248,11 @@ const AdminLayout = () => {
           </div>
         </div> */}
 
-        <nav className="flex-1 px-4 overflow-y-auto hide-scrollbar space-y-6 mt-2 font-poppins">
+        <nav
+          aria-label={t('navigation.primary', 'Primary navigation')}
+          aria-hidden={!sidebarOpen && window.innerWidth < 1024}
+          className="flex-1 px-4 overflow-y-auto hide-scrollbar space-y-6 mt-2 font-poppins"
+        >
           {navGroups.map((group, idx) => (
             <div key={idx} className="space-y-1">
               {group.heading && (
@@ -267,10 +268,13 @@ const AdminLayout = () => {
                   : location.pathname === item.path;
 
                 return (
-                  <div
+                  <Link
                     key={item.path}
-                    onClick={(e) => handleNavItemClick(e, item.path)}
-                    className={`flex items-center px-4 py-2 rounded-full text-sm font-medium transition-all duration-200 cursor-pointer w-full ${isActive ? "text-white" : "text-black hover:bg-[#F3EAF9]"
+                    to={item.path}
+                    onClick={handleNavItemClick}
+                    aria-current={isActive ? 'page' : undefined}
+                    tabIndex={!sidebarOpen && window.innerWidth < 1024 ? -1 : 0}
+                    className={`flex items-center px-4 py-2 rounded-full text-sm font-medium transition-all duration-200 cursor-pointer w-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#6A1B9A] focus-visible:ring-offset-2 ${isActive ? "text-white" : "text-black hover:bg-[#F3EAF9]"
                       }`}
                     style={
                       isActive
@@ -280,15 +284,15 @@ const AdminLayout = () => {
                         : {}
                     }
                   >
-                    <span className="mr-3 text-[18px] shrink-0">
+                    <span aria-hidden="true" className="mr-3 text-[18px] shrink-0">
                       <img
                         src={item.image}
-                        alt={item.label}
+                        alt=""
                         className={`w-5 h-5 ${isActive ? "filter invert" : ""}`}
                       />
                     </span>
                     <span className="truncate">{item.label}</span>
-                  </div>
+                  </Link>
                 );
               })}
             </div>

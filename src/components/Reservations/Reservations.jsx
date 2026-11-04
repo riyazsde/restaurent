@@ -341,11 +341,16 @@ const Reservations = () => {
     };
 
     // Filter States (mapped to Postman /restaurant/reservations/search params)
-    const [filterDay, setFilterDay] = useState('Today');
+    const [filterDay, setFilterDay] = useState('All');
     const [filterPaymentStatus, setFilterPaymentStatus] = useState('');
     const [filterFloor, setFilterFloor] = useState('');
     const [filterFromDate, setFilterFromDate] = useState('');
     const [filterToDate, setFilterToDate] = useState('');
+    const [appliedDateScope, setAppliedDateScope] = useState({
+        filterDay: 'All',
+        fromDate: '',
+        toDate: ''
+    });
 
     const { searchQuery: globalSearch, setSearchPlaceholder } = useSearchStore();
     const [searchQuery, setSearchQuery] = useState('');
@@ -729,53 +734,53 @@ const Reservations = () => {
                 queryParams.Floor = filterFloor;
             }
 
-            if (isFilterModal) {
-                if (filterFromDate || filterToDate) {
-                    if (filterFromDate) queryParams.startDate = filterFromDate;
-                    if (filterToDate) queryParams.endDate = filterToDate;
-                } else if (filterDay && filterDay !== 'All') {
-                    const now = new Date();
-                    const formatDate = (d) => {
-                        const year = d.getFullYear();
-                        const month = String(d.getMonth() + 1).padStart(2, '0');
-                        const day = String(d.getDate()).padStart(2, '0');
-                        return `${year}-${month}-${day}`;
-                    };
+            if (filterFromDate || filterToDate) {
+                if (filterFromDate) queryParams.startDate = filterFromDate;
+                if (filterToDate) queryParams.endDate = filterToDate;
+            } else if (filterDay && filterDay !== 'All') {
+                const now = new Date();
+                const formatDate = (d) => {
+                    const year = d.getFullYear();
+                    const month = String(d.getMonth() + 1).padStart(2, '0');
+                    const day = String(d.getDate()).padStart(2, '0');
+                    return `${year}-${month}-${day}`;
+                };
 
-                    if (filterDay === 'Today') {
-                        queryParams.startDate = formatDate(now);
-                        queryParams.endDate = formatDate(now);
-                    } else if (filterDay === 'Tomorrow') {
-                        const tomorrow = new Date(now);
-                        tomorrow.setDate(tomorrow.getDate() + 1);
-                        queryParams.startDate = formatDate(tomorrow);
-                        queryParams.endDate = formatDate(tomorrow);
-                    } else if (filterDay === 'This Week') {
-                        const curr = new Date(now);
-                        const dayOfWeek = curr.getDay() === 0 ? 7 : curr.getDay();
-                        const firstDay = new Date(curr);
-                        firstDay.setDate(curr.getDate() - dayOfWeek + 1);
-                        const lastDay = new Date(firstDay);
-                        lastDay.setDate(firstDay.getDate() + 6);
-                        queryParams.startDate = formatDate(firstDay);
-                        queryParams.endDate = formatDate(lastDay);
-                    } else if (filterDay === 'This Month') {
-                        const firstDay = new Date(now.getFullYear(), now.getMonth(), 1);
-                        const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0);
-                        queryParams.startDate = formatDate(firstDay);
-                        queryParams.endDate = formatDate(lastDay);
-                    }
+                if (filterDay === 'Today') {
+                    queryParams.startDate = formatDate(now);
+                    queryParams.endDate = formatDate(now);
+                } else if (filterDay === 'Tomorrow') {
+                    const tomorrow = new Date(now);
+                    tomorrow.setDate(tomorrow.getDate() + 1);
+                    queryParams.startDate = formatDate(tomorrow);
+                    queryParams.endDate = formatDate(tomorrow);
+                } else if (filterDay === 'This Week') {
+                    const curr = new Date(now);
+                    const dayOfWeek = curr.getDay() === 0 ? 7 : curr.getDay();
+                    const firstDay = new Date(curr);
+                    firstDay.setDate(curr.getDate() - dayOfWeek + 1);
+                    const lastDay = new Date(firstDay);
+                    lastDay.setDate(firstDay.getDate() + 6);
+                    queryParams.startDate = formatDate(firstDay);
+                    queryParams.endDate = formatDate(lastDay);
+                } else if (filterDay === 'This Month') {
+                    const firstDay = new Date(now.getFullYear(), now.getMonth(), 1);
+                    const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+                    queryParams.startDate = formatDate(firstDay);
+                    queryParams.endDate = formatDate(lastDay);
                 }
             }
 
             if (Object.keys(queryParams).length === 0) {
-                fetchReservations();
+                await fetchReservations();
+                setAppliedDateScope({ filterDay, fromDate: filterFromDate, toDate: filterToDate });
                 return;
             }
 
             const response = await searchReservationsMutation.mutateAsync(queryParams);
             if (response && response.success !== false) {
                 setReservations(response.data || []);
+                setAppliedDateScope({ filterDay, fromDate: filterFromDate, toDate: filterToDate });
                 if (activeTab === 'slots') {
                     setActiveTab('all');
                 }
@@ -792,11 +797,12 @@ const Reservations = () => {
     };
 
     const handleResetFilter = () => {
-        setFilterDay('Today');
+        setFilterDay('All');
         setFilterPaymentStatus('');
         setFilterFloor('');
         setFilterFromDate('');
         setFilterToDate('');
+        setAppliedDateScope({ filterDay: 'All', fromDate: '', toDate: '' });
         setSearchQuery('');
         setShowFilterModal(false);
         fetchReservations();
@@ -810,6 +816,21 @@ const Reservations = () => {
             setSelectedCustomer(e.target.value);
         }
     };
+
+    const dateScopeLabel = appliedDateScope.fromDate || appliedDateScope.toDate
+        ? appliedDateScope.fromDate && appliedDateScope.toDate
+            ? t('showingDateRange', { from: appliedDateScope.fromDate, to: appliedDateScope.toDate })
+            : appliedDateScope.fromDate
+                ? t('showingFromDate', { date: appliedDateScope.fromDate })
+                : t('showingThroughDate', { date: appliedDateScope.toDate })
+        : t(`filter.${{
+            Today: 'today',
+            Tomorrow: 'tomorrow',
+            'This Week': 'thisWeek',
+            'This Month': 'thisMonth',
+            All: 'allDates'
+        }[appliedDateScope.filterDay] || 'allDates'}`);
+    const reservationsHeading = t('showingPeriod', { period: dateScopeLabel });
 
     const resetReservationForm = () => {
         setSelectedCustomer('');
@@ -1290,7 +1311,7 @@ const Reservations = () => {
 
             {/* Subheader & Tabs matching Figma */}
             <div className="w-full flex flex-col lg:flex-row lg:items-center justify-between gap-4">
-                <p className="text-sm sm:text-base text-gray-500 whitespace-nowrap">{t('showingToday')}</p>
+                <p className="text-sm sm:text-base text-gray-500 whitespace-nowrap">{reservationsHeading}</p>
                 <div className="flex items-center gap-2.5 overflow-x-auto w-full lg:w-auto scrollbar-hide">
                     {tabs.map(({ key, label }) => {
                         const isActive = activeTab === key;

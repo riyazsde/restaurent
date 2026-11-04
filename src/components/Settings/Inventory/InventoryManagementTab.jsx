@@ -18,9 +18,9 @@ import {
 import inventoryService from '../../../services/inventoryService';
 import inventoryCategoryService from '../../../services/inventoryCategoryService';
 import { 
-    calculateStockStatus, 
     calculateDaysToExpiry, 
-    computeInventoryStatistics 
+    computeInventoryStatistics,
+    getInventoryItemMetrics
 } from '../../../utils/inventoryUtils';
 import { formatCurrency, resolveCurrencySymbol } from '../../../utils/currencyUtils';
 import { useRestaurant } from '../../../hooks/queries/usePos';
@@ -34,8 +34,8 @@ import useSearchStore from '../../../store/searchStore';
 
 const StatisticsSkeleton = () => {
     return (
-        <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-3 mb-6">
-            {[...Array(7)].map((_, i) => (
+        <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-3 mb-6">
+            {[...Array(8)].map((_, i) => (
                 <div key={i} className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100 flex flex-col justify-between animate-pulse">
                     <div className="flex justify-between items-center mb-3">
                         <div className="h-3 w-16 bg-gray-200 rounded"></div>
@@ -283,17 +283,13 @@ const InventoryManagementTab = () => {
             const matchesSearch = !q || name.includes(q) || code.includes(q) || catName.includes(q);
             if (!matchesSearch) return false;
 
-            const current = parseFloat(item.on_hand_quantity !== undefined ? item.on_hand_quantity : (item.on_hand !== undefined ? item.on_hand : item.stock)) || 0;
-            const min = parseFloat(item.minimum_stock !== undefined ? item.minimum_stock : item.min_stock) || 0;
-            const max = parseFloat(item.maximum_stock !== undefined ? item.maximum_stock : item.max_stock) || 0;
-            const expiry = item.expiry_date || item.expiryDate;
-
-            const status = calculateStockStatus(current, min, max, expiry);
+            const { status } = getInventoryItemMetrics(item);
 
             if (activeFilter === 'All Items') return true;
             if (activeFilter === 'Critical') return status === 'Critical';
             if (activeFilter === 'Low Stock') return status === 'Low Stock';
-            if (activeFilter === 'Expiring Soon') return status === 'Expiring Soon' || status === 'Expired';
+            if (activeFilter === 'Expiring Soon') return status === 'Expiring Soon';
+            if (activeFilter === 'Expired') return status === 'Expired';
             if (activeFilter === 'Overstocked') return status === 'Overstocked';
             if (activeFilter === 'OK') return status === 'OK';
             
@@ -440,7 +436,7 @@ const InventoryManagementTab = () => {
             {isLoading ? (
                 <StatisticsSkeleton />
             ) : (
-                <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-3 mb-6">
+                <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-3 mb-6">
                     {/* Card 1: Total Items */}
                     <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100 flex flex-col justify-between">
                         <div className="flex justify-between items-center mb-2">
@@ -480,13 +476,22 @@ const InventoryManagementTab = () => {
                     {/* Card 5: Expiring */}
                     <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100 flex flex-col justify-between">
                         <div className="flex justify-between items-center mb-2">
-                            <span className="text-xs text-gray-500 font-medium">{t('inventory.expiring', 'Expiring')}</span>
+                            <span className="text-xs text-gray-500 font-medium">{t('inventory.expiringSoon', 'Expiring Soon')}</span>
                             <FiCalendar className="w-4 h-4 text-[#D97706]" />
                         </div>
                         <span className="text-3xl font-bold text-[#D97706]">{stats.expiring_count}</span>
                     </div>
 
-                    {/* Card 6: Overstocked */}
+                    {/* Card 6: Expired */}
+                    <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100 flex flex-col justify-between">
+                        <div className="flex justify-between items-center mb-2">
+                            <span className="text-xs text-gray-500 font-medium">{t('inventory.expired', 'Expired')}</span>
+                            <FiAlertTriangle className="w-4 h-4 text-[#DC2626]" />
+                        </div>
+                        <span className="text-3xl font-bold text-[#DC2626]">{stats.expired_count}</span>
+                    </div>
+
+                    {/* Card 7: Overstocked */}
                     <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100 flex flex-col justify-between">
                         <div className="flex justify-between items-center mb-2">
                             <span className="text-xs text-gray-500 font-medium">{t('inventory.overstocked', 'Overstocked')}</span>
@@ -495,7 +500,7 @@ const InventoryManagementTab = () => {
                         <span className="text-3xl font-bold text-[#9333EA]">{stats.overstocked_count}</span>
                     </div>
 
-                    {/* Card 7: Total Value */}
+                    {/* Card 8: Total Value */}
                     <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100 flex flex-col justify-between">
                         <div className="flex justify-between items-center mb-2">
                             <span className="text-xs text-gray-500 font-medium">{t('inventory.totalValue', 'Total Value')}</span>
@@ -514,6 +519,7 @@ const InventoryManagementTab = () => {
                         { id: 'Critical', label: t('inventory.critical', 'Critical'), icon: <FiAlertTriangle className="w-3.5 h-3.5 text-red-500" /> },
                         { id: 'Low Stock', label: t('inventory.lowStock', 'Low Stock'), icon: <FiTrendingDown className="w-3.5 h-3.5 text-orange-500" /> },
                         { id: 'Expiring Soon', label: t('inventory.expiringSoon', 'Expiring Soon'), icon: <FiCalendar className="w-3.5 h-3.5 text-amber-500" /> },
+                        { id: 'Expired', label: t('inventory.expired', 'Expired'), icon: <FiAlertTriangle className="w-3.5 h-3.5 text-red-500" /> },
                         { id: 'Overstocked', label: t('inventory.overstocked', 'Overstocked'), icon: <FiTrendingUp className="w-3.5 h-3.5 text-purple-500" /> },
                         { id: 'OK', label: t('inventory.ok', 'OK'), icon: <FiCheckCircle className="w-3.5 h-3.5 text-green-500" /> }
                     ].map(f => {
@@ -580,16 +586,9 @@ const InventoryManagementTab = () => {
                                     </td>
                                 </tr>
                             ) : filteredItems.map((item, idx) => {
-                                const current = parseFloat(item.on_hand_quantity !== undefined ? item.on_hand_quantity : (item.on_hand !== undefined ? item.on_hand : item.stock)) || 0;
-                                const min = parseFloat(item.minimum_stock !== undefined ? item.minimum_stock : item.min_stock) || 0;
-                                const max = parseFloat(item.maximum_stock !== undefined ? item.maximum_stock : item.max_stock) || 0;
-                                const expiry = item.expiry_date || item.expiryDate;
+                                const { current, min, max, cost, expiry, status, totalValue } = getInventoryItemMetrics(item);
                                 const unit = item.unit || (activeTab === 'Restaurant' ? 'g' : 'bottle');
-                                const cost = parseFloat(item.cost_per_unit !== undefined ? item.cost_per_unit : item.costPerUnit) || 0;
-                                
-                                const status = calculateStockStatus(current, min, max, expiry);
                                 const daysLeft = calculateDaysToExpiry(expiry);
-                                const totalValue = current * cost;
                                 
                                 // Progress bar logic
                                 let progressColor = 'bg-[#22C55E]';

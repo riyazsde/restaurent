@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { FiX } from 'react-icons/fi';
+import { validateLoyaltyTierValues } from '../../../utils/loyaltyTierValidation';
 
 const TierModal = ({ isOpen, onClose, onSubmit, initialData = null, isSubmitting = false }) => {
     const { t } = useTranslation('common');
+    const [fieldErrors, setFieldErrors] = useState({});
     const [formData, setFormData] = useState({
         tier: '',
         emoji: '',
@@ -14,6 +16,7 @@ const TierModal = ({ isOpen, onClose, onSubmit, initialData = null, isSubmitting
     });
 
     useEffect(() => {
+        setFieldErrors({});
         if (initialData) {
             setFormData({
                 id: initialData.id,
@@ -40,7 +43,23 @@ const TierModal = ({ isOpen, onClose, onSubmit, initialData = null, isSubmitting
 
     const handleSubmit = (e) => {
         e.preventDefault();
+        const valid = validateLoyaltyTierValues(formData);
+        const nextErrors = {};
+        if (!valid.threshold) {
+            nextErrors.threshold = t('loyalty.thresholdInvalid', 'Enter a valid non-negative threshold.');
+        }
+        if (!valid.multiplier) {
+            nextErrors.multiplier = t('loyalty.multiplierInvalid', 'Enter a valid multiplier greater than 0 (e.g., 1.75X).');
+        }
+        setFieldErrors(nextErrors);
+        if (Object.keys(nextErrors).length > 0) return;
         onSubmit(formData);
+    };
+
+    const handleFieldChange = (e) => {
+        const { name, value } = e.target;
+        setFormData(current => ({ ...current, [name]: value }));
+        setFieldErrors(current => ({ ...current, [name]: '' }));
     };
 
     return (
@@ -104,10 +123,18 @@ const TierModal = ({ isOpen, onClose, onSubmit, initialData = null, isSubmitting
                                 name="threshold"
                                 required
                                 value={formData.threshold}
-                                onChange={(e) => setFormData({ ...formData, threshold: e.target.value })}
+                                onChange={handleFieldChange}
+                                inputMode="decimal"
+                                aria-invalid={Boolean(fieldErrors.threshold)}
+                                aria-describedby={fieldErrors.threshold ? 'tier-threshold-error' : undefined}
                                 placeholder={t('loyalty.thresholdPlaceholder', 'e.g., $500.00+')}
                                 className="w-full border border-gray-200 rounded-[10px] px-4 py-2.5 text-sm text-gray-900 placeholder:text-gray-400 outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500 transition-all"
                             />
+                            {fieldErrors.threshold && (
+                                <p id="tier-threshold-error" role="alert" className="mt-1 text-xs text-red-600">
+                                    {fieldErrors.threshold}
+                                </p>
+                            )}
                         </div>
 
                         {/* Point Multiplier */}
@@ -120,10 +147,18 @@ const TierModal = ({ isOpen, onClose, onSubmit, initialData = null, isSubmitting
                                 name="multiplier"
                                 required
                                 value={formData.multiplier}
-                                onChange={(e) => setFormData({ ...formData, multiplier: e.target.value })}
+                                onChange={handleFieldChange}
+                                inputMode="decimal"
+                                aria-invalid={Boolean(fieldErrors.multiplier)}
+                                aria-describedby={fieldErrors.multiplier ? 'tier-multiplier-error' : undefined}
                                 placeholder={t('loyalty.multiplierPlaceholder', 'e.g., 1.75X')}
                                 className="w-full border border-gray-200 rounded-[10px] px-4 py-2.5 text-sm text-gray-900 placeholder:text-gray-400 outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500 transition-all"
                             />
+                            {fieldErrors.multiplier && (
+                                <p id="tier-multiplier-error" role="alert" className="mt-1 text-xs text-red-600">
+                                    {fieldErrors.multiplier}
+                                </p>
+                            )}
                         </div>
 
                         {/* Benefits */}

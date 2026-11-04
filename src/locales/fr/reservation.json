@@ -9,6 +9,10 @@
     "searchPlaceholder": "Rechercher des réservations",
     "search": "Rechercher",
     "showingToday": "Affichage des réservations pour aujourd'hui",
+    "showingPeriod": "Affichage des réservations pour {{period}}",
+    "showingDateRange": "Affichage des réservations du {{from}} au {{to}}",
+    "showingFromDate": "Affichage des réservations à partir du {{date}}",
+    "showingThroughDate": "Affichage des réservations jusqu'au {{date}}",
     "tabs": {
         "slots": "Créneaux",
         "all": "Tous",

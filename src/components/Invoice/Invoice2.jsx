@@ -13,7 +13,7 @@ import { useInvoices } from '../../hooks/queries/useInvoice';
 import invoiceService from '../../services/invoiceService';
 import posService from '../../services/posService';
 import { useRestaurant } from '../../hooks/queries/usePos';
-import { resolveCurrencySymbol } from '../../utils/currencyUtils';
+import { formatCurrency, resolveCurrencySymbol } from '../../utils/currencyUtils';
 import useSearchStore from '../../store/searchStore';
 import InvoiceViewModal from './InvoiceViewModal';
 
@@ -73,10 +73,10 @@ const ReservationsHeader = () => {
             invoiceId: invId,
             tokens: tokenVal,
             date: formattedDate,
-            tax: `${rawTax} ${itemCurrency}`,
-            subtotal: `${rawSubtotal} ${itemCurrency}`,
-            serviceCharge: `${rawServiceCharge} ${itemCurrency}`,
-            total: `${rawTotal} ${itemCurrency}`,
+            tax: formatCurrency(rawTax, itemCurrency),
+            subtotal: formatCurrency(rawSubtotal, itemCurrency),
+            serviceCharge: formatCurrency(rawServiceCharge, itemCurrency),
+            total: formatCurrency(rawTotal, itemCurrency),
             deliveryType: delivery,
             customerType: custType,
             table: tableVal,
@@ -316,7 +316,7 @@ const ReservationsHeader = () => {
                 <div className="flex justify-between items-center flex-wrap gap-4">
                     <div className="w-full flex flex-wrap items-center justify-between">
                         <p className="text-base sm:text-[20px] text-gray-500 mb-2 sm:mb-0">
-                            {t('showingToday', 'Showing Invoices for Today')}
+                            {t('showingAllDates', 'Showing Invoices for All Dates')}
                         </p>
                     </div>
                 </div>

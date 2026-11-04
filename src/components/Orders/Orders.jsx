@@ -241,6 +241,20 @@ const OrderCard = ({ order, onRefresh }) => {
     const orderDiningOption = order?.Dining_Option || 'N/A';
     const orderTableName = order?.Table?.['Table-name'] || order?.Table?.name || (order?.Table_id != null ? String(order.Table_id) : 'N/A');
     const orderCustomerName = order?.Customer?.Name || 'N/A';
+    const getStatusLabel = (status) => {
+        const normalized = String(status || 'Preparing').toLowerCase().replace(/[_\s]+/g, '');
+        const statusKeys = {
+            preparing: 'preparing',
+            ready: 'ready',
+            cooking: 'cooking',
+            inkitchen: 'inKitchen',
+            served: 'served',
+            completed: 'completed',
+            cancelled: 'cancelled'
+        };
+        const key = statusKeys[normalized];
+        return key ? t(`status.${key}`) : String(status).replace(/_/g, ' ');
+    };
 
     return (
         <div className="bg-white shadow-md rounded-xl p-4 w-full border border-[#000000]">
@@ -547,7 +561,7 @@ const OrderCard = ({ order, onRefresh }) => {
                 }}
                 className="mx-2 rounded-xl px-4 py-3 mb-4"
             >
-                <div style={{ fontFamily: "Poppins" }} className="py-3 flex justify-between items-start">
+                <div style={{ fontFamily: "Poppins" }} className="py-3 flex flex-wrap justify-between items-start gap-3">
                     {(() => {
                         const allItemsServed = items.length > 0 && items.every(it => it.item_status === 'Served');
                         const effectiveOrderStatus = allItemsServed && (!order?.Order_Status || order?.Order_Status === 'Preparing' || order?.Order_Status === 'Ready')
@@ -574,8 +588,8 @@ const OrderCard = ({ order, onRefresh }) => {
                                                 'bg-yellow-100 text-yellow-700'
                                         }`}>
                                         {isOrderFinished && effectiveOrderStatus === 'Served'
-                                            ? 'Served'
-                                            : (order?.order_status_label || (effectiveOrderStatus ? effectiveOrderStatus.replace(/_/g, ' ') : t('status.preparing')))}
+                                            ? t('status.served')
+                                            : (order?.order_status_label || getStatusLabel(effectiveOrderStatus))}
                                     </span>
                                 </div>
                                 <div className="text-end">
@@ -606,8 +620,8 @@ const OrderCard = ({ order, onRefresh }) => {
                         const isUpdating = updatingItemIndex === index;
 
                         return (
-                            <li key={index} className="flex justify-between items-start hover:bg-gray-50 p-2 rounded-lg transition-colors">
-                                <div className="flex items-start gap-2 flex-1">
+                            <li key={index} className="flex items-start gap-3 hover:bg-gray-50 p-2 rounded-lg transition-colors">
+                                <div className="flex items-start gap-2 flex-1 min-w-0">
                                     {itemStatus === 'Served' ? (
                                         <FaCheck className="text-green-600 text-xs mt-1 flex-shrink-0" />
                                     ) : itemStatus === 'Cancelled' ? (
@@ -615,12 +629,12 @@ const OrderCard = ({ order, onRefresh }) => {
                                     ) : (
                                         <div className="w-3 h-3 mt-1 flex-shrink-0 rounded-full border-2 border-yellow-500" />
                                     )}
-                                    <div className="flex-1">
-                                        <div className="text-[14px] text-gray-800">
+                                    <div className="flex-1 min-w-0">
+                                        <div className="text-[14px] text-gray-800 break-words [overflow-wrap:anywhere]">
                                             <span className={itemStatus === 'Cancelled' ? 'line-through text-gray-400' : ''}>
                                                 {item.name}
                                             </span>
-                                            <span className={`font-medium ml-1 ${itemStatus === 'Cancelled' ? 'text-gray-400' : ''}`}>
+                                            <span className={`inline-block whitespace-nowrap font-medium ml-1 ${itemStatus === 'Cancelled' ? 'text-gray-400' : ''}`}>
                                                 x{item.quantity}
                                             </span>
                                         </div>
@@ -636,12 +650,12 @@ const OrderCard = ({ order, onRefresh }) => {
                                         )}
                                     </div>
                                 </div>
-                                <div className="flex items-center gap-2 relative dropdown flex-shrink-0">
-                                    <span className={`text-[12px] font-medium ${itemStatus === 'Served' ? 'text-green-600' :
+                                <div className="flex w-28 sm:w-32 flex-shrink-0 items-start justify-end gap-2 relative dropdown">
+                                    <span className={`max-w-full break-words text-right text-[12px] leading-tight font-medium ${itemStatus === 'Served' ? 'text-green-600' :
                                             itemStatus === 'Cancelled' ? 'text-red-600' :
                                                 'text-yellow-600'
                                         }`}>
-                                        {itemStatus}
+                                        {getStatusLabel(itemStatus)}
                                     </span>
 
                                     {itemStatus !== 'Cancelled' && (
@@ -854,4 +868,3 @@ const Orders = () => {
 };
 
 export default Orders;
-

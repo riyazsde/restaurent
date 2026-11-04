@@ -1,11 +1,16 @@
 import api from '../api/api';
 import { API_ENDPOINTS } from '../utils/constants';
+import { normalizeDiningOption } from '../utils/diningOption';
 
 class PosService {
   // Create POS order
   async createPosOrder(orderData) {
     try {
-      const response = await api.post(API_ENDPOINTS.POS_ORDER_CREATE, orderData);
+      const payload = {
+        ...orderData,
+        Dining_Option: normalizeDiningOption(orderData?.Dining_Option)
+      };
+      const response = await api.post(API_ENDPOINTS.POS_ORDER_CREATE, payload);
       return response.data;
     } catch (error) {
       throw this.handleError(error);

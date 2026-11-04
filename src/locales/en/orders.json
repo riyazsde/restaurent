@@ -8,6 +8,9 @@
     "noOrdersMatch": "No orders match your search query",
     "status": {
         "preparing": "Preparing",
+        "ready": "Ready",
+        "cooking": "Cooking",
+        "inKitchen": "In Kitchen",
         "served": "Served",
         "cancelled": "Cancelled",
         "completed": "Completed"

@@ -46,6 +46,30 @@ export const calculateDaysToExpiry = (expiryDate) => {
     return Math.ceil((expiry - today) / (1000 * 60 * 60 * 24));
 };
 
+const parseInventoryNumber = (...values) => {
+    const value = values.find(candidate => candidate !== null && candidate !== undefined && candidate !== '');
+    const parsed = Number(value);
+    return Number.isFinite(parsed) ? parsed : 0;
+};
+
+export const getInventoryItemMetrics = (item = {}) => {
+    const current = parseInventoryNumber(item.on_hand_quantity, item.on_hand, item.quantity, item.stock);
+    const min = parseInventoryNumber(item.minimum_stock, item.min_stock, item.min);
+    const max = parseInventoryNumber(item.maximum_stock, item.max_stock, item.max);
+    const cost = parseInventoryNumber(item.cost_per_unit, item.costPerUnit);
+    const expiry = item.expiry_date || item.expiryDate || null;
+
+    return {
+        current,
+        min,
+        max,
+        cost,
+        expiry,
+        status: calculateStockStatus(current, min, max, expiry),
+        totalValue: calculateTotalValue(current, cost)
+    };
+};
+
 /**
  * Computes aggregate statistics from a list of inventory items.
  * Use this when the backend does not provide a dedicated statistics endpoint.
@@ -55,26 +79,21 @@ export const computeInventoryStatistics = (items = []) => {
     let lowStockCount = 0;
     let criticalCount = 0;
     let expiringCount = 0;
+    let expiredCount = 0;
     let overstockedCount = 0;
     let totalValue = 0;
 
     items.forEach(item => {
-        // Standardize keys (backend might use on_hand vs stock vs quantity)
-        const current = item.on_hand || item.quantity || item.stock || 0;
-        const min = item.min_stock || item.min || 0;
-        const max = item.max_stock || item.max || 0;
-        const cost = item.cost_per_unit || item.costPerUnit || 0;
-        const expiry = item.expiry_date || item.expiryDate || null;
-
-        const status = calculateStockStatus(current, min, max, expiry);
+        const { status, totalValue: itemValue } = getInventoryItemMetrics(item);
         
         if (status === 'OK') okCount++;
         if (status === 'Low Stock') lowStockCount++;
         if (status === 'Critical') criticalCount++;
-        if (status === 'Expiring Soon' || status === 'Expired') expiringCount++;
+        if (status === 'Expiring Soon') expiringCount++;
+        if (status === 'Expired') expiredCount++;
         if (status === 'Overstocked') overstockedCount++;
 
-        totalValue += calculateTotalValue(current, cost);
+        totalValue += itemValue;
     });
 
     return {
@@ -83,6 +102,7 @@ export const computeInventoryStatistics = (items = []) => {
         low_stock_count: lowStockCount,
         critical_count: criticalCount,
         expiring_count: expiringCount,
+        expired_count: expiredCount,
         overstocked_count: overstockedCount,
         total_value: totalValue
     };

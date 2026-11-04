@@ -3,7 +3,7 @@
   "searchPlaceholder": "Search Invoice",
   "search": "Search",
   "showing": "Showing {{count}} Invoice(s)",
-  "showingToday": "Showing Invoices for Today",
+  "showingAllDates": "Showing Invoices for All Dates",
   "noInvoices": "No invoices found.",
   "na": "N/A",
   "table": {
@@ -47,6 +47,10 @@
   },
   "modal": {
     "title": "Invoice Details",
+    "unitPrice": "Unit price",
+    "lineTotal": "Line total",
+    "variant": "Variant",
+    "addons": "Add-ons",
     "officialReceipt": "Official Invoice Receipt",
     "customer": "Customer",
     "orderedItems": "Ordered Items",

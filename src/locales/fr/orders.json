@@ -8,6 +8,9 @@
     "noOrdersMatch": "Aucune commande ne correspond à votre recherche",
     "status": {
         "preparing": "En préparation",
+        "ready": "Prêt",
+        "cooking": "En cuisson",
+        "inKitchen": "En cuisine",
         "served": "Servi",
         "cancelled": "Annulé",
         "completed": "Terminé"
