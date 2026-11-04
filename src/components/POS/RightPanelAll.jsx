@@ -394,7 +394,7 @@ const RightPanelAll = ({
     const handleCreateCustomerSubmit = async (e) => {
         e.preventDefault();
 
-        if (!newCustomerForm.phone?.trim() || !newCustomerForm.Name?.trim() || !newCustomerForm.DOB) {
+        if (!newCustomerForm.phone?.trim() || !newCustomerForm.Name?.trim()) {
             toast.error(t('validation.requiredFields', 'Please fill in all required fields'));
             return;
         }
@@ -414,7 +414,7 @@ const RightPanelAll = ({
             const payload = {
                 phone: newCustomerForm.phone.trim().replace(/[\s\-()]/g, ''),
                 Name: newCustomerForm.Name.trim(),
-                DOB: newCustomerForm.DOB,
+                DOB: newCustomerForm.DOB || null,
                 Table_id: newCustomerForm.Table_id ? parseInt(newCustomerForm.Table_id, 10) : undefined,
                 Notes: newCustomerForm.Notes?.trim() || '',
                 Customer_type_id: editingCustomer?.Customer_type_id || 1,
@@ -1897,11 +1897,10 @@ const RightPanelAll = ({
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                                 <div>
                                     <label className="block text-sm font-semibold text-gray-900 mb-1.5">
-                                        {t('form.dob', 'Date of Birth*')}
+                                        {t('form.dobOptional', 'Date of Birth (optional)')}
                                     </label>
                                     <input
                                         type="date"
-                                        required
                                         value={newCustomerForm.DOB}
                                         onChange={(e) => setNewCustomerForm(prev => ({ ...prev, DOB: e.target.value }))}
                                         className="bg-gradient-light w-full border border-[#B388FF] focus:border-[#7C3AED] focus:outline-none rounded-xl px-3 py-2.5 text-sm text-gray-700 transition-colors"

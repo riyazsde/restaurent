@@ -1001,7 +1001,7 @@ const Reservations = () => {
     // Create Customer mapped to POST /api/v1/restaurant/customer/create (enforcing 10-15 character phone)
     const handleSubmitNewCustomer = async (e) => {
         e.preventDefault();
-        if (!newPhone || !newName || !newDOB) {
+        if (!newPhone?.trim() || !newName?.trim()) {
             toast.error(t('validation.requiredFields'));
             return;
         }
@@ -1017,7 +1017,7 @@ const Reservations = () => {
             const customerData = {
                 phone: cleanPhone,
                 Name: newName.trim(),
-                DOB: newDOB,
+                DOB: newDOB || null,
                 ...(newTable ? { Table_id: parseInt(newTable, 10) } : {}),
                 ...(newAddress.trim() ? { Address: newAddress.trim() } : {}),
                 Notes: newNotes.trim(),
@@ -1752,14 +1752,13 @@ const Reservations = () => {
                             </div>
                             <div className="flex flex-col sm:flex-row gap-3">
                                 <div className="w-full sm:w-1/2">
-                                    <label className="block text-sm font-medium mb-1">{t('customerForm.dob')}</label>
+                                    <label className="block text-sm font-medium mb-1">{t('customerForm.dobOptional', 'Date of Birth (optional)')}</label>
                                     <input
                                         type="date"
                                         max={getTodayDateString()}
                                         value={newDOB}
                                         onChange={(e) => setNewDOB(e.target.value)}
                                         className="bg-[#F8EFF4] w-full border border-purple-300 rounded-lg px-3 py-2.5 text-sm"
-                                        required
                                     />
                                 </div>
                                 <div className="w-full sm:w-1/2">

@@ -36,7 +36,22 @@
     "status": {
         "completed": "Completed",
         "preparing": "Preparing",
+        "ready": "Ready",
+        "cooking": "Cooking",
+        "inKitchen": "In Kitchen",
+        "inProgress": "In Progress",
         "served": "Served",
+        "cancelled": "Cancelled",
+        "pending": "Pending",
+        "new": "New",
+        "processing": "Processing",
+        "onHold": "On Hold",
+        "failed": "Failed",
+        "rejected": "Rejected",
+        "refunded": "Refunded",
+        "paid": "Paid",
+        "success": "Successful",
+        "other": "Other",
         "updating": "Updating..."
     },
     "messages": {

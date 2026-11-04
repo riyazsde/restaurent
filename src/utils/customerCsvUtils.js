@@ -143,8 +143,8 @@ export const parseCustomersCSV = (csvText) => {
       continue;
     }
 
-    let dob = dobIndex !== -1 && row[dobIndex] ? row[dobIndex] : '1990-01-01';
-    if (/^\d{2}[\/\-]\d{2}[\/\-]\d{4}$/.test(dob)) {
+    let dob = dobIndex !== -1 && row[dobIndex] ? row[dobIndex] : null;
+    if (dob && /^\d{2}[\/\-]\d{2}[\/\-]\d{4}$/.test(dob)) {
       const parts = dob.split(/[\/\-]/);
       dob = `${parts[2]}-${parts[1]}-${parts[0]}`;
     }

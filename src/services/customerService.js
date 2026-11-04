@@ -34,6 +34,7 @@ class CustomerService {
     try {
       const payload = {
         ...customerData,
+        DOB: customerData?.DOB || null,
         ...(customerData?.phone ? { phone: String(customerData.phone).trim().replace(/[\s\-()]/g, '') } : {})
       };
       const response = await api.post(API_ENDPOINTS.CUSTOMERS_CREATE, payload);
@@ -48,6 +49,7 @@ class CustomerService {
     try {
       const payload = {
         ...customerData,
+        DOB: customerData?.DOB || null,
         ...(customerData?.phone ? { phone: String(customerData.phone).trim().replace(/[\s\-()]/g, '') } : {})
       };
       const response = await api.put(API_ENDPOINTS.CUSTOMERS_UPDATE, payload);

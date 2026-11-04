@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { SettingsTableSkeleton } from './SettingsSkeletons';
 import { Plus, ChevronUp, ChevronDown, Save, Pencil, Trash2, X } from 'lucide-react';
 import { toast } from 'react-toastify';
@@ -30,6 +30,37 @@ const TaxSetupTab = () => {
     const [selectedTax, setSelectedTax] = useState(null);
     const [serviceCharges, setServiceCharges] = useState('0.00');
     const [isSavingServiceCharge, setIsSavingServiceCharge] = useState(false);
+    const taxDialogOpenerRef = useRef(null);
+    const isTaxDialogOpen = showNewModal || showEditModal || showDeleteModal;
+    const wasTaxDialogOpenRef = useRef(false);
+
+    useEffect(() => {
+        if (isTaxDialogOpen) {
+            wasTaxDialogOpenRef.current = true;
+            return;
+        }
+
+        if (wasTaxDialogOpenRef.current) {
+            taxDialogOpenerRef.current?.focus();
+            taxDialogOpenerRef.current = null;
+            wasTaxDialogOpenRef.current = false;
+        }
+    }, [isTaxDialogOpen]);
+
+    useEffect(() => {
+        if (!isTaxDialogOpen) return undefined;
+
+        const handleDialogKeyDown = (event) => {
+            if (event.key !== 'Escape' || isSubmitting) return;
+            event.preventDefault();
+            setShowNewModal(false);
+            setShowEditModal(false);
+            setShowDeleteModal(false);
+        };
+
+        document.addEventListener('keydown', handleDialogKeyDown);
+        return () => document.removeEventListener('keydown', handleDialogKeyDown);
+    }, [isTaxDialogOpen, isSubmitting]);
 
     const [newTaxForm, setNewTaxForm] = useState({
         title: '',
@@ -188,6 +219,7 @@ const TaxSetupTab = () => {
     };
 
     const openEditModal = (tax) => {
+        taxDialogOpenerRef.current = document.activeElement;
         setEditTaxForm({
             id: tax.isSample ? null : tax.Tax_setup_id,
             title: tax.title || '',
@@ -200,6 +232,7 @@ const TaxSetupTab = () => {
     };
 
     const openDeleteModal = (tax) => {
+        taxDialogOpenerRef.current = document.activeElement;
         setSelectedTax(tax);
         setShowDeleteModal(true);
     };
@@ -228,7 +261,10 @@ const TaxSetupTab = () => {
                 </h1>
                 <button
                     type="button"
-                    onClick={() => setShowNewModal(true)}
+                    onClick={(event) => {
+                        taxDialogOpenerRef.current = event.currentTarget;
+                        setShowNewModal(true);
+                    }}
                     className="flex items-center justify-center px-4 py-1.5 rounded-lg border border-[#A855F7] bg-white text-black font-semibold text-sm hover:bg-purple-50 transition-colors shadow-2xs cursor-pointer"
                 >
                     <span>+ {(t('common.new', 'New') || 'New').replace(/^\+\s*/, '')}</span>
@@ -255,16 +291,18 @@ const TaxSetupTab = () => {
                             <button
                                 type="button"
                                 onClick={incrementServiceCharge}
+                                aria-label={t('taxSetup.increaseServiceCharge', 'Increase service charge')}
                                 className="text-gray-700 hover:text-black leading-none focus:outline-none cursor-pointer py-0.5"
                             >
-                                <ChevronUp size={14} strokeWidth={2.5} />
+                                <ChevronUp aria-hidden="true" size={14} strokeWidth={2.5} />
                             </button>
                             <button
                                 type="button"
                                 onClick={decrementServiceCharge}
+                                aria-label={t('taxSetup.decreaseServiceCharge', 'Decrease service charge')}
                                 className="text-gray-700 hover:text-black leading-none focus:outline-none cursor-pointer py-0.5"
                             >
-                                <ChevronDown size={14} strokeWidth={2.5} />
+                                <ChevronDown aria-hidden="true" size={14} strokeWidth={2.5} />
                             </button>
                         </div>
                     </div>
@@ -278,7 +316,7 @@ const TaxSetupTab = () => {
                             background: 'linear-gradient(135deg, #7B1FA2 0%, #C2185B 100%)'
                         }}
                         className="w-12 h-12 rounded-xl text-white flex items-center justify-center shrink-0 shadow-md hover:opacity-95 transition-opacity disabled:opacity-50 cursor-pointer"
-                        title={t('common.save', 'Save')}
+                        aria-label={t('common.save', 'Save')}
                     >
                         {isSavingServiceCharge ? (
                             <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
@@ -335,17 +373,17 @@ const TaxSetupTab = () => {
                                             type="button"
                                             onClick={() => openEditModal(item)}
                                             className="text-gray-800 hover:text-black transition-colors cursor-pointer"
-                                            title={t('common.edit', 'Edit')}
+                                            aria-label={t('taxSetup.editTaxNamed', { title: item.title })}
                                         >
-                                            <Pencil size={17} strokeWidth={1.8} />
+                                            <Pencil aria-hidden="true" size={17} strokeWidth={1.8} />
                                         </button>
                                         <button
                                             type="button"
                                             onClick={() => openDeleteModal(item)}
                                             className="text-[#D32F2F] hover:text-red-700 transition-colors cursor-pointer"
-                                            title={t('common.delete', 'Delete')}
+                                            aria-label={t('taxSetup.deleteTaxNamed', { title: item.title })}
                                         >
-                                            <Trash2 size={17} strokeWidth={1.8} />
+                                            <Trash2 aria-hidden="true" size={17} strokeWidth={1.8} />
                                         </button>
                                     </div>
                                 </td>
@@ -358,17 +396,19 @@ const TaxSetupTab = () => {
             {/* New Tax Modal */}
             {showNewModal && (
                 <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4">
-                    <div className="bg-white rounded-2xl p-6 w-full max-w-[420px] relative shadow-2xl">
-                        <h2 className="text-xl font-bold mb-5 text-black">{t('taxSetup.newTax', 'New Tax Setup')}</h2>
+                    <div role="dialog" aria-modal="true" aria-labelledby="new-tax-dialog-title" className="bg-white rounded-2xl p-6 w-full max-w-[420px] relative shadow-2xl">
+                        <h2 id="new-tax-dialog-title" className="text-xl font-bold mb-5 text-black">{t('taxSetup.newTax', 'New Tax Setup')}</h2>
                         <button
                             type="button"
+                            autoFocus
+                            aria-label={t('taxSetup.closeDialog', 'Close tax setup dialog')}
                             className="absolute top-5 right-5 text-gray-400 hover:text-black transition-colors cursor-pointer"
                             onClick={() => {
                                 setShowNewModal(false);
                                 resetNewForm();
                             }}
                         >
-                            <X size={20} />
+                            <X aria-hidden="true" size={20} />
                         </button>
 
                         <form onSubmit={handleCreateTax} className="space-y-4">
@@ -445,14 +485,16 @@ const TaxSetupTab = () => {
             {/* Edit Tax Modal */}
             {showEditModal && (
                 <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4">
-                    <div className="bg-white rounded-2xl p-6 w-full max-w-[420px] relative shadow-2xl">
-                        <h2 className="text-xl font-bold mb-5 text-black">{t('taxSetup.editTax', 'Edit Tax Setup')}</h2>
+                    <div role="dialog" aria-modal="true" aria-labelledby="edit-tax-dialog-title" className="bg-white rounded-2xl p-6 w-full max-w-[420px] relative shadow-2xl">
+                        <h2 id="edit-tax-dialog-title" className="text-xl font-bold mb-5 text-black">{t('taxSetup.editTax', 'Edit Tax Setup')}</h2>
                         <button
                             type="button"
+                            autoFocus
+                            aria-label={t('taxSetup.closeDialog', 'Close tax setup dialog')}
                             className="absolute top-5 right-5 text-gray-400 hover:text-black transition-colors cursor-pointer"
                             onClick={() => setShowEditModal(false)}
                         >
-                            <X size={20} />
+                            <X aria-hidden="true" size={20} />
                         </button>
 
                         <form onSubmit={handleUpdateTax} className="space-y-4">
@@ -527,14 +569,15 @@ const TaxSetupTab = () => {
             {/* Delete Confirmation Modal */}
             {showDeleteModal && (
                 <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4">
-                    <div className="bg-white rounded-2xl p-6 w-full max-w-[400px] text-center shadow-2xl">
-                        <h3 className="text-xl font-bold text-red-600 mb-2">{t('taxSetup.deleteTax', 'Delete Tax Setup')}</h3>
+                    <div role="dialog" aria-modal="true" aria-labelledby="delete-tax-dialog-title" className="bg-white rounded-2xl p-6 w-full max-w-[400px] text-center shadow-2xl">
+                        <h3 id="delete-tax-dialog-title" className="text-xl font-bold text-red-600 mb-2">{t('taxSetup.deleteTax', 'Delete Tax Setup')}</h3>
                         <p className="text-gray-700 mb-6 text-sm">
                             {t('taxSetup.deleteConfirmation', { title: selectedTax?.title })}
                         </p>
                         <div className="flex gap-3">
                             <button
                                 type="button"
+                                autoFocus
                                 onClick={() => setShowDeleteModal(false)}
                                 className="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-800 py-2.5 rounded-xl text-sm font-semibold transition-colors cursor-pointer"
                                 disabled={isSubmitting}

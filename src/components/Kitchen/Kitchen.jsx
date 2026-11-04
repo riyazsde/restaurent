@@ -10,6 +10,7 @@ import {
     useUpdateItemStatus
 } from '../../hooks/queries/useKitchen';
 import { useTables } from '../../hooks/queries/useTables';
+import { canMarkOrderReady, getOrderStatusKey } from '../../utils/orderStatus';
 
 // Reference sample orders matching the Figma design when no live backend orders are active
 const SAMPLE_KITCHEN_ORDERS = [
@@ -103,13 +104,13 @@ export default function Kitchen() {
         return order?.Order_Status || order?.order_status || order?.status || '';
     }, []);
 
-    // Check if order is ready, served, completed, or locally marked ready
+    // Cancelled and finished orders, as well as locally marked-ready orders, cannot be marked ready again.
     const isOrderReadyOrFinished = useCallback((order, fallbackIdx = 0) => {
         const key = getOrderKey(order, fallbackIdx);
-        if (readyOrderIds.has(key)) return true;
         const rawStatus = getOrderStatus(order);
-        const normalized = String(rawStatus || '').toLowerCase().trim().replace(/_/g, ' ');
-        return normalized === 'ready' || normalized === 'served' || normalized === 'completed';
+        const statusKey = getOrderStatusKey(rawStatus);
+        if (['cancelled', 'ready', 'served', 'completed'].includes(statusKey)) return true;
+        return readyOrderIds.has(key);
     }, [getOrderKey, getOrderStatus, readyOrderIds]);
 
     // Hook search placeholder
@@ -250,23 +251,14 @@ export default function Kitchen() {
                 qty,
                 name,
                 notes: uniqueModifiers.join(', '),
-                status: item.item_status_label || item.item_status || order.order_status_label || order.Order_Status || 'Preparing',
+                status: item.item_status || item.item_status_label || order.Order_Status || order.order_status || 'Preparing',
                 size: item.item_size || null
             };
         });
     }, []);
 
-    // Format Order_Status string cleanly (e.g. "In_Kitchen" -> "Preparing")
     const formatStatusLabel = useCallback((status) => {
-        if (!status) return t('card.ready', 'Ready');
-        const normalized = String(status).trim().replace(/_/g, ' ').toLowerCase();
-        if (normalized === 'ready') return t('card.ready', 'Ready');
-        if (normalized === 'served') return t('status.served', 'Served');
-        if (normalized === 'completed') return t('status.completed', 'Completed');
-        if (normalized === 'preparing' || normalized === 'in kitchen' || normalized === 'cooking') {
-            return t('status.preparing', 'Preparing');
-        }
-        return String(status).replace(/_/g, ' ');
+        return t(`status.${getOrderStatusKey(status || 'Preparing')}`);
     }, [t]);
 
     // Active orders (uses backend data from /restaurant/pos_order/my-orders when available)
@@ -308,10 +300,9 @@ export default function Kitchen() {
     const handleOrderStatusToggle = async (order, idx = 0) => {
         const uniqueKey = getOrderKey(order, idx);
         const rawStatus = getOrderStatus(order);
-        const normalizedStatus = String(rawStatus || '').toLowerCase().trim().replace(/_/g, ' ');
 
-        // Once marked ready, served, or completed, do not allow clicking or toggling again
-        if (readyOrderIds.has(uniqueKey) || normalizedStatus === 'ready' || normalizedStatus === 'served' || normalizedStatus === 'completed') {
+        // A cancelled or finished order cannot transition to Ready from the kitchen.
+        if (readyOrderIds.has(uniqueKey) || !canMarkOrderReady(rawStatus)) {
             return;
         }
 
@@ -441,12 +432,12 @@ export default function Kitchen() {
                         const tokenNumber = order.POS_Order_id ?? order.id ?? '12';
                         const rawStatus = getOrderStatus(order);
                         const isReady = isOrderReadyOrFinished(order, idx);
-                        // Determine effective status: if locally or backend marked ready, it's Ready (unless served/completed)
+                        const isCancelled = getOrderStatusKey(rawStatus) === 'cancelled';
                         const effectiveStatus = isReady
-                            ? (rawStatus && ['served', 'completed'].includes(String(rawStatus).toLowerCase()) ? rawStatus : 'Ready')
+                            ? (['cancelled', 'served', 'completed'].includes(getOrderStatusKey(rawStatus)) ? rawStatus : 'Ready')
                             : (rawStatus || 'Preparing');
                         const statusLabel = formatStatusLabel(effectiveStatus);
-                        const isStatusReady = isReady || String(effectiveStatus).toLowerCase() === 'ready';
+                        const isStatusReady = !isCancelled && (isReady || getOrderStatusKey(effectiveStatus) === 'ready');
 
                         return (
                             <div
@@ -468,7 +459,9 @@ export default function Kitchen() {
                                             </span>
                                             <span
                                                 className={`font-bold px-2.5 py-0.5 rounded-full ${
-                                                    isStatusReady
+                                                    isCancelled
+                                                        ? 'text-red-700 bg-red-50 border border-red-200'
+                                                        : isStatusReady
                                                         ? 'text-[#0A8728] bg-[#E8F5E9] border border-green-200/60'
                                                         : 'text-[#E65100] bg-[#FFF3E0] border border-[#FFE0B2]'
                                                 }`}
@@ -485,7 +478,10 @@ export default function Kitchen() {
                                                 key={item.itemId ? `${item.itemId}-${itemIdx}` : itemIdx} 
                                                 className="text-[13px] text-gray-700 font-normal leading-relaxed font-poppins"
                                             >
-                                                {item.qty}x {item.name}{item.notes ? ` - ${item.notes}` : ''}
+                                                <span>{item.qty}x {item.name}{item.notes ? ` - ${item.notes}` : ''}</span>
+                                                <span className="ml-2 inline-flex rounded-full bg-gray-100 px-2 py-0.5 text-[11px] font-medium text-gray-600">
+                                                    {formatStatusLabel(item.status)}
+                                                </span>
                                             </p>
                                         ))}
                                     </div>
@@ -495,9 +491,11 @@ export default function Kitchen() {
                                 <button
                                     type="button"
                                     onClick={() => handleOrderStatusToggle(order, idx)}
-                                    disabled={isUpdating || isStatusReady}
+                                    disabled={isUpdating || isStatusReady || isCancelled}
                                     className={`w-full py-2.5 rounded-full font-semibold text-sm transition-all shadow-xs flex items-center justify-center font-poppins ${
-                                        isStatusReady
+                                        isCancelled
+                                            ? 'bg-red-50 text-red-700 border border-red-200 cursor-not-allowed opacity-90'
+                                            : isStatusReady
                                             ? 'bg-[#E8F5E9] text-[#0A8728] border border-[#0A8728]/30 cursor-not-allowed opacity-90'
                                             : 'bg-[#0A8728] hover:bg-[#087322] active:bg-[#06611c] text-white cursor-pointer disabled:opacity-70'
                                     }`}
@@ -510,6 +508,8 @@ export default function Kitchen() {
                                             </svg>
                                             <span>{t('status.updating', 'Updating...')}</span>
                                         </span>
+                                    ) : isCancelled ? (
+                                        <span>{statusLabel}</span>
                                     ) : isStatusReady ? (
                                         <span className="flex items-center gap-1.5">
                                             <IoCheckmarkCircle className="text-base text-[#0A8728]" />

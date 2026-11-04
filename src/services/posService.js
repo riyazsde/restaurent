@@ -289,7 +289,8 @@ class PosService {
   // Create walk-in customer (POS)
   async createCustomer(customerData) {
     try {
-      const response = await api.post(API_ENDPOINTS.CUSTOMERS_CREATE, customerData);
+      const payload = { ...customerData, DOB: customerData?.DOB || null };
+      const response = await api.post(API_ENDPOINTS.CUSTOMERS_CREATE, payload);
       return response.data;
     } catch (error) {
       throw this.handleError(error);
@@ -299,7 +300,8 @@ class PosService {
   // Update customer (POS)
   async updateCustomer(customerData) {
     try {
-      const response = await api.put(API_ENDPOINTS.CUSTOMERS_UPDATE, customerData);
+      const payload = { ...customerData, DOB: customerData?.DOB || null };
+      const response = await api.put(API_ENDPOINTS.CUSTOMERS_UPDATE, payload);
       return response.data;
     } catch (error) {
       throw this.handleError(error);

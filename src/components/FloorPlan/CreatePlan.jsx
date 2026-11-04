@@ -231,8 +231,9 @@ export default function CreatePlan() {
                 Total_Table_Count: Math.max(1, canvasTables.length),
                 "Seating-Persons_Count": Math.max(4, canvasTables.length * 4),
                 Details: `${activeFloorName} dining area`,
-                floor_width: "200",
-                floor_height: "200",
+                floor_width: String(location.state?.rawWidth ?? location.state?.floorData?.floor_width ?? 200),
+                floor_height: String(location.state?.rawLength ?? location.state?.floorData?.floor_height ?? 200),
+                floor_length: String(location.state?.rawLength ?? location.state?.floorData?.floor_length ?? 200),
                 floor_image: "https://example.com/floor.png",
                 tables: [
                     {
@@ -573,8 +574,9 @@ export default function CreatePlan() {
                                     }}
                                     className="absolute -top-5 -right-5 w-7 h-7 rounded-full bg-white border border-gray-200/80 flex items-center justify-center text-[#E53935] shadow-sm hover:bg-red-50 transition-colors z-10 cursor-pointer"
                                     title={t("floorPlan.delete", "Delete")}
+                                    aria-label={t("floorPlan.deleteConfiguredTable", { name: tbl.code })}
                                 >
-                                    <FiTrash2 size={13} />
+                                    <FiTrash2 aria-hidden="true" size={13} />
                                 </button>
                             </div>
                         </div>

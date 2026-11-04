@@ -20,7 +20,8 @@
         "updateTitle": "Update Customer",
         "phone": "Phone*",
         "name": "Name*",
-        "dob": "Date of Birth*",
+        "dob": "Date of Birth",
+        "dobOptional": "Date of Birth (optional)",
         "customerType": "Customer Type*",
         "address": "Address",
         "notes": "Notes",
@@ -93,7 +94,7 @@
         "importSuccess": "Successfully imported {{count}} customer(s)",
         "importPartial": "Imported {{success}} customer(s), {{failed}} failed",
         "importError": "Failed to import customers",
-        "noValidRows": "No valid customer rows found in CSV. Please verify columns: Name, Phone, DOB.",
+        "noValidRows": "No valid customer rows found in CSV. Please verify the Name and Phone columns. DOB is optional.",
         "cancel": "Cancel",
         "close": "Close"
     }

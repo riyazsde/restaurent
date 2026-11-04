@@ -24,11 +24,12 @@ export default function Floor1() {
         location.state?.floorName || passedFloor?.Floor_Name || "Floor 01"
     );
     const [floorLength, setFloorLength] = useState(
-        passedFloor?.floor_length ? `${passedFloor.floor_length} S qft` : "200 S qft"
+        String(passedFloor?.floor_length ?? passedFloor?.floor_height ?? 200)
     );
     const [floorWidth, setFloorWidth] = useState(
-        passedFloor?.floor_width ? `${passedFloor.floor_width} S qft` : "200 S qft"
+        String(passedFloor?.floor_width ?? 200)
     );
+    const [dimensionError, setDimensionError] = useState("");
     const [floorImage, setFloorImage] = useState(passedFloor?.floor_image || "");
     const [previewImage, setPreviewImage] = useState(passedFloor?.floor_image || null);
 
@@ -56,8 +57,10 @@ export default function Floor1() {
         const src = fetchedFloor || passedFloor;
         if (!src) return;
         if (src.Floor_Name) setFloorName(src.Floor_Name);
-        if (src.floor_width) setFloorWidth(`${src.floor_width} S qft`);
-        if (src.floor_height || src.floor_length) setFloorLength(`${src.floor_height || src.floor_length} S qft`);
+        if (src.floor_width != null) setFloorWidth(String(src.floor_width));
+        if (src.floor_height != null || src.floor_length != null) {
+            setFloorLength(String(src.floor_height ?? src.floor_length));
+        }
         if (src.floor_image) {
             setFloorImage(src.floor_image);
             setPreviewImage(src.floor_image);
@@ -139,8 +142,16 @@ export default function Floor1() {
     };
 
     const handleGenerateLayout = async () => {
-        const rawLength = String(floorLength).replace(/[^0-9]/g, "") || "200";
-        const rawWidth = String(floorWidth).replace(/[^0-9]/g, "") || "200";
+        const parsedLength = Number(floorLength);
+        const parsedWidth = Number(floorWidth);
+        if (!Number.isFinite(parsedLength) || parsedLength <= 0 ||
+            !Number.isFinite(parsedWidth) || parsedWidth <= 0) {
+            setDimensionError(t("floorPlan.positiveDimensions", "Enter a length and width greater than zero."));
+            return;
+        }
+        setDimensionError("");
+        const rawLength = String(parsedLength);
+        const rawWidth = String(parsedWidth);
         const totalTableCount = tableList.reduce((acc, itm) => acc + (Number(itm.count) || 1), 0) || 12;
         const safeImage =
             floorImage && !String(floorImage).startsWith("data:")
@@ -243,29 +254,46 @@ export default function Floor1() {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div>
                         <label className="block text-sm font-medium text-gray-800 mb-1.5">
-                            {t("floorPlan.floorLength", "Floor Length (S qft)")}
+                            {t("floorPlan.floorLength", "Floor Length (ft)")}
                         </label>
                         <input
-                            type="text"
+                            type="number"
+                            min="0.01"
+                            step="any"
+                            required
+                            aria-invalid={Boolean(dimensionError)}
                             value={floorLength}
-                            onChange={(e) => setFloorLength(e.target.value)}
-                            placeholder="200 S qft"
+                            onChange={(e) => {
+                                setFloorLength(e.target.value);
+                                setDimensionError("");
+                            }}
+                            placeholder="200"
                             className="w-full border border-gray-400 rounded-xl px-4 py-2.5 text-sm font-bold text-gray-900 bg-white focus:outline-none focus:ring-1 focus:ring-purple-500"
                         />
                     </div>
                     <div>
                         <label className="block text-sm font-medium text-gray-800 mb-1.5">
-                            {t("floorPlan.floorWidth", "Floor Width (S qft)")}
+                            {t("floorPlan.floorWidth", "Floor Width (ft)")}
                         </label>
                         <input
-                            type="text"
+                            type="number"
+                            min="0.01"
+                            step="any"
+                            required
+                            aria-invalid={Boolean(dimensionError)}
                             value={floorWidth}
-                            onChange={(e) => setFloorWidth(e.target.value)}
-                            placeholder="200 S qft"
+                            onChange={(e) => {
+                                setFloorWidth(e.target.value);
+                                setDimensionError("");
+                            }}
+                            placeholder="200"
                             className="w-full border border-gray-400 rounded-xl px-4 py-2.5 text-sm font-bold text-gray-900 bg-white focus:outline-none focus:ring-1 focus:ring-purple-500"
                         />
                     </div>
                 </div>
+                {dimensionError && (
+                    <p role="alert" className="text-sm text-red-600">{dimensionError}</p>
+                )}
 
                 {/* Row 2: Floor Name & Add Table CTA */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-end">
@@ -313,15 +341,17 @@ export default function Floor1() {
                                                 type="button"
                                                 onClick={() => handleDeleteTable(idx)}
                                                 className="w-7 h-7 rounded-full border border-red-200 flex items-center justify-center text-red-500 hover:bg-red-50 transition-colors"
+                                                aria-label={t("floorPlan.deleteConfiguredTable", { name: `${tbl.type} ${idx + 1}` })}
                                             >
-                                                <FiTrash2 size={13} />
+                                                <FiTrash2 aria-hidden="true" size={13} />
                                             </button>
                                             <button
                                                 type="button"
                                                 onClick={() => handleEditTable(idx)}
                                                 className="w-7 h-7 rounded-full border border-gray-300 flex items-center justify-center text-gray-700 hover:bg-gray-100 transition-colors"
+                                                aria-label={t("floorPlan.editConfiguredTable", { name: `${tbl.type} ${idx + 1}` })}
                                             >
-                                                <FiEdit2 size={13} />
+                                                <FiEdit2 aria-hidden="true" size={13} />
                                             </button>
                                         </div>
                                     </div>
@@ -333,7 +363,11 @@ export default function Floor1() {
                                             <span>{tbl.capacity || tbl.count || 12}</span>
                                         </div>
                                         <span className="text-gray-600 font-medium">
-                                            Length : {tbl.length || 200}m &amp; Width : {tbl.width || 200}m
+                                            {t("floorPlan.tableDimensionsPreview", {
+                                                length: tbl.length || 200,
+                                                width: tbl.width || 200,
+                                                defaultValue: "Length: {{length}} ft · Width: {{width}} ft"
+                                            })}
                                         </span>
                                     </div>
                                 </div>
@@ -425,7 +459,7 @@ export default function Floor1() {
                             {/* Row 2: Size (Length x Width) */}
                             <div className="w-1/2 pr-2">
                                 <label className="block text-xs font-semibold text-gray-900 mb-1.5">
-                                    {t("floorPlan.sizeLengthWidth", "Size(Length x Width)")}
+                                    {t("floorPlan.sizeLengthWidth", "Size (Length x Width, ft)")}
                                 </label>
                                 <input
                                     type="text"

@@ -11,6 +11,7 @@ export default function Generate() {
     const floorName = location.state?.floorName || "Floor 01";
     const rawLength = location.state?.rawLength || "200";
     const rawWidth = location.state?.rawWidth || "200";
+    const floorArea = (Number(rawLength) * Number(rawWidth)).toFixed(2);
     const tableList = location.state?.tableList || [];
 
     // Calculate row and column distribution based on floor dimensions or configured tables
@@ -71,6 +72,19 @@ export default function Generate() {
                             </span>
                         </div>
                     </div>
+                    <p className="mt-4 ml-16 text-sm font-medium">
+                        {t("floorPlan.floorDimensionsPreview", {
+                            length: rawLength,
+                            width: rawWidth,
+                            defaultValue: "Floor dimensions: {{length}} ft × {{width}} ft"
+                        })}
+                    </p>
+                    <p className="mt-1 ml-16 text-sm font-medium">
+                        {t("floorPlan.floorAreaPreview", {
+                            area: floorArea,
+                            defaultValue: "Area: {{area}} sq ft"
+                        })}
+                    </p>
 
                     {/* Arrow Down: Tables in Column & Start Creation CTA */}
                     <div className="flex items-end justify-between mt-6">

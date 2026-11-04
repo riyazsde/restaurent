@@ -23,6 +23,7 @@ import { formatCurrency } from '../../utils/currencyUtils';
 import { useOrders, useUpdateOrderStatus, useUpdateOrderItemStatus } from '../../hooks/queries/useOrders';
 import { useSearchStore } from '../../store/searchStore';
 import posService from '../../services/posService';
+import { getOrderStatusKey, getPaymentStatusKey } from '../../utils/orderStatus';
 
 const OrderCard = ({ order, onRefresh }) => {
     const { t } = useTranslation('orders');
@@ -75,6 +76,7 @@ const OrderCard = ({ order, onRefresh }) => {
 
     // Get real data from order object
     const orderItemsList = order?.items || [];
+    const orderNumber = order?.POS_Order_id ?? order?.Order_id ?? order?.id ?? '';
     const mapOrderItems = (list) =>
         (list || []).map(item => ({
             name: item.Item?.item_name || item.Item?.['item-name'] || `Item ${item.item_id}`,
@@ -242,18 +244,7 @@ const OrderCard = ({ order, onRefresh }) => {
     const orderTableName = order?.Table?.['Table-name'] || order?.Table?.name || (order?.Table_id != null ? String(order.Table_id) : 'N/A');
     const orderCustomerName = order?.Customer?.Name || 'N/A';
     const getStatusLabel = (status) => {
-        const normalized = String(status || 'Preparing').toLowerCase().replace(/[_\s]+/g, '');
-        const statusKeys = {
-            preparing: 'preparing',
-            ready: 'ready',
-            cooking: 'cooking',
-            inkitchen: 'inKitchen',
-            served: 'served',
-            completed: 'completed',
-            cancelled: 'cancelled'
-        };
-        const key = statusKeys[normalized];
-        return key ? t(`status.${key}`) : String(status).replace(/_/g, ' ');
+        return t(`status.${getOrderStatusKey(status || 'Preparing')}`);
     };
 
     return (
@@ -269,8 +260,13 @@ const OrderCard = ({ order, onRefresh }) => {
 
                 {/* Dropdown */}
                 <div className="relative text-end mt-2" ref={menuRef}>
-                    <button onClick={() => setOpen(!open)}>
-                        <BsThreeDotsVertical className="text-gray-500 text-sm" />
+                    <button
+                        type="button"
+                        aria-label={t('actions.moreOrderActions', { order: orderNumber })}
+                        aria-expanded={open}
+                        onClick={() => setOpen(!open)}
+                    >
+                        <BsThreeDotsVertical aria-hidden="true" className="text-gray-500 text-sm" />
                     </button>
 
                     {open && (
@@ -589,7 +585,7 @@ const OrderCard = ({ order, onRefresh }) => {
                                         }`}>
                                         {isOrderFinished && effectiveOrderStatus === 'Served'
                                             ? t('status.served')
-                                            : (order?.order_status_label || getStatusLabel(effectiveOrderStatus))}
+                                            : getStatusLabel(effectiveOrderStatus)}
                                     </span>
                                 </div>
                                 <div className="text-end">
@@ -605,7 +601,7 @@ const OrderCard = ({ order, onRefresh }) => {
                                                         : "text-gray-600"
                                         } text-[10px] font-medium`}>
                                         <img src={herocoins} alt="coin" className="w-3 h-3" />
-                                        {effectivePayStatus}
+                                        {t(`payment.${getPaymentStatusKey(effectivePayStatus)}`)}
                                     </p>
                                 </div>
                             </>
@@ -659,20 +655,28 @@ const OrderCard = ({ order, onRefresh }) => {
                                     </span>
 
                                     {itemStatus !== 'Cancelled' && (
-                                        <BsThreeDotsVertical
-                                            className="text-gray-500 text-sm cursor-pointer hover:text-gray-700"
+                                        <button
+                                            type="button"
+                                            aria-label={t('actions.moreItemActions', { item: item.name, order: orderNumber })}
+                                            aria-expanded={openIndex === index}
                                             onClick={() =>
                                                 setOpenIndex(openIndex === index ? null : index)
                                             }
-                                        />
+                                            className="text-gray-500 hover:text-gray-700"
+                                        >
+                                            <BsThreeDotsVertical aria-hidden="true" className="text-sm" />
+                                        </button>
                                     )}
 
                                     {openIndex === index && (
                                         <div className="absolute right-0 z-10 mt-6 w-40 bg-white rounded-lg shadow-lg ring-1 ring-black/10">
-                                            <div
+                                            <button
+                                                type="button"
+                                                aria-label={t('actions.deleteItemNamed', { item: item.name, order: orderNumber })}
                                                 className={`flex items-center gap-2 px-4 py-2 text-red-600 hover:bg-gray-100 ${isUpdating ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'
                                                     }`}
                                                 onClick={() => !isUpdating && handleDeleteItem(index)}
+                                                disabled={isUpdating}
                                             >
                                                 {isUpdating ? (
                                                     <>
@@ -688,7 +692,7 @@ const OrderCard = ({ order, onRefresh }) => {
                                                         <span className="text-sm font-medium">{t('actions.deleteItem')}</span>
                                                     </>
                                                 )}
-                                            </div>
+                                            </button>
                                         </div>
                                     )}
                                 </div>

@@ -14,6 +14,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { QUERY_KEYS } from '../../utils/queryKeys';
 import customerService from '../../services/customerService';
 import { exportCustomersToCSV } from '../../utils/customerCsvUtils';
+import { formatDateOnly } from '../../utils/dateUtils';
 import ImportCustomerModal from './ImportCustomerModal';
 import SearchBar from '../common/SearchBar';
 import GradientOutlineButton from '../common/GradientOutlineButton';
@@ -121,7 +122,7 @@ const Customers = () => {
     const handleCreateCustomer = async (e) => {
         e.preventDefault();
 
-        if (!newCustomerForm.phone || !newCustomerForm.Name || !newCustomerForm.DOB) {
+        if (!newCustomerForm.phone?.trim() || !newCustomerForm.Name?.trim()) {
             toast.error(t('validation.requiredFields'));
             return;
         }
@@ -137,6 +138,7 @@ const Customers = () => {
             const payload = {
                 ...newCustomerForm,
                 phone: cleanPhone,
+                DOB: newCustomerForm.DOB || null,
                 Customer_type_id: Number(newCustomerForm.Customer_type_id) || 1
             };
             const response = await createMutation.mutateAsync(payload);
@@ -153,7 +155,7 @@ const Customers = () => {
     const handleUpdateCustomer = async (e) => {
         e.preventDefault();
 
-        if (!updateCustomerForm.phone || !updateCustomerForm.Name || !updateCustomerForm.DOB) {
+        if (!updateCustomerForm.phone?.trim() || !updateCustomerForm.Name?.trim()) {
             toast.error(t('validation.requiredFields'));
             return;
         }
@@ -169,6 +171,7 @@ const Customers = () => {
             const payload = {
                 ...updateCustomerForm,
                 phone: cleanPhone,
+                DOB: updateCustomerForm.DOB || null,
                 Customer_type_id: Number(updateCustomerForm.Customer_type_id) || 1
             };
             const response = await updateMutation.mutateAsync(payload);
@@ -354,7 +357,7 @@ const Customers = () => {
                     </div>
                     <div className="flex items-center gap-2">
                         <span className="font-semibold">{t('card.birthDate')}</span>
-                        <span>{formatDate(customer.DOB)}</span>
+                        <span>{formatDateOnly(customer.DOB)}</span>
                     </div>
                     {customer.Address && (
                         <div className="flex items-center gap-2">
@@ -427,7 +430,7 @@ const Customers = () => {
                                         </div>
                                         <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
                                             <div className="w-full sm:w-1/2">
-                                                <label className="block text-xs sm:text-sm mb-1">{t('form.dob')}</label>
+                                                <label className="block text-xs sm:text-sm mb-1">{t('form.dobOptional', 'Date of Birth (optional)')}</label>
                                                 <input
                                                     type="date"
                                                     name="DOB"
@@ -617,7 +620,7 @@ const Customers = () => {
                             </div>
                             <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
                                 <div className="w-full sm:w-1/2">
-                                    <label className="block text-xs sm:text-sm mb-1">{t('form.dob')}</label>
+                                    <label className="block text-xs sm:text-sm mb-1">{t('form.dobOptional', 'Date of Birth (optional)')}</label>
                                     <input
                                         type="date"
                                         name="DOB"

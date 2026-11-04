@@ -20,7 +20,8 @@
         "updateTitle": "Mettre à jour le client",
         "phone": "Téléphone*",
         "name": "Nom*",
-        "dob": "Date de naissance*",
+        "dob": "Date de naissance",
+        "dobOptional": "Date de naissance (facultative)",
         "customerType": "Type de client*",
         "address": "Adresse",
         "notes": "Notes",
@@ -93,7 +94,7 @@
         "importSuccess": "{{count}} client(s) importé(s) avec succès",
         "importPartial": "{{success}} client(s) importé(s), {{failed}} échoué(s)",
         "importError": "Échec de l'importation des clients",
-        "noValidRows": "Aucune ligne de client valide trouvée dans le CSV. Veuillez vérifier les colonnes : Nom, Téléphone, Date de naissance.",
+        "noValidRows": "Aucune ligne de client valide trouvée dans le CSV. Veuillez vérifier les colonnes Nom et Téléphone. La date de naissance est facultative.",
         "cancel": "Annuler",
         "close": "Fermer"
     }

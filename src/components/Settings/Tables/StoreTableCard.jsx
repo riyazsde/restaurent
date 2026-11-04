@@ -34,11 +34,21 @@ const StoreTableCard = ({ table, onEdit, onDelete, onDownloadQR }) => {
                 
                 {/* Action Icons */}
                 <div className="flex items-center gap-3">
-                    <button onClick={() => onEdit(table)} className="hover:opacity-70 transition-opacity">
-                        <MdOutlineEdit className="w-5 h-5 text-gray-700" />
+                    <button
+                        type="button"
+                        onClick={() => onEdit(table)}
+                        className="hover:opacity-70 transition-opacity"
+                        aria-label={t('tables.editTableNamed', { name: table['Table-name'] || table.Title })}
+                    >
+                        <MdOutlineEdit aria-hidden="true" className="w-5 h-5 text-gray-700" />
                     </button>
-                    <button onClick={() => onDelete(table)} className="hover:opacity-70 transition-opacity">
-                        <RiDeleteBin6Line className="w-5 h-5 text-[#CC1919]" />
+                    <button
+                        type="button"
+                        onClick={() => onDelete(table)}
+                        className="hover:opacity-70 transition-opacity"
+                        aria-label={t('tables.deleteTableNamed', { name: table['Table-name'] || table.Title })}
+                    >
+                        <RiDeleteBin6Line aria-hidden="true" className="w-5 h-5 text-[#CC1919]" />
                     </button>
                 </div>
             </div>
