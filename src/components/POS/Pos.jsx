@@ -1,7 +1,7 @@
 import React, { useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { Plus, QrCode, FileText, Armchair, LayoutGrid, Search } from 'lucide-react';
+import { Plus, QrCode, FileText, Armchair, LayoutGrid, Search, AlertCircle, RefreshCw } from 'lucide-react';
 
 // Custom Hooks & Utils
 import { useDragScroll } from './hooks/useDragScroll';
@@ -13,7 +13,6 @@ import { useSearchStore } from '../../store/searchStore';
 import RightPanelAll from './RightPanelAll';
 import SegmentedTab from '../common/SegmentedTab';
 import GradientOutlineButton from '../common/GradientOutlineButton';
-import LanguageSelector from '../LanguageSelector/LanguageSelector';
 import QRMenuOrdersModal from './modals/QRMenuOrdersModal';
 import NotesListModal from './modals/NotesListModal';
 
@@ -105,7 +104,6 @@ const POS = () => {
                     <h1 style={{ fontFamily: 'Manrope' }} className="text-[22px] sm:text-[26px] font-bold text-gray-900 tracking-tight whitespace-nowrap">
                         {t('posTitle', 'POS - Point of Sales')}
                     </h1>
-
                 </div>
 
                 <div className="flex flex-wrap items-center gap-2 sm:gap-3">
@@ -221,9 +219,68 @@ const POS = () => {
 
                         {/* Dish Cards Display Area */}
                         <div className="overflow-y-auto max-h-[640px] xl:max-h-[720px] pr-1">
-                            {pos.filteredItems.length === 0 ? (
+                            {pos.registerLoadError && pos.filteredItems.length === 0 ? (
+                                <div className="flex flex-col items-center justify-center py-16 px-4 text-center">
+                                    <AlertCircle className="w-10 h-10 text-amber-600 mb-3" aria-hidden="true" />
+                                    <h2 className="text-lg font-semibold text-gray-900">
+                                        {pos.hasRegisterPermissionError
+                                            ? t('registerPermissionTitle', 'You do not have permission to load the register')
+                                            : t('registerLoadErrorTitle', 'Unable to load the register')}
+                                    </h2>
+                                    <p className="mt-2 max-w-md text-sm text-gray-600">
+                                        {pos.hasRegisterPermissionError
+                                            ? t('registerPermissionMessage', 'Your account may not have access to the register data. Check your access or contact an administrator.')
+                                            : t('registerLoadErrorMessage', 'The menu could not be loaded. Check your connection and try again.')}
+                                    </p>
+                                    <button
+                                        type="button"
+                                        onClick={pos.retryRegisterLoad}
+                                        disabled={pos.isRetryingRegisterLoad}
+                                        className="mt-5 inline-flex items-center gap-2 rounded-lg bg-purple-800 px-4 py-2 text-sm font-semibold text-white hover:bg-purple-900 disabled:cursor-not-allowed disabled:opacity-60"
+                                    >
+                                        <RefreshCw className={`h-4 w-4 ${pos.isRetryingRegisterLoad ? 'animate-spin' : ''}`} aria-hidden="true" />
+                                        {pos.isRetryingRegisterLoad
+                                            ? t('retrying', 'Retrying...')
+                                            : t('retry', 'Try again')}
+                                    </button>
+                                </div>
+                            ) : !pos.restaurantObj ? (
+                                <div className="flex flex-col items-center justify-center py-16 px-4 text-center">
+                                    <AlertCircle className="w-10 h-10 text-amber-600 mb-3" aria-hidden="true" />
+                                    <h2 className="text-lg font-semibold text-gray-900">
+                                        {t('restaurantSetupTitle', 'Restaurant setup is incomplete')}
+                                    </h2>
+                                    <p className="mt-2 max-w-md text-sm text-gray-600">
+                                        {t('restaurantSetupMessage', 'Complete your restaurant profile before opening the register.')}
+                                    </p>
+                                    <button
+                                        type="button"
+                                        onClick={() => navigate('/dashboard/settings')}
+                                        className="mt-5 rounded-lg bg-purple-800 px-4 py-2 text-sm font-semibold text-white hover:bg-purple-900"
+                                    >
+                                        {t('openSettings', 'Open settings')}
+                                    </button>
+                                </div>
+                            ) : !pos.hasMenuItems ? (
+                                <div className="flex flex-col items-center justify-center py-16 px-4 text-center">
+                                    <AlertCircle className="w-10 h-10 text-amber-600 mb-3" aria-hidden="true" />
+                                    <h2 className="text-lg font-semibold text-gray-900">
+                                        {t('menuSetupTitle', 'No menu items are available')}
+                                    </h2>
+                                    <p className="mt-2 max-w-md text-sm text-gray-600">
+                                        {t('menuSetupMessage', 'Add active menu items to start creating orders in the register.')}
+                                    </p>
+                                    <button
+                                        type="button"
+                                        onClick={() => navigate('/dashboard/menuitems/create', { state: { from: '/dashboard/pos' } })}
+                                        className="mt-5 rounded-lg bg-purple-800 px-4 py-2 text-sm font-semibold text-white hover:bg-purple-900"
+                                    >
+                                        {t('addMenuItem', 'Add menu item')}
+                                    </button>
+                                </div>
+                            ) : pos.filteredItems.length === 0 ? (
                                 <div className="flex flex-col items-center justify-center py-20 text-gray-400">
-                                    <p className="text-base font-medium">No dishes found</p>
+                                    <p className="text-base font-medium">{t('noSearchResults', 'No dishes found')}</p>
                                 </div>
                             ) : (
                                 <div className={

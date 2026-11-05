@@ -23,6 +23,7 @@ import reservationService from '../../services/reservationService';
 import ordersService from '../../services/ordersService';
 import { toast } from 'react-toastify';
 import { formatCurrency } from '../../utils/currencyUtils';
+import { useRestaurant } from '../../hooks/queries/usePos';
 
 const Shimmer = ({ className = "h-4 w-full rounded" }) => (
     <div className={`shimmer-loader ${className}`} />
@@ -132,6 +133,8 @@ const DashboardSection = () => {
     const [open, setOpen] = useState(false);
     const dropdownRef = useRef();
     const navigate = useNavigate();
+    const { data: restaurantData } = useRestaurant();
+    const currency = restaurantData?.currency;
 
     const filterOptions = [
         { key: 'this_week', apiValue: 'this_week', labelKey: 'filters.thisWeek' },
@@ -290,7 +293,7 @@ const DashboardSection = () => {
                                             <Shimmer className="h-9 w-40 rounded-lg" />
                                         ) : (
                                             <p className="text-3xl font-bold text-gray-900">
-                                                {formatCurrency(dashboardData?.TotalSale)}
+                                                {formatCurrency(dashboardData?.TotalSale, currency)}
                                             </p>
                                         )}
                                     </div>
@@ -470,7 +473,7 @@ const DashboardSection = () => {
                                 </div>
                                 <div>
                                     <p className="font-semibold text-gray-900 text-sm">{item.item_name}</p>
-                                    <p className="text-xs text-gray-500">{formatCurrency(item.item_price)}</p>
+                                    <p className="text-xs text-gray-500">{formatCurrency(item.item_price, currency)}</p>
                                 </div>
                             </div>
                             <span className="text-sm font-semibold text-gray-900">{item.total_quantity_sold} {t('labels.qty')}</span>
@@ -561,7 +564,7 @@ const DashboardSection = () => {
                             {isLoading ? (
                                 <Shimmer className="h-5 w-24 rounded mt-1" />
                             ) : (
-                                <p className="font-bold text-lg">{formatCurrency(dashboardData?.TotalSale)}</p>
+                                <p className="font-bold text-lg">{formatCurrency(dashboardData?.TotalSale, currency)}</p>
                             )}
                         </div>
                     </div>
@@ -788,4 +791,3 @@ const DashboardSection = () => {
 
 
 export default DashboardSection;
-

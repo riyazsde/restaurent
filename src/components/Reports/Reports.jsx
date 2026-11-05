@@ -163,7 +163,7 @@ export default function ReportsSection() {
         badgeColor: badgeInfo.color,
         image: foodImages[idx % foodImages.length],
         plates,
-        revXOF: item.item_price,
+        revenue: item.item_price,
         revPct: prog,
         prog
       };
@@ -310,9 +310,9 @@ export default function ReportsSection() {
         toast.info(t('messages.nothingToExport', 'No data available to export'));
         return;
       }
-      const csvHeader = "Item,Category,Plates Sold,Revenue,Share\n";
+      const csvHeader = `Item,Category,Plates Sold,Revenue (${resolveCurrencySymbol(restaurantData?.currency)}),Share\n`;
       const csvRows = itemsToExport
-        .map(i => `"${i.name}","${i.badge}",${i.plates},"${i.revXOF ?? ''}","${i.prog}%"`)
+        .map(i => `"${i.name}","${i.badge}",${i.plates},"${i.revenue ?? ''}","${i.prog}%"`)
         .join("\n");
       const blob = new Blob([csvHeader + csvRows], { type: 'text/csv;charset=utf-8;' });
       const url = URL.createObjectURL(blob);
@@ -685,7 +685,7 @@ export default function ReportsSection() {
 
                           <div className="text-right w-24 flex-shrink-0">
                             <div className="text-[14px] font-bold text-black">
-                              {formatReportPrice(item.revXOF)}
+                              {formatReportPrice(item.revenue)}
                             </div>
                             <div className="text-[11px] text-gray-500 whitespace-nowrap">
                               {item.revPct}% {t('summary.ofTotal', 'of total')}

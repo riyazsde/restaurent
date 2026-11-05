@@ -339,7 +339,7 @@
     "couponNamePlaceholder": "Enter coupon name",
     "couponCodePlaceholder": "Enter coupon code",
     "categoryPlaceholder": "e.g. Happy hour discount",
-    "offerPlaceholder": "e.g. 50% Off on Rs 199"
+    "offerPlaceholder": "e.g. 50% Off on {{currency}} 199"
   },
   "loyalty": {
     "title": "Loyalty Programs",
@@ -363,7 +363,7 @@
     "tierLabel": "Tier",
     "tierPlaceholder": "e.g., Gold",
     "thresholdLabel": "Threshold",
-    "thresholdPlaceholder": "e.g., $500.00+",
+    "thresholdPlaceholder": "e.g., {{currency}} 500.00+",
     "thresholdInvalid": "Enter a valid non-negative threshold.",
     "multiplierLabel": "Point Multiplier",
     "multiplierPlaceholder": "e.g., 1.75X",

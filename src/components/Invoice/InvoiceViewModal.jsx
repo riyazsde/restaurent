@@ -7,7 +7,7 @@ const InvoiceViewModal = ({
     isOpen,
     onClose,
     invoice,
-    currency = 'XOF',
+    currency,
     restaurantData,
     onPrint,
     isPrinting = false

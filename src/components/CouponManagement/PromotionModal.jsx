@@ -7,7 +7,7 @@ import { resolveCurrencySymbol } from '../../utils/currencyUtils';
 const PromotionModal = ({ isOpen, onClose, onSubmit, initialData = null, isSubmitting = false }) => {
     const { t } = useTranslation('common');
     const { data: restaurantData } = useRestaurant();
-    const currency = resolveCurrencySymbol(restaurantData?.currency) || '$';
+    const currency = resolveCurrencySymbol(restaurantData?.currency);
 
     const [formData, setFormData] = useState({
         coupon_name: '',
@@ -111,7 +111,10 @@ const PromotionModal = ({ isOpen, onClose, onSubmit, initialData = null, isSubmi
                             required
                             value={formData.offer}
                             onChange={(e) => setFormData({ ...formData, offer: e.target.value })}
-                            placeholder={t('promotions.offerPlaceholder', `50% Off on ${currency} 199`)}
+                            placeholder={t('promotions.offerPlaceholder', {
+                                currency,
+                                defaultValue: currency ? `50% Off on ${currency} 199` : '50% Off on 199'
+                            })}
                             className="w-full h-11 px-4 rounded-xl border-[1.5px] border-[#E5989B] focus:border-[#982B4E] focus:outline-none text-sm text-gray-900 placeholder-gray-400 transition-colors"
                         />
                     </div>

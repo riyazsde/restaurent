@@ -7,12 +7,15 @@ import { FiDownload, FiArrowLeft } from "react-icons/fi";
 import { toast } from "react-toastify";
 import print from "../assets/print.svg";
 import { formatCurrency } from "../../utils/currencyUtils";
+import { useRestaurant } from "../../hooks/queries/usePos";
 import { usePayments } from "../../hooks/queries/useInvoice";
 import invoiceService from "../../services/invoiceService";
 
 const ReservationsHeader = () => {
   const { t } = useTranslation("invoice");
   const navigate = useNavigate();
+  const { data: restaurantData } = useRestaurant();
+  const currency = restaurantData?.currency;
   const [showModal, setShowModal] = useState(false);
   const [showReceiptModal, setShowReceiptModal] = useState(false);
   const [selectedPayment, setSelectedPayment] = useState(null);
@@ -258,13 +261,13 @@ const ReservationsHeader = () => {
                       {formatDate(payment.Date || payment.CreateAt)}
                     </td>
                     <td className="px-4 py-2 border border-gray-300">
-                      {formatCurrency(payment.Total ?? payment.total_price ?? payment.Order_id?.Total)}
+                      {formatCurrency(payment.Total ?? payment.total_price ?? payment.Order_id?.Total, currency)}
                     </td>
                     <td className="px-4 py-2 border border-gray-300">
-                      {formatCurrency(payment.SubTotal ?? payment.Order_id?.SubTotal)}
+                      {formatCurrency(payment.SubTotal ?? payment.Order_id?.SubTotal, currency)}
                     </td>
                     <td className="px-4 py-2 border border-gray-300">
-                      {formatCurrency(payment.Tax ?? payment.Order_id?.Tax)}
+                      {formatCurrency(payment.Tax ?? payment.Order_id?.Tax, currency)}
                     </td>
                     <td className="px-4 py-2 border border-gray-300">
                       {payment.Delivery_Type || payment.Order_id?.Dining_Option || "N/A"}
@@ -340,15 +343,15 @@ const ReservationsHeader = () => {
                 </div>
                 <div>
                   <span className="font-medium">{t("table.total")}:</span>{" "}
-                  {formatCurrency(payment.Order_id?.Total)}
+                  {formatCurrency(payment.Order_id?.Total, currency)}
                 </div>
                 <div>
                   <span className="font-medium">{t("table.subtotal")}:</span>{" "}
-                  {formatCurrency(payment.Order_id?.SubTotal)}
+                  {formatCurrency(payment.Order_id?.SubTotal, currency)}
                 </div>
                 <div>
                   <span className="font-medium">{t("table.tax")}:</span>{" "}
-                  {formatCurrency(payment.Order_id?.Tax)}
+                  {formatCurrency(payment.Order_id?.Tax, currency)}
                 </div>
                 <div>
                   <span className="font-medium">
@@ -486,7 +489,7 @@ const ReservationsHeader = () => {
                 <div className="text-center mb-3 py-3 bg-gray-50 rounded-lg">
                   <p className="text-gray-600 text-xs mb-1">Total Payment</p>
                   <p className="text-2xl font-bold text-gray-800">
-                    {formatCurrency(selectedPayment.Order_id?.Total)}
+                    {formatCurrency(selectedPayment.Order_id?.Total, currency)}
                   </p>
                 </div>
 
@@ -538,7 +541,7 @@ const ReservationsHeader = () => {
                       {t("table.subtotal")}
                     </p>
                     <p className="font-semibold text-xs">
-                      {formatCurrency(selectedPayment.Order_id?.SubTotal)}
+                      {formatCurrency(selectedPayment.Order_id?.SubTotal, currency)}
                     </p>
                   </div>
                   <div className="bg-gray-50 p-2.5 rounded-lg">
@@ -546,7 +549,7 @@ const ReservationsHeader = () => {
                       {t("table.tax")}
                     </p>
                     <p className="font-semibold text-xs">
-                      {formatCurrency(selectedPayment.Order_id?.Tax)}
+                      {formatCurrency(selectedPayment.Order_id?.Tax, currency)}
                     </p>
                   </div>
                 </div>

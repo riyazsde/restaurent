@@ -70,18 +70,22 @@ export const usePosItems = (categoryId = null) => {
         queryFn: async () => {
             if (isAll) {
                 const res = await itemsService.getAllItems();
-                if (res && res.success !== false) {
-                    const rawList = res.data || res || [];
-                    return Array.isArray(rawList) ? rawList.filter(item => item && item.Status !== false && item.status !== false) : [];
+                if (res?.success === false) {
+                    const error = new Error(res.message || 'Failed to load POS items');
+                    error.status = Number(res.status || res.statusCode) || undefined;
+                    throw error;
                 }
-                return [];
+                const rawList = res?.data || res || [];
+                return Array.isArray(rawList) ? rawList.filter(item => item && item.Status !== false && item.status !== false) : [];
             } else {
                 const res = await itemsService.getItemsByItemType(categoryId);
-                if (res && res.success !== false) {
-                    const rawList = res.data || res || [];
-                    return Array.isArray(rawList) ? rawList.filter(item => item && item.Status !== false && item.status !== false) : [];
+                if (res?.success === false) {
+                    const error = new Error(res.message || 'Failed to load POS items');
+                    error.status = Number(res.status || res.statusCode) || undefined;
+                    throw error;
                 }
-                return [];
+                const rawList = res?.data || res || [];
+                return Array.isArray(rawList) ? rawList.filter(item => item && item.Status !== false && item.status !== false) : [];
             }
         },
         staleTime: 0, // Fresh on every navigation to POS
@@ -156,4 +160,3 @@ export const useCreatePayment = () => {
         }
     });
 };
-

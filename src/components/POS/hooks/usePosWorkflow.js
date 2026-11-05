@@ -52,16 +52,31 @@ export const usePosWorkflow = () => {
     const [itemSearchTerm, setItemSearchTerm] = useState('');
 
     // TanStack React Query Hooks
-    const { data: restaurantData, isLoading: isRestaurantLoading } = useRestaurant();
-    const { data: kitchenStations = [], isLoading: isKitchenLoading } = useKitchenStations();
-    const { data: taxSetupData = [], isLoading: isTaxLoading } = useTaxSetup();
-    const { data: rawCategories = [], isLoading: isCategoriesLoading } = useCategories();
-    const { data: rawItems = [], isLoading: isItemsLoading, refetch: refetchPosItems } = usePosItems();
-
-    // Instant fresh fetch whenever POS loads
-    useEffect(() => {
-        refetchPosItems();
-    }, [refetchPosItems]);
+    const {
+        data: restaurantData,
+        isLoading: isRestaurantLoading,
+        error: restaurantError,
+        refetch: refetchRestaurant
+    } = useRestaurant();
+    const {
+        data: kitchenStations = [],
+        isLoading: isKitchenLoading
+    } = useKitchenStations();
+    const {
+        data: taxSetupData = [],
+        isLoading: isTaxLoading
+    } = useTaxSetup();
+    const {
+        data: rawCategories = [],
+        isLoading: isCategoriesLoading
+    } = useCategories();
+    const {
+        data: rawItems = [],
+        isLoading: isItemsLoading,
+        isFetching: isItemsFetching,
+        error: itemsError,
+        refetch: refetchPosItems
+    } = usePosItems();
 
     const { data: rawFloors = [], isLoading: isFloorsLoading } = useFloors();
     const { data: rawTables = [], isLoading: isTablesLoading } = useMappedTables();
@@ -82,6 +97,19 @@ export const usePosWorkflow = () => {
     }, [restaurantData]);
 
     const restaurantId = restaurantObj?.Store_id || restaurantObj?.store_id || restaurantObj?.id || undefined;
+    const menuItemsList = Array.isArray(rawItems?.data)
+        ? rawItems.data
+        : Array.isArray(rawItems)
+        ? rawItems
+        : [];
+    const registerLoadError = restaurantError || itemsError;
+    const registerErrorStatus = Number(registerLoadError?.status || registerLoadError?.response?.status);
+    const hasRegisterPermissionError = registerErrorStatus === 401 || registerErrorStatus === 403;
+
+    const retryRegisterLoad = () => Promise.all([
+        refetchRestaurant(),
+        refetchPosItems()
+    ]);
 
     const kitchenStationsList = useMemo(() => {
         if (Array.isArray(kitchenStations)) return kitchenStations;
@@ -93,7 +121,7 @@ export const usePosWorkflow = () => {
     const taxRate = Array.isArray(taxSetupData) && taxSetupData.length > 0 ? (taxSetupData[0].rate ?? 0) : 0;
     const floors = Array.isArray(rawFloors) ? rawFloors : [];
 
-    // Dynamic restaurant currency code (resolves ZAR -> $ when language is English)
+    // Keep monetary identity tied to the restaurant profile, not the UI language.
     const currency = useMemo(() => {
         const raw = restaurantObj?.currency || restaurantData?.currency;
         return resolveCurrencySymbol(raw);
@@ -584,6 +612,12 @@ export const usePosWorkflow = () => {
         handleCategorySelect,
         handleItemSearch,
         filteredItems,
+        restaurantObj,
+        hasMenuItems: menuItemsList.length > 0,
+        registerLoadError,
+        hasRegisterPermissionError,
+        retryRegisterLoad,
+        isRetryingRegisterLoad: isItemsFetching,
         filteredCustomers,
         tables,
         floors,

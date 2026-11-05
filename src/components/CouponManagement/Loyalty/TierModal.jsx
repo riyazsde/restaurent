@@ -2,9 +2,13 @@ import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { FiX } from 'react-icons/fi';
 import { validateLoyaltyTierValues } from '../../../utils/loyaltyTierValidation';
+import { useRestaurant } from '../../../hooks/queries/usePos';
+import { resolveCurrencySymbol } from '../../../utils/currencyUtils';
 
 const TierModal = ({ isOpen, onClose, onSubmit, initialData = null, isSubmitting = false }) => {
     const { t } = useTranslation('common');
+    const { data: restaurantData } = useRestaurant();
+    const currency = resolveCurrencySymbol(restaurantData?.currency);
     const [fieldErrors, setFieldErrors] = useState({});
     const [formData, setFormData] = useState({
         tier: '',
@@ -127,7 +131,10 @@ const TierModal = ({ isOpen, onClose, onSubmit, initialData = null, isSubmitting
                                 inputMode="decimal"
                                 aria-invalid={Boolean(fieldErrors.threshold)}
                                 aria-describedby={fieldErrors.threshold ? 'tier-threshold-error' : undefined}
-                                placeholder={t('loyalty.thresholdPlaceholder', 'e.g., $500.00+')}
+                                placeholder={t('loyalty.thresholdPlaceholder', {
+                                    currency,
+                                    defaultValue: currency ? `e.g., ${currency} 500.00+` : 'e.g., 500.00+'
+                                })}
                                 className="w-full border border-gray-200 rounded-[10px] px-4 py-2.5 text-sm text-gray-900 placeholder:text-gray-400 outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500 transition-all"
                             />
                             {fieldErrors.threshold && (

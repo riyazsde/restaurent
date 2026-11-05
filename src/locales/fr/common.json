@@ -339,7 +339,7 @@
     "couponNamePlaceholder": "Entrez le nom du coupon",
     "couponCodePlaceholder": "Entrez le code promo",
     "categoryPlaceholder": "ex. Réduction happy hour",
-    "offerPlaceholder": "ex. 50 % de réduction à partir de 199"
+    "offerPlaceholder": "ex. 50 % de réduction à partir de {{currency}} 199"
   },
   "loyalty": {
     "title": "Programmes de fidélité",
@@ -363,7 +363,7 @@
     "tierLabel": "Niveau",
     "tierPlaceholder": "ex. Or",
     "thresholdLabel": "Seuil",
-    "thresholdPlaceholder": "ex. 500,00 $+",
+    "thresholdPlaceholder": "ex. {{currency}} 500,00+",
     "thresholdInvalid": "Saisissez un seuil numérique valide supérieur ou égal à zéro.",
     "multiplierLabel": "Multiplicateur de points",
     "multiplierPlaceholder": "ex. 1,75X",
