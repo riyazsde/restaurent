@@ -1,6 +1,8 @@
 import { IMAGE_BASE_URL } from '../../../services/fileUploadService';
 export { formatCurrency } from '../../../utils/currencyUtils';
 
+const roundCurrencyAmount = (amount) => Math.round((Number(amount) + Number.EPSILON) * 100) / 100;
+
 /**
  * Resolves full image URL with backend fallback
  */
@@ -108,14 +110,15 @@ export const calculateItemPrices = (item) => {
  * Computes subtotal, tax, and grand total for cart
  */
 export const calculateCartTotals = (cartItems = [], taxRate = 0) => {
-    const subTotal = cartItems.reduce((acc, item) => {
+    const rawSubTotal = cartItems.reduce((acc, item) => {
         const { totalPrice } = calculateItemPrices(item);
         return acc + totalPrice;
     }, 0);
 
     const rate = Number(taxRate || 0);
-    const taxAmount = subTotal * (rate / 100);
-    const total = subTotal + taxAmount;
+    const subTotal = roundCurrencyAmount(rawSubTotal);
+    const taxAmount = roundCurrencyAmount(subTotal * (rate / 100));
+    const total = roundCurrencyAmount(subTotal + taxAmount);
 
     return {
         subTotal,
@@ -167,23 +170,34 @@ export const buildPosOrderPayload = ({
 
     const items = cartItems.map(item => {
         const { basePrice, variantPrice, addonPrice } = calculateItemPrices(item);
+        const quantity = Number(item.item_Quentry) || 1;
+        const unitPrice = roundCurrencyAmount(basePrice + variantPrice + addonPrice);
         return {
             item_id: item.item_id,
-            item_Quentry: item.item_Quentry || 1,
+            item_Quentry: quantity,
             item_Addons_id: item.item_Addons_id || undefined,
             item_Variants_id: item.item_Variants_id || undefined,
             item_status: item.item_status || 'Preparing',
             item_size: item.item_size || item.itemDetails?.['item-size'] || 'Regular',
-            item_price: basePrice,
-            variant_price: variantPrice,
-            addon_price: addonPrice,
+            item_price: Number(basePrice) || 0,
+            variant_price: Number(variantPrice) || 0,
+            addon_price: Number(addonPrice) || 0,
+            unit_price: unitPrice,
+            line_total: roundCurrencyAmount(unitPrice * quantity),
             notes: item.notes || ''
         };
     });
 
+    const { subTotal } = calculateCartTotals(cartItems, 0);
+    const finalTax = roundCurrencyAmount(Number(taxAmount) || 0);
+    const finalTotal = roundCurrencyAmount(subTotal + finalTax);
     const payload = {
         items,
-        Tax: taxAmount,
+        SubTotal: subTotal,
+        Tax: finalTax,
+        Total: finalTotal,
+        Grand_Total: finalTotal,
+        total_amount: finalTotal,
         Customer_id: customerId,
         Dining_Option: diningOption,
         Order_Type: posType,

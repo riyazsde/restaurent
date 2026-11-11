@@ -1,6 +1,13 @@
 import api from '../api/api';
+import useAuthStore from '../store/authStore';
 import { API_ENDPOINTS } from '../utils/constants';
 import { normalizeDiningOption } from '../utils/diningOption';
+
+const getPosOrderPaymentPath = (orderId, action = '') => {
+  const role = useAuthStore.getState().userRole;
+  const namespace = role === 'Employee' ? 'employee' : 'restaurant';
+  return `/${namespace}/pos_order/${orderId}${action}`;
+};
 
 class PosService {
   // Create POS order
@@ -274,6 +281,25 @@ class PosService {
     } catch (error) {
       throw this.handleError(error);
     }
+  }
+
+  async createStripePaymentLink(orderId, idempotencyKey) {
+    const payload = idempotencyKey ? { idempotency_key: idempotencyKey } : {};
+    const response = await api.post(getPosOrderPaymentPath(orderId, '/payment-link'), payload);
+    return response.data;
+  }
+
+  async confirmStripePayment(orderId) {
+    const response = await api.post(getPosOrderPaymentPath(orderId, '/payment/confirm'));
+    return {
+      ...(response.data && typeof response.data === 'object' ? response.data : {}),
+      httpStatus: response.status
+    };
+  }
+
+  async cancelStripePayment(orderId) {
+    const response = await api.post(getPosOrderPaymentPath(orderId, '/payment/cancel'));
+    return response.data;
   }
 
   // Get all payments by restaurant

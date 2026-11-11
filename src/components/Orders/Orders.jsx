@@ -24,6 +24,8 @@ import { useOrders, useUpdateOrderStatus, useUpdateOrderItemStatus } from '../..
 import { useSearchStore } from '../../store/searchStore';
 import posService from '../../services/posService';
 import { getOrderStatusKey, getPaymentStatusKey } from '../../utils/orderStatus';
+import { resolveOrderTotal } from './orderTotals';
+import { getStripeCheckoutUrl, rememberStripeOrderId } from '../../utils/stripeCheckout';
 
 const OrderCard = ({ order, onRefresh }) => {
     const { t } = useTranslation('orders');
@@ -33,6 +35,8 @@ const OrderCard = ({ order, onRefresh }) => {
     const [showCancel, setCancel] = useState(false);
     const [showComplete, setComplete] = useState(false);
     const [showPaymentModal, setShowPaymentModal] = useState(false);
+    const [selectedPaymentMethod, setSelectedPaymentMethod] = useState('cash');
+    const [isCreatingStripeLink, setIsCreatingStripeLink] = useState(false);
     const [showScanModal, setShowScanModal] = useState(false);
     const [showSuccessModal2, setShowSuccessModal2] = useState(false);
     const [showDeleteModal, setShowDeleteModal] = useState(false);
@@ -173,6 +177,34 @@ const OrderCard = ({ order, onRefresh }) => {
     };
 
     const handlePayment = async () => {
+        if (selectedPaymentMethod === 'stripe') {
+            const orderId = order?.POS_Order_id ?? order?.id ?? order?.Order_id;
+            if (!orderId) {
+                toast.error(t('messages.stripeOrderRequired'));
+                return;
+            }
+
+            setIsCreatingStripeLink(true);
+            try {
+                const response = await posService.createStripePaymentLink(orderId);
+                const paymentUrl = getStripeCheckoutUrl(response);
+                if (!paymentUrl) {
+                    throw new Error(t('messages.stripeCheckoutError'));
+                }
+                rememberStripeOrderId(orderId);
+                window.location.assign(paymentUrl);
+            } catch (error) {
+                toast.error(
+                    error?.response?.data?.message ||
+                    error?.message ||
+                    t('messages.stripeCheckoutError')
+                );
+            } finally {
+                setIsCreatingStripeLink(false);
+            }
+            return;
+        }
+
         setShowScanModal(true);
         setShowPaymentModal(false);
         const orderId = order?.POS_Order_id ?? order?.id ?? order?.Order_id;
@@ -211,7 +243,7 @@ const OrderCard = ({ order, onRefresh }) => {
         );
     };
 
-    const total = order?.Total || 0;
+    const total = resolveOrderTotal(order);
     const tax = order?.Tax || 0;
     const subtotal = order?.SubTotal || 0;
     useEffect(() => {
@@ -235,7 +267,6 @@ const OrderCard = ({ order, onRefresh }) => {
     }, []);
 
     // Get order data
-    const orderTotal = order?.Total || 0;
     const orderTax = order?.Tax || 0;
     const orderSubTotal = order?.SubTotal || 0;
     const orderToken = order?.POS_Order_id || 'N/A';
@@ -437,45 +468,49 @@ const OrderCard = ({ order, onRefresh }) => {
                                             <h2 className="text-[29px] text-start font-semibold mb-12">{t('modals.paymentOptions')}</h2>
 
                                             {/* Payment Buttons */}                    <div style={{ fontFamily: 'Manrope' }} className="space-y-3 font-semibold text-[#00000099]">
-                                                <button className="w-full border rounded-lg px-4 py-2  flex justify-between items-center text-left">
-                                                    {t('modals.payWithCash')} <input type="radio" name="payment" />
+                                                <button type="button" onClick={() => setSelectedPaymentMethod('cash')} className="w-full border rounded-lg px-4 py-2  flex justify-between items-center text-left">
+                                                    {t('modals.payWithCash')} <input type="radio" name="payment" checked={selectedPaymentMethod === 'cash'} onChange={() => setSelectedPaymentMethod('cash')} />
                                                 </button>
                                                 {/* <button className="w-full border rounded-lg px-4 py-2 flex justify-between items-center text-left">
                                                     Gift Cards <FaGift className="text-sm" /> <input type="radio" name="payment" />
                                                 </button> */}
-                                                <button className="w-full border rounded-lg px-4 py-2 flex justify-between items-center text-left">
+                                                <button type="button" onClick={() => setSelectedPaymentMethod('gift_card')} className="w-full border rounded-lg px-4 py-2 flex justify-between items-center text-left">
                                                     <span className="flex items-center gap-2">{t('modals.giftCards')} <FaGift /></span>
-                                                    <input type="radio" name="payment" />
+                                                    <input type="radio" name="payment" checked={selectedPaymentMethod === 'gift_card'} onChange={() => setSelectedPaymentMethod('gift_card')} />
                                                 </button>
 
                                                 <p className="text-sm text-start text-[#00000099] mt-4">{t('modals.onlinePayments')}</p>
 
-                                                <button className="w-full border rounded-lg px-4 py-2 flex justify-between items-center text-left">
+                                                <button type="button" onClick={() => setSelectedPaymentMethod('google_pay')} className="w-full border rounded-lg px-4 py-2 flex justify-between items-center text-left">
                                                     <span className="flex items-center gap-2"><img src={Google} alt="google" /> Pay</span>
-                                                    <input type="radio" name="payment" />
+                                                    <input type="radio" name="payment" checked={selectedPaymentMethod === 'google_pay'} onChange={() => setSelectedPaymentMethod('google_pay')} />
                                                 </button>
-                                                <button className="w-full border rounded-lg px-4 py-2 flex justify-between items-center text-left">
+                                                <button type="button" onClick={() => setSelectedPaymentMethod('apple_pay')} className="w-full border rounded-lg px-4 py-2 flex justify-between items-center text-left">
                                                     <span className="flex items-center gap-2"><img src={Apple} alt="apple" /> Apple Pay</span>
-                                                    <input type="radio" name="payment" />
+                                                    <input type="radio" name="payment" checked={selectedPaymentMethod === 'apple_pay'} onChange={() => setSelectedPaymentMethod('apple_pay')} />
                                                 </button>
-                                                <button className="w-full border rounded-lg px-4 py-2 flex justify-between items-center text-left">
+                                                <button type="button" onClick={() => setSelectedPaymentMethod('momo')} className="w-full border rounded-lg px-4 py-2 flex justify-between items-center text-left">
                                                     MoMo Money
-                                                    <input type="radio" name="payment" />
+                                                    <input type="radio" name="payment" checked={selectedPaymentMethod === 'momo'} onChange={() => setSelectedPaymentMethod('momo')} />
                                                 </button>
-                                                <button className="w-full border rounded-lg px-4 py-2 flex justify-between items-center text-left">
+                                                <button type="button" onClick={() => setSelectedPaymentMethod('orange_money')} className="w-full border rounded-lg px-4 py-2 flex justify-between items-center text-left">
                                                     Orange Money
-                                                    <input type="radio" name="payment" />
+                                                    <input type="radio" name="payment" checked={selectedPaymentMethod === 'orange_money'} onChange={() => setSelectedPaymentMethod('orange_money')} />
                                                 </button>
 
                                                 <p className="text-sm text-gray-500 text-start mt-4">{t('modals.cardPayments')}</p>
 
-                                                <button className="w-full border rounded-lg px-4 py-2 flex justify-between items-center text-left">
-                                                    <span className="flex items-center gap-2">Debit Card Payment <FaCreditCard className="text-black" /></span>
-                                                    <input type="radio" name="payment" />
+                                                <button type="button" onClick={() => setSelectedPaymentMethod('stripe')} className="w-full border rounded-lg px-4 py-2 flex justify-between items-center text-left">
+                                                    <span className="flex items-center gap-2">{t('modals.stripe')} <FaCreditCard className="text-indigo-600" /></span>
+                                                    <input type="radio" name="payment" checked={selectedPaymentMethod === 'stripe'} onChange={() => setSelectedPaymentMethod('stripe')} />
                                                 </button>
-                                                <button className="w-full border rounded-lg px-4 py-2 flex justify-between items-center text-left">
+                                                <button type="button" onClick={() => setSelectedPaymentMethod('debit_card')} className="w-full border rounded-lg px-4 py-2 flex justify-between items-center text-left">
+                                                    <span className="flex items-center gap-2">Debit Card Payment <FaCreditCard className="text-black" /></span>
+                                                    <input type="radio" name="payment" checked={selectedPaymentMethod === 'debit_card'} onChange={() => setSelectedPaymentMethod('debit_card')} />
+                                                </button>
+                                                <button type="button" onClick={() => setSelectedPaymentMethod('credit_card')} className="w-full border rounded-lg px-4 py-2 flex justify-between items-center text-left">
                                                     <span className="flex items-center gap-2">Credit Card Payment <FaCreditCard className="text-black" /></span>
-                                                    <input type="radio" name="payment" />
+                                                    <input type="radio" name="payment" checked={selectedPaymentMethod === 'credit_card'} onChange={() => setSelectedPaymentMethod('credit_card')} />
                                                 </button>
 
                                                 <p className="text-sm text-gray-500 text-start mt-4">{t('modals.splitPayments')}</p>
@@ -483,17 +518,17 @@ const OrderCard = ({ order, onRefresh }) => {
                                                 {/* <button className="w-full border rounded-lg px-4 py-2 flex justify-between items-center text-left">
                                                     Split Payment <input type="radio" name="payment" />
                                                 </button> */}
-                                                <button className="w-full border rounded-lg px-4 py-2 flex justify-between items-center text-left">
+                                                <button type="button" onClick={() => setSelectedPaymentMethod('split')} className="w-full border rounded-lg px-4 py-2 flex justify-between items-center text-left">
                                                     <span className="flex items-center gap-2">{t('modals.splitPayments')} <img src={split} alt="split" /></span>
-                                                    <input type="radio" name="payment" />
+                                                    <input type="radio" name="payment" checked={selectedPaymentMethod === 'split'} onChange={() => setSelectedPaymentMethod('split')} />
                                                 </button>
                                             </div>
 
                                             {/* Pay Button */}
-                                            <button onClick={handlePayment} style={{
+                                            <button onClick={handlePayment} disabled={isCreatingStripeLink} style={{
                                                 background: 'linear-gradient(180deg, #6A1B9A 0%, #D32F2F 100%)'
-                                            }} className="mt-6 w-full py-3 rounded-lg text-[20px]  text-white font-semibold">
-                                                {t('modals.pay')} {formatCurrency(total)}
+                                            }} className="mt-6 w-full py-3 rounded-lg text-[20px] text-white font-semibold disabled:cursor-wait disabled:opacity-70">
+                                                {isCreatingStripeLink ? t('modals.startingStripeCheckout') : <>{t('modals.pay')} {formatCurrency(total)}</>}
                                             </button>
                                         </div>
                                     </div>

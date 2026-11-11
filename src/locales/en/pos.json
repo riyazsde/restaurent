@@ -125,6 +125,13 @@
       "cash": "Cash"
     },
     "orderRequired": "Order ID is missing",
+    "invalidStripeAmount": "The order total must be a positive amount",
+    "stripeCheckoutError": "Unable to start Stripe Checkout",
+    "stripeError": "Failed to start Stripe Checkout",
+    "stripeTitle": "Pay securely with Stripe",
+    "stripeDescription": "You will be redirected to Stripe Checkout. Do not edit or cancel the bill until payment is confirmed.",
+    "creatingStripeLink": "Opening Stripe Checkout...",
+    "payWithStripe": "Pay with Stripe",
     "terminalRequired": "Please select a Z500C terminal",
     "terminalOffline": "Terminal Offline",
     "terminalOfflineDesc": "The Android Z500C Bridge is not connected to the server. Ensure the terminal is connected to Wi-Fi and the bridge application is running.",
@@ -143,7 +150,7 @@
     "acquirer": "Acquiring Account",
     "supportedCards": "Accepted Cards",
     "initiating": "Sending amount to Z500C...",
-    "startCardButton": "Send {{amount}} {{currency}} to Terminal",
+    "startCardButton": "Send {{amount}} to Terminal",
     "employeeAuthRequired": "Terminal card transactions must be started by an authenticated employee account (Cashier). Please log in with your Cashier code.",
     "momoPromptSent": "Payment prompt sent to customer mobile device.",
     "momoPromptActive": "Payment prompt sent to customer!",
@@ -155,7 +162,7 @@
     "customerPhone": "Customer Wallet Phone Number",
     "phoneHint": "Ensure international or regional country code is included.",
     "sendingPrompt": "Sending prompt to wallet...",
-    "sendMomoButton": "Send {{amount}} {{currency}} Prompt",
+    "sendMomoButton": "Send {{amount}} Prompt",
     "momoSuccess": "Mobile money payment confirmed!",
     "momoTimeout": "Payment prompt timed out. Please retry.",
     "momoError": "Failed to initiate mobile money request",
@@ -168,5 +175,20 @@
     "completeCashButton": "Complete Cash Payment",
     "cashSuccess": "Cash payment recorded successfully!",
     "cashError": "Failed to process cash payment"
+  },
+  "stripeReturn": {
+    "titleSuccess": "Stripe payment",
+    "titleCancelled": "Payment cancelled",
+    "verifying": "Verifying Stripe payment...",
+    "cancelling": "Releasing the unpaid order...",
+    "orderMissing": "Could not identify the order to verify. Return to POS and check the order status.",
+    "cancelOrderMissing": "Could not identify the unpaid order to release.",
+    "pending": "Payment is still pending. Check again in a moment.",
+    "failed": "Unable to update Stripe payment status.",
+    "paid": "Stripe payment verified successfully.",
+    "cancelled": "Stripe Checkout was cancelled. The unpaid order is available for editing.",
+    "checkAgain": "Check payment status again",
+    "cancelAgain": "Try releasing the order again",
+    "returnToPos": "Return to POS"
   }
 }

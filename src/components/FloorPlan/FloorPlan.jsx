@@ -1,17 +1,14 @@
-import React, { useState, useEffect, useMemo, useRef } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate, useLocation } from "react-router-dom";
 import {
     FaEdit,
     FaPlus,
     FaMinus,
-    FaPrint,
     FaRegClock,
     FaReceipt,
     FaGift,
     FaCreditCard,
-    FaMoneyBillWave,
-    FaColumns,
     FaApple,
     FaCodeBranch
 } from "react-icons/fa";
@@ -29,6 +26,22 @@ import { usePaymentOptions, useCreatePayment, useRestaurant as useRestaurantDeta
 import { useTables } from "../../hooks/queries/useTables";
 import { useGetCurrentTableOrderMutation, useUpdateOrder, useOrders as usePosOrders } from "../../hooks/queries/useOrders";
 import { formatCurrency } from "../../utils/currencyUtils";
+import posService from "../../services/posService";
+import {
+    createVerifiedReceipt,
+    calculateTaxForUpdatedSubtotal,
+    calculateOrderItemsSubtotal,
+    extractOrder,
+    getOrderItemUnitPrice,
+    getOrderId,
+    getOrderSubtotal,
+    getOrderTax,
+    getOrderTotal,
+    isOrderTotalConsistent,
+    isOrderForTable,
+    isPaymentVerified,
+    readOrderAmount
+} from "./floorPlanPayment";
 
 const formatShortTableCode = (table, fallbackIndex = 0) => {
     const rawCode = table?.["Table-code"] || table?.Table_code || "";
@@ -243,6 +256,8 @@ export default function FloorPlan() {
     const [currentOrder, setCurrentOrder] = useState(null);
     const [items, setItems] = useState([]);
     const [modalLoading, setModalLoading] = useState(false);
+    const [tableOrderError, setTableOrderError] = useState(false);
+    const [isDownloadingBill, setIsDownloadingBill] = useState(false);
 
     // Payment & Order Hooks
     const { data: paymentOptions = [] } = usePaymentOptions();
@@ -253,8 +268,6 @@ export default function FloorPlan() {
 
     const [selectedPaymentKey, setSelectedPaymentKey] = useState("cash");
     const [paymentReceipt, setPaymentReceipt] = useState(null);
-    const [isPaymentLinkWaiting, setIsPaymentLinkWaiting] = useState(false);
-    const paymentTimeoutRef = useRef(null);
     const isProcessingPayment = createPaymentMutation.isPending || updateOrderMutation.isPending;
 
     // Build combined list of tables for the floor plan
@@ -369,13 +382,7 @@ export default function FloorPlan() {
                 ? item.Item["item-name"] || item.Item.item_name
                 : item.name || item.item_name || `Item ${idx + 1}`,
             quantity: Number(item.item_Quentry ?? item.quantity ?? 1),
-            price: Number(
-                item.Variant
-                    ? item.Variant.prices
-                    : item.Item
-                    ? item.Item["item-price"] ?? item.Item.item_price
-                    : item.price || 0
-            ),
+            price: getOrderItemUnitPrice(item),
             variant_id: item.item_Variants_id || null,
             addon_id: item.Addon ? item.Addon.item_Addons_id : null,
             originalItem: item
@@ -385,23 +392,48 @@ export default function FloorPlan() {
     const handleTableClick = async (table) => {
         setActiveTable(table);
         setShowModal(true);
-        setShowBillCard(true);
+        setShowBillCard(false);
         setPaymentReceipt(null);
+        setShowPaymentModal(false);
+        setTableOrderError(false);
         setItems([]);
         setCurrentOrder(null);
 
         setModalLoading(true);
         try {
             const res = await getTableOrderMutation.mutateAsync(table.Table_id);
-            const orderData = res?.data || (res?.items ? res : null) || table.activeOrderFallback;
+            const responseOrder = extractOrder(res);
+            const orderData = responseOrder && isOrderForTable(responseOrder, table.Table_id)
+                ? responseOrder
+                : extractOrder(table.activeOrderFallback);
             if (orderData) {
                 setCurrentOrder(orderData);
-                setItems(mapOrderItems(orderData));
+                const orderItems = mapOrderItems(orderData);
+                setItems(orderItems);
+                if (orderItems.length > 0 && isPaymentVerified(orderData)) {
+                    const verifiedReceipt = createVerifiedReceipt(orderData);
+                    if (verifiedReceipt) {
+                        setPaymentReceipt(verifiedReceipt);
+                        setShowBillCard(true);
+                    }
+                }
             }
-        } catch {
-            if (table.activeOrderFallback) {
-                setCurrentOrder(table.activeOrderFallback);
-                setItems(mapOrderItems(table.activeOrderFallback));
+        } catch (error) {
+            const fallbackOrder = extractOrder(table.activeOrderFallback);
+            if (fallbackOrder) {
+                setCurrentOrder(fallbackOrder);
+                const fallbackItems = mapOrderItems(fallbackOrder);
+                setItems(fallbackItems);
+                if (fallbackItems.length > 0 && isPaymentVerified(fallbackOrder)) {
+                    const verifiedReceipt = createVerifiedReceipt(fallbackOrder);
+                    if (verifiedReceipt) {
+                        setPaymentReceipt(verifiedReceipt);
+                        setShowBillCard(true);
+                    }
+                }
+            } else {
+                console.error("Failed to load the selected table's current order:", error);
+                setTableOrderError(true);
             }
         } finally {
             setModalLoading(false);
@@ -415,20 +447,29 @@ export default function FloorPlan() {
         if (newQty === item.quantity) return;
 
         const oldItems = [...items];
-        setItems((prev) => prev.map((it, i) => (i === index ? { ...it, quantity: newQty } : it)));
+        const updatedItems = items.map((it, i) => (i === index ? { ...it, quantity: newQty } : it));
+        setItems(updatedItems);
 
         if (!currentOrder) return;
         try {
+            const currentSubtotal = getOrderSubtotal(
+                currentOrder,
+                oldItems.reduce((sum, orderItem) => sum + orderItem.price * orderItem.quantity, 0)
+            );
+            const nextSubtotal = updatedItems.reduce(
+                (sum, orderItem) => sum + orderItem.price * orderItem.quantity,
+                0
+            );
             const payload = {
                 id: currentOrder.POS_Order_id || currentOrder._id,
-                items: items.map((it, i) => ({
+                items: updatedItems.map((it) => ({
                     item_id: it.id,
-                    item_Quentry: i === index ? newQty : it.quantity,
+                    item_Quentry: it.quantity,
                     item_Addons_id: it.addon_id || null,
                     item_Variants_id: it.variant_id || null,
                     item_size: it.originalItem?.item_size || "Regular"
                 })),
-                Tax: currentOrder.Tax,
+                Tax: calculateTaxForUpdatedSubtotal(currentOrder, currentSubtotal, nextSubtotal),
                 Customer_id: currentOrder.Customer_id,
                 Dining_Option: currentOrder.Dining_Option || "Dine in",
                 Table_id: activeTable?.Table_id,
@@ -439,16 +480,24 @@ export default function FloorPlan() {
             if (res?.success === false) {
                 throw new Error(res.message || t("floorPlan.orderUpdateError", "Failed to update order."));
             }
+            const refreshedOrder = extractOrder(await posService.getOrderById(getOrderId(currentOrder)));
+            if (!refreshedOrder || !Array.isArray(refreshedOrder.items)) {
+                throw new Error(t("floorPlan.orderUpdateError", "Failed to confirm the updated order total."));
+            }
+            setCurrentOrder(refreshedOrder);
+            setItems(mapOrderItems(refreshedOrder));
             toast.success(t("floorPlan.orderUpdateSuccess", "Order updated successfully."));
         } catch (error) {
             setItems(oldItems);
+            setCurrentOrder(currentOrder);
             toast.error(error?.message || t("floorPlan.orderUpdateError", "Failed to update order."));
         }
     };
 
-    const itemsTotal = items.reduce((acc, item) => acc + Number(item.price || 0) * Number(item.quantity || 0), 0);
-    const tax = currentOrder?.Tax !== undefined ? Number(currentOrder.Tax) : Number((itemsTotal * 0.1).toFixed(2));
-    const total = itemsTotal + tax;
+    const calculatedItemsTotal = calculateOrderItemsSubtotal(items);
+    const itemsTotal = currentOrder ? getOrderSubtotal(currentOrder, calculatedItemsTotal) : 0;
+    const tax = currentOrder ? getOrderTax(currentOrder, itemsTotal) : 0;
+    const total = currentOrder ? getOrderTotal(currentOrder, itemsTotal + tax) : 0;
 
     // Resolve payment option label & backend ID
     const categorizedPayments = useMemo(() => {
@@ -562,74 +611,142 @@ export default function FloorPlan() {
         allPaymentEntries.find((entry) => entry.key === selectedPaymentKey) || allPaymentEntries[0];
 
     const finalizePayment = async () => {
-        const orderId = currentOrder?.POS_Order_id || currentOrder?._id;
+        const orderId = getOrderId(currentOrder);
+        if (!orderId || items.length === 0 || total <= 0) {
+            toast.error(t("floorPlan.noOrderToPay", "There is no active order to pay for."));
+            return;
+        }
+
         try {
-            if (orderId) {
-                try {
-                    await createPaymentMutation.mutateAsync({
-                        Payment_Options_id: selectedPaymentEntry?.optionId || 1,
-                        paymentStatus: "Success",
-                        Order_id: orderId
-                    });
-                } catch {
-                    // Fallback to POS order update if payment_by_restaurant fails
+            if (!isOrderTotalConsistent(currentOrder, total)) {
+                const totalFields = {
+                    id: orderId,
+                    SubTotal: itemsTotal,
+                    Tax: tax,
+                    Total: total,
+                    Grand_Total: total,
+                    total_amount: total
+                };
+                const syncResponse = await updateOrderMutation.mutateAsync(totalFields);
+                if (!syncResponse || syncResponse.success === false) {
+                    throw new Error(t("floorPlan.orderTotalMismatch", "The saved order total does not match the bill. Payment was not started."));
                 }
 
-                await updateOrderMutation.mutateAsync({
-                    id: Number(orderId) || orderId,
-                    payment_status: "Success",
-                    Order_Status: "Completed"
-                });
+                const synchronizedOrder = extractOrder(await posService.getOrderById(orderId));
+                const synchronizedTotal = readOrderAmount(synchronizedOrder, [
+                    "Grand_Total",
+                    "grand_total",
+                    "GrandTotal",
+                    "Total",
+                    "total",
+                    "Total_Amount",
+                    "total_amount",
+                    "total_price"
+                ]);
+                if (!synchronizedOrder || synchronizedTotal === null || !isOrderTotalConsistent(synchronizedOrder, total)) {
+                    throw new Error(t("floorPlan.orderTotalMismatch", "The saved order total does not match the bill. Payment was not started."));
+                }
+                setCurrentOrder(synchronizedOrder);
             }
 
-            const receiptData = {
-                orderTotal: total,
-                subTotal: itemsTotal,
-                tax,
-                customerName: currentOrder?.Customer?.Name || "Duplicate Test",
-                paymentMethod: selectedPaymentEntry?.methodName || "Cash",
-                Order_id: orderId || "000085752257",
-                CreateAt: new Date().toISOString()
-            };
+            if (!selectedPaymentEntry?.optionId) {
+                throw new Error(t("floorPlan.paymentMethodUnavailable", "The selected payment method is not configured."));
+            }
+
+            const paymentResponse = await createPaymentMutation.mutateAsync({
+                Payment_Options_id: selectedPaymentEntry.optionId,
+                paymentStatus: "Success",
+                Order_id: orderId
+            });
+            if (!paymentResponse || paymentResponse.success === false) {
+                throw new Error(paymentResponse?.message || t("floorPlan.paymentFailed", "Payment could not be confirmed."));
+            }
+
+            const updateResponse = await updateOrderMutation.mutateAsync({
+                id: orderId,
+                payment_status: "Success",
+                Order_Status: "Completed"
+            });
+            if (!updateResponse || updateResponse.success === false) {
+                throw new Error(updateResponse?.message || t("floorPlan.paymentFailed", "Payment could not be confirmed."));
+            }
+
+            const verificationResponse = await posService.getOrderById(orderId);
+            const verifiedOrder = extractOrder(verificationResponse);
+            const receiptData = createVerifiedReceipt(verifiedOrder, selectedPaymentEntry.methodName);
+            if (!receiptData) {
+                throw new Error(t("floorPlan.paymentVerificationFailed", "The transaction is not confirmed yet. No receipt was created."));
+            }
+
+            setCurrentOrder(verifiedOrder);
+            setItems(mapOrderItems(verifiedOrder));
             setPaymentReceipt(receiptData);
             setShowPaymentModal(false);
             setShowModal(true);
             setShowBillCard(true);
             toast.success(t("floorPlan.paymentSuccess", "Payment Success!"));
         } catch (err) {
-            toast.error(err?.message || "Payment failed");
+            console.error("Floor Plan payment failed or could not be verified:", err);
+            toast.error(err?.message || t("floorPlan.paymentFailed", "Payment could not be confirmed."));
         }
     };
 
     const handleProcessPayment = () => {
+        if (!getOrderId(currentOrder) || items.length === 0 || total <= 0) {
+            toast.error(t("floorPlan.noOrderToPay", "There is no active order to pay for."));
+            return;
+        }
+
         const isOnline = ["gpay", "apple_pay", "momo", "orange"].includes(selectedPaymentKey);
         if (isOnline) {
-            setIsPaymentLinkWaiting(true);
-            if (paymentTimeoutRef.current) clearTimeout(paymentTimeoutRef.current);
-            paymentTimeoutRef.current = setTimeout(async () => {
-                await finalizePayment();
-                setIsPaymentLinkWaiting(false);
-            }, 2500);
+            toast.error(t("floorPlan.onlinePaymentUnavailable", "Online payment is not available here until a provider confirms the transaction."));
             return;
         }
 
         finalizePayment();
     };
 
-    const handleChangePayment = () => {
-        if (paymentTimeoutRef.current) {
-            clearTimeout(paymentTimeoutRef.current);
-            paymentTimeoutRef.current = null;
+    const handleDownloadOrPrintReceipt = async () => {
+        if (!paymentReceipt) {
+            toast.error(t("floorPlan.receiptUnavailable", "A receipt is available only after payment is verified."));
+            return;
         }
-        setIsPaymentLinkWaiting(false);
-    };
-
-    const handleDownloadOrPrintReceipt = () => {
         window.print();
     };
 
+    const handleDownloadOrderBill = async () => {
+        const orderId = getOrderId(currentOrder);
+        if (!orderId) {
+            toast.error(t("floorPlan.noOrderToPay", "There is no active order to print."));
+            return;
+        }
+
+        setIsDownloadingBill(true);
+        try {
+            const pdfBlob = await orderPdfMutation.mutateAsync(orderId);
+            if (!(pdfBlob instanceof Blob) || pdfBlob.size === 0) {
+                throw new Error(t("floorPlan.billDownloadError", "The order bill could not be downloaded."));
+            }
+            const pdfUrl = URL.createObjectURL(pdfBlob);
+            const link = document.createElement("a");
+            link.href = pdfUrl;
+            link.download = `order-${orderId}.pdf`;
+            document.body.appendChild(link);
+            link.click();
+            link.remove();
+            window.setTimeout(() => URL.revokeObjectURL(pdfUrl), 60_000);
+        } catch (error) {
+            console.error("Failed to download the Floor Plan bill:", error);
+            toast.error(error?.message || t("floorPlan.billDownloadError", "The order bill could not be downloaded."));
+        } finally {
+            setIsDownloadingBill(false);
+        }
+    };
+
     const formatReceiptDate = (dateString) => {
-        const d = dateString ? new Date(dateString) : new Date();
+        if (!dateString) return t("floorPlan.notAvailable", "N/A");
+        const d = new Date(dateString);
+        if (Number.isNaN(d.getTime())) return t("floorPlan.notAvailable", "N/A");
         return d.toLocaleString("en-GB", {
             day: "2-digit",
             month: "short",
@@ -644,27 +761,22 @@ export default function FloorPlan() {
     const restaurantAddress = restaurantData?.address || restaurantData?.Address || "";
     const restaurantPhone = restaurantData?.phone_number || restaurantData?.Phone || "";
 
-    const displayTotal =
-        paymentReceipt?.orderTotal ??
-        (total > 0 ? total : currentOrder?.grandTotal || currentOrder?.total || 980);
-    const displaySubtotal =
-        paymentReceipt?.subTotal ?? (itemsTotal > 0 ? itemsTotal : Math.round(displayTotal * 0.9));
-    const displayTax = paymentReceipt?.tax ?? (tax > 0 ? tax : Math.round(displayTotal * 0.1));
+    const displayTotal = paymentReceipt?.orderTotal ?? total;
+    const displaySubtotal = paymentReceipt?.subTotal ?? itemsTotal;
+    const displayTax = paymentReceipt?.tax ?? tax;
     const displayOrderNumber =
         paymentReceipt?.Order_id ||
-        currentOrder?.POS_Order_id ||
-        currentOrder?._id ||
-        (activeTable?.Table_id ? `00008575${String(activeTable.Table_id).padStart(4, "0")}` : "000085752257");
+        getOrderId(currentOrder) ||
+        t("floorPlan.notAvailable", "N/A");
     const displayDateTime = formatReceiptDate(
-        paymentReceipt?.CreateAt || currentOrder?.CreateAt || "2023-02-25T13:22:00.000Z"
+        paymentReceipt?.CreateAt || currentOrder?.CreateAt || currentOrder?.createdAt || currentOrder?.created_at
     );
     const displayPaymentType =
         paymentReceipt?.paymentMethod ||
         currentOrder?.payment_method ||
-        selectedPaymentEntry?.methodName ||
-        "Credit Card";
+        t("floorPlan.notAvailable", "N/A");
     const displayCustomerName =
-        paymentReceipt?.customerName || currentOrder?.Customer?.Name || "Jimmy Jonson";
+        paymentReceipt?.customerName || currentOrder?.Customer?.Name || currentOrder?.customer_name || t("floorPlan.notAvailable", "N/A");
 
     return (
         <div className="bg-white min-h-screen px-6 py-5 font-['Poppins'] overflow-x-auto hide-scrollbar scrollbar-hide">
@@ -825,7 +937,7 @@ export default function FloorPlan() {
                                     </div>
                                 ))}
                             </div>
-                        ) : showBillCard ? (
+                        ) : showBillCard && paymentReceipt ? (
                             /* Ticket Card inside Order Summary Modal (Matches Image 2 exactly) */
                             <div>
                                 {/* White Card with soft border and shadow */}
@@ -939,16 +1051,39 @@ export default function FloorPlan() {
                                     </button>
                                 </div>
 
-                                {/* Choose Payment Option Button */}
+                                {/* Close after reviewing a verified receipt */}
                                 <button
                                     type="button"
                                     onClick={() => {
                                         setShowModal(false);
-                                        setShowPaymentModal(true);
+                                        setShowBillCard(false);
                                     }}
                                     className="w-full py-3.5 rounded-2xl bg-[linear-gradient(90deg,_#6A1B9A_0%,_#D32F2F_100%)] text-white font-semibold text-sm md:text-base hover:opacity-95 transition-opacity shadow-md cursor-pointer"
                                 >
-                                    {t("floorPlan.choosePaymentOption", "Choose Payment Option")}
+                                    {t("floorPlan.close", "Close")}
+                                </button>
+                            </div>
+                        ) : tableOrderError ? (
+                            <div className="text-center text-gray-600 py-6">
+                                <p className="text-sm">{t("floorPlan.tableOrderLoadError", "Could not load this table's order.")}</p>
+                                <button
+                                    onClick={() => handleTableClick(activeTable)}
+                                    className="mt-3 text-xs font-semibold text-[#C2185B] underline"
+                                >
+                                    {t("floorPlan.retry", "Try again")}
+                                </button>
+                            </div>
+                        ) : !getOrderId(currentOrder) || items.length === 0 ? (
+                            <div className="text-center text-gray-500 py-6">
+                                <p className="text-sm">{t("floorPlan.noActiveOrders", "No active items on this table.")}</p>
+                                <button
+                                    onClick={() => {
+                                        setShowModal(false);
+                                        navigate("/dashboard/pos");
+                                    }}
+                                    className="mt-2 text-xs font-semibold text-[#C2185B] underline"
+                                >
+                                    {t("floorPlan.createNewOrderInPos", "Open POS to create an order")}
                                 </button>
                             </div>
                         ) : (
@@ -988,20 +1123,7 @@ export default function FloorPlan() {
                                                 </p>
                                             </div>
                                         ))
-                                    ) : (
-                                        <div className="text-center text-gray-500 py-6 border-b border-[#F48FB1]">
-                                            <p className="text-sm">{t("floorPlan.noActiveOrders", "No active items on this table.")}</p>
-                                            <button
-                                                onClick={() => {
-                                                    setShowModal(false);
-                                                    navigate("/dashboard/pos");
-                                                }}
-                                                className="mt-2 text-xs font-semibold text-[#C2185B] underline"
-                                            >
-                                                {t("floorPlan.createNewOrderInPos", "Open POS to create an order")}
-                                            </button>
-                                        </div>
-                                    )}
+                                    ) : null}
                                 </div>
 
                                 {/* Totals Section */}
@@ -1027,11 +1149,14 @@ export default function FloorPlan() {
                                 {/* Action Buttons matching Figma */}
                                 <div className="mt-5 space-y-3">
                                     <button
-                                        onClick={() => setShowBillCard(true)}
+                                        onClick={handleDownloadOrderBill}
+                                        disabled={isDownloadingBill}
                                         className="w-full py-3 rounded-xl bg-[linear-gradient(90deg,_#5C2D91_0%,_#D32F2F_100%)] text-white font-semibold text-sm flex items-center justify-center gap-2 hover:opacity-95 transition-opacity shadow-md"
                                     >
                                         <FaReceipt className="text-sm" />
-                                        <span>{t("floorPlan.printBill", "Print Bill")}</span>
+                                        <span>{isDownloadingBill
+                                            ? t("floorPlan.generatingPdf", "Generating PDF...")
+                                            : t("floorPlan.printBill", "Print Bill")}</span>
                                     </button>
 
                                     <button
@@ -1062,7 +1187,6 @@ export default function FloorPlan() {
                             <button
                                 onClick={() => {
                                     setShowPaymentModal(false);
-                                    setIsPaymentLinkWaiting(false);
                                 }}
                                 className="text-gray-800 hover:text-black transition-colors"
                             >
@@ -1219,66 +1343,13 @@ export default function FloorPlan() {
                                 : `${t("floorPlan.pay", "Pay")} ${formatCurrency(total, currency)}`}
                         </button>
 
-                        {/* Payment Link Sent to Customer Spinner Overlay matching media_1792072198390_79185166.png */}
-                        {isPaymentLinkWaiting && (
-                            <div className="absolute inset-0 bg-black/20 rounded-3xl flex items-center justify-center p-6 z-20 animate-fadeIn backdrop-blur-[1px]">
-                                <div className="bg-white rounded-3xl p-8 shadow-2xl w-full max-w-[340px] flex flex-col items-center justify-center text-center border border-purple-100 animate-scaleUp">
-                                    {/* Circular Gradient Spinner */}
-                                    <div className="relative w-20 h-20 mb-6 flex items-center justify-center">
-                                        <svg className="w-20 h-20 animate-spin" viewBox="0 0 100 100">
-                                            <circle
-                                                cx="50"
-                                                cy="50"
-                                                r="40"
-                                                stroke="#F1E4F6"
-                                                strokeWidth="7"
-                                                fill="none"
-                                            />
-                                            <circle
-                                                cx="50"
-                                                cy="50"
-                                                r="40"
-                                                stroke="url(#purpleRedGradient)"
-                                                strokeWidth="7"
-                                                strokeLinecap="round"
-                                                strokeDasharray="180"
-                                                strokeDashoffset="60"
-                                                fill="none"
-                                            />
-                                            <defs>
-                                                <linearGradient id="purpleRedGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-                                                    <stop offset="0%" stopColor="#6A1B9A" />
-                                                    <stop offset="100%" stopColor="#D32F2F" />
-                                                </linearGradient>
-                                            </defs>
-                                        </svg>
-                                    </div>
-
-                                    {/* Text */}
-                                    <p className="font-semibold text-sm text-[#1E1E1E] leading-relaxed mb-6 whitespace-pre-line">
-                                        {t(
-                                            "floorPlan.paymentLinkSent",
-                                            "Payment Link Sent to Customer,\nWill notify once payment is Received"
-                                        )}
-                                    </p>
-
-                                    {/* Change Payment Button */}
-                                    <button
-                                        type="button"
-                                        onClick={handleChangePayment}
-                                        className="px-8 py-2.5 rounded-xl bg-[linear-gradient(90deg,_#6A1B9A_0%,_#D32F2F_100%)] text-white font-semibold text-xs md:text-sm hover:opacity-95 transition-opacity shadow-md cursor-pointer"
-                                    >
-                                        {t("floorPlan.changePayment", "Change Payment")}
-                                    </button>
-                                </div>
-                            </div>
-                        )}
                     </div>
                 </div>
             )}
 
             {/* Dedicated Hidden Printable Bill / Receipt Container for thermal / browser printing */}
-            <div id="printable-floorplan-receipt" className="hidden font-mono text-black bg-white p-4">
+            {paymentReceipt && (
+                <div id="printable-floorplan-receipt" className="hidden font-mono text-black bg-white p-4">
                 <div className="text-center pb-2 border-b border-dashed border-gray-400">
                     <h2 className="text-lg font-bold uppercase tracking-wider">{restaurantName}</h2>
                     {restaurantAddress && <p className="text-xs text-gray-700">{restaurantAddress}</p>}
@@ -1302,7 +1373,7 @@ export default function FloorPlan() {
                     <div className="flex justify-between">
                         <span className="text-gray-600">{t("floorPlan.typeTable", "Table")}:</span>
                         <span className="font-semibold">
-                            {activeTable ? formatShortTableCode(activeTable).toUpperCase() : "T-01"}
+                            {activeTable ? formatShortTableCode(activeTable).toUpperCase() : ""}
                         </span>
                     </div>
                     <div className="flex justify-between">
@@ -1323,31 +1394,17 @@ export default function FloorPlan() {
                     </div>
 
                     <div className="divide-y divide-dotted divide-gray-200">
-                        {items.length > 0 ? (
-                            items.map((item, idx) => (
-                                <div key={idx} className="py-1 text-xs">
-                                    <div className="grid grid-cols-12">
-                                        <span className="col-span-6 font-semibold break-words pr-1">{item.name}</span>
-                                        <span className="col-span-2 text-center">{item.quantity}</span>
-                                        <span className="col-span-4 text-right font-semibold">
-                                            {formatCurrency(Number(item.price || 0) * Number(item.quantity || 1), currency)}
-                                        </span>
-                                    </div>
-                                </div>
-                            ))
-                        ) : (
-                            <div className="py-1 text-xs">
+                        {items.map((item, idx) => (
+                            <div key={idx} className="py-1 text-xs">
                                 <div className="grid grid-cols-12">
-                                    <span className="col-span-6 font-semibold break-words pr-1">
-                                        Dine-In Table Order ({activeTable ? formatShortTableCode(activeTable).toUpperCase() : "T-01"})
-                                    </span>
-                                    <span className="col-span-2 text-center">1</span>
+                                    <span className="col-span-6 font-semibold break-words pr-1">{item.name}</span>
+                                    <span className="col-span-2 text-center">{item.quantity}</span>
                                     <span className="col-span-4 text-right font-semibold">
-                                        {formatCurrency(displaySubtotal, currency)}
+                                        {formatCurrency(Number(item.price || 0) * Number(item.quantity || 1), currency)}
                                     </span>
                                 </div>
                             </div>
-                        )}
+                        ))}
                     </div>
                 </div>
 
@@ -1373,7 +1430,8 @@ export default function FloorPlan() {
                     <p className="text-[11px] text-gray-600">{t("floorPlan.thankYouVisit", "Thank you for your visit!")}</p>
                     <p className="text-[11px] text-gray-500">{t("floorPlan.pleaseComeAgain", "Please come again")}</p>
                 </div>
-            </div>
+                </div>
+            )}
 
             {/* Dedicated Print Media Stylesheet */}
             <style>{`

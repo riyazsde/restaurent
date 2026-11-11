@@ -3,6 +3,7 @@ import React, { useState, useRef, useEffect } from "react";
 import { Link, Outlet, useLocation, useNavigate } from "react-router-dom";
 import { FaSearch, FaBars, FaBell, FaChevronDown, FaUser, FaDesktop, FaLanguage, FaUserPlus, FaQuestionCircle, FaSignOutAlt } from "react-icons/fa";
 import { Search, Menu, CircleUser, MonitorSmartphone, Languages, UserPlus, LifeBuoy, LogOut } from "lucide-react";
+import { useQuery } from '@tanstack/react-query';
 // import { FiHome, FiShoppingCart, FiUsers, FiSettings, FiClipboard, FiBox, FiGrid, FiStar, FiBriefcase, FiBarChart2, FiMessageSquare } from "react-icons/fi";
 import { toast } from 'react-toastify';
 import { useTranslation } from 'react-i18next';
@@ -29,6 +30,7 @@ import icon from "../assets/icon (16).svg";
 import promotionsBadge from "../assets/promotions-badge.svg";
 import loyaltyTag from "../assets/loyalty-tag.svg";
 import { useNotifications } from "../../hooks/queries/useNotifications";
+import restaurantApi from '../../api/restaurant.api';
 
 const DropdownItem = ({ icon, label, className = "", onClick }) => (
   <div
@@ -50,12 +52,54 @@ const AdminLayout = () => {
   const [sidebarOpen, setSidebarOpen] = useState(window.innerWidth >= 1024);
   const [notificationOpen, setNotificationOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
+  const [debouncedRestaurantQuery, setDebouncedRestaurantQuery] = useState('');
+  const [isRestaurantSearchFocused, setIsRestaurantSearchFocused] = useState(false);
   const { data: notifications = [] } = useNotifications();
   const { logout,
     user,
     setLoading } = useAuthStore();
   const { searchQuery, setSearchQuery, searchPlaceholder, clearSearch } = useSearchStore();
   const logoutMutation = useLogout();
+  const isDashboardHome = location.pathname === '/dashboard/home';
+
+  useEffect(() => {
+    if (!isDashboardHome) {
+      setDebouncedRestaurantQuery('');
+      return undefined;
+    }
+
+    const timeoutId = window.setTimeout(() => {
+      setDebouncedRestaurantQuery(searchQuery.trim());
+    }, 300);
+    return () => window.clearTimeout(timeoutId);
+  }, [isDashboardHome, searchQuery]);
+
+  const {
+    data: restaurantSearchResults = [],
+    isFetching: isSearchingRestaurants,
+    isError: restaurantSearchFailed,
+    error: restaurantSearchError
+  } = useQuery({
+    queryKey: ['restaurant-search', debouncedRestaurantQuery],
+    queryFn: async () => {
+      const response = await restaurantApi.search(debouncedRestaurantQuery, 5);
+      if (response?.data?.success === false) {
+        throw new Error(response.data.message || 'Restaurant search failed');
+      }
+
+      const result = response?.data?.data ?? response?.data;
+      const results = Array.isArray(result)
+        ? result
+        : [result?.restaurants, result?.results, result?.items].find(Array.isArray);
+      if (!results) {
+        throw new Error('Restaurant search returned an invalid response');
+      }
+      return results;
+    },
+    enabled: isDashboardHome && debouncedRestaurantQuery.length > 0,
+    staleTime: 30 * 1000,
+    retry: 1
+  });
 
   // Clear search on route change to keep each page fresh
   useEffect(() => {
@@ -83,7 +127,7 @@ const AdminLayout = () => {
     if (p.includes('/dashboard/reports')) return t('search.reports', 'Search reports...');
     if (p.includes('/dashboard/invoice')) return t('search.invoices', 'Search invoices...');
     if (p.includes('/dashboard/settings')) return t('search.settings', 'Search settings...');
-    if (p.includes('/dashboard/home')) return t('search.dashboard', 'Search dashboard...');
+    if (p.includes('/dashboard/home')) return t('search.restaurants', 'Search restaurants...');
 
     if (searchPlaceholder && searchPlaceholder !== 'Search...') {
       return searchPlaceholder;
@@ -92,6 +136,63 @@ const AdminLayout = () => {
   };
 
   const contextualPlaceholder = getContextualPlaceholder(location.pathname);
+  const isRestaurantQueryPending = searchQuery.trim().length > 0
+    && debouncedRestaurantQuery !== searchQuery.trim();
+  const shouldShowRestaurantResults = isDashboardHome
+    && isRestaurantSearchFocused
+    && searchQuery.trim().length > 0;
+
+  const getRestaurantName = (restaurant) => restaurant?.restaurant_name
+    || restaurant?.restaurantName
+    || restaurant?.business_name
+    || restaurant?.store_name
+    || restaurant?.name
+    || restaurant?.Name
+    || restaurant?.title
+    || t('search.restaurant', 'Restaurant');
+
+  const renderRestaurantSearchResults = () => {
+    if (!shouldShowRestaurantResults) return null;
+
+    return (
+      <div
+        role="region"
+        aria-label={t('search.restaurantResults', 'Restaurant search results')}
+        aria-live="polite"
+        className="absolute left-0 right-0 top-full z-50 mt-2 max-h-80 overflow-y-auto rounded-2xl border border-gray-200 bg-white py-2 shadow-xl"
+      >
+        {isRestaurantQueryPending || isSearchingRestaurants ? (
+          <p className="px-4 py-3 text-sm text-gray-500">{t('search.searchingRestaurants', 'Searching restaurants...')}</p>
+        ) : restaurantSearchFailed ? (
+          <p role="alert" className="px-4 py-3 text-sm text-red-600">
+            {restaurantSearchError?.response?.data?.message
+              || restaurantSearchError?.message
+              || t('search.restaurantSearchError', 'Could not search restaurants. Please try again.')}
+          </p>
+        ) : restaurantSearchResults.length === 0 ? (
+          <p className="px-4 py-3 text-sm text-gray-500">{t('search.noRestaurantsFound', 'No restaurants found.')}</p>
+        ) : (
+          restaurantSearchResults.map((restaurant, index) => {
+            const name = getRestaurantName(restaurant);
+            const subtitle = [
+              restaurant?.address || restaurant?.Address,
+              restaurant?.city || restaurant?.City
+            ].filter(Boolean).join(', ');
+
+            return (
+              <div
+                key={restaurant?._id || restaurant?.id || restaurant?.restaurant_id || `${name}-${index}`}
+                className="px-4 py-2.5 hover:bg-purple-50"
+              >
+                <p className="truncate text-sm font-semibold text-gray-800">{name}</p>
+                {subtitle && <p className="mt-0.5 truncate text-xs text-gray-500">{subtitle}</p>}
+              </div>
+            );
+          })
+        )}
+      </div>
+    );
+  };
 
   // Notifications API temporarily disabled as requested
   // useEffect(() => {
@@ -338,19 +439,29 @@ const AdminLayout = () => {
         </header>
 
         {/* Mobile Search Input */}
-        <div className="lg:hidden px-4 py-2 bg-white border-b border-gray-100 flex items-center shadow-xs">
+        <div className="lg:hidden relative px-4 py-2 bg-white border-b border-gray-100 flex items-center shadow-xs">
           <div className="flex items-center w-full bg-[#FAEFF5] rounded-full px-3 py-1.5 border border-pink-200 focus-within:ring-1 focus-within:ring-pink-300">
             <input
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
+              onFocus={() => setIsRestaurantSearchFocused(true)}
+              onBlur={() => setIsRestaurantSearchFocused(false)}
+              onKeyDown={(e) => {
+                if (e.key === 'Escape') setIsRestaurantSearchFocused(false);
+              }}
               placeholder={contextualPlaceholder}
+              aria-label={contextualPlaceholder}
               className="w-full bg-transparent text-xs text-gray-800 placeholder:text-gray-400 focus:outline-none"
             />
             {searchQuery ? (
               <button
                 type="button"
-                onClick={() => setSearchQuery('')}
+                onClick={() => {
+                  setSearchQuery('');
+                  setIsRestaurantSearchFocused(false);
+                }}
+                aria-label={t('search.clear', 'Clear search')}
                 className="text-gray-400 hover:text-gray-600 ml-2 font-bold text-xs"
               >
                 ×
@@ -359,13 +470,16 @@ const AdminLayout = () => {
               <Search className="text-gray-500 w-3.5 h-3.5 ml-2 flex-shrink-0" />
             )}
           </div>
+          <div>
+            {renderRestaurantSearchResults()}
+          </div>
         </div>
 
 
         {/* Desktop Topbar */}
         <header className="hidden lg:flex h-[80px] w-full items-center justify-between px-8 bg-white shadow-sm z-10 relative">
           {/* Left side: Search & Menu */}
-          <div className="flex-1 max-w-[400px]">
+          <div className="relative flex-1 max-w-[400px]">
             <div className="flex items-center w-full bg-[#FAEFF5] rounded-full px-4 py-2 border-2 border-pink-300 transition-shadow focus-within:ring-2 focus-within:ring-pink-400">
               <button
                 onClick={() => setSidebarOpen(!sidebarOpen)}
@@ -377,13 +491,23 @@ const AdminLayout = () => {
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
+                onFocus={() => setIsRestaurantSearchFocused(true)}
+                onBlur={() => setIsRestaurantSearchFocused(false)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Escape') setIsRestaurantSearchFocused(false);
+                }}
                 placeholder={contextualPlaceholder}
+                aria-label={contextualPlaceholder}
                 className="search-input"
               />
               {searchQuery ? (
                 <button
                   type="button"
-                  onClick={() => setSearchQuery('')}
+                  onClick={() => {
+                    setSearchQuery('');
+                    setIsRestaurantSearchFocused(false);
+                  }}
+                  aria-label={t('search.clear', 'Clear search')}
                   className="text-gray-400 hover:text-gray-600 ml-2 font-bold text-base leading-none cursor-pointer"
                 >
                   ×
@@ -391,6 +515,9 @@ const AdminLayout = () => {
               ) : (
                 <Search className="text-gray-700 w-[18px] h-[18px] ml-3" />
               )}
+            </div>
+            <div>
+              {renderRestaurantSearchResults()}
             </div>
           </div>
 

@@ -256,6 +256,7 @@ const RightPanelAll = ({
     const [paymentOptions, setPaymentOptions] = useState([]);
     const [createdOrderId, setCreatedOrderId] = useState(null);
     const [orderTotal, setOrderTotal] = useState(0);
+    const [createdOrderTotals, setCreatedOrderTotals] = useState(null);
     const [isCreatingOrder, setIsCreatingOrder] = useState(false);
     const [isPrintingPdf, setIsPrintingPdf] = useState(false);
     const [isProcessingPayment, setIsProcessingPayment] = useState(false);
@@ -767,7 +768,16 @@ const RightPanelAll = ({
                     throw new Error('The created order response did not include an order ID.');
                 }
                 setCreatedOrderId(posOrderId);
-                setOrderTotal(response.data.Total);
+                const localSubtotal = Number(calculateSubtotal()) || 0;
+                const localTax = Number(calculateTax()) || 0;
+                const localTotal = Number(calculateTotal()) || localSubtotal + localTax;
+
+                setOrderTotal(localTotal);
+                setCreatedOrderTotals({
+                    subTotal: localSubtotal,
+                    taxAmount: localTax,
+                    total: localTotal
+                });
                 try {
                     await invoiceService.generatePosInvoice(posOrderId);
                 } catch (invErr) {
@@ -865,8 +875,8 @@ const RightPanelAll = ({
         const customer = useNewProps ? selectedCustomerProp : selectedCustomer;
         const receiptData = {
             orderTotal: orderTotal,
-            subTotal: useNewProps ? subTotalProp : calculateSubtotal(),
-            tax: useNewProps ? taxAmountProp : calculateTax(),
+            subTotal: createdOrderTotals?.subTotal ?? (useNewProps ? subTotalProp : calculateSubtotal()),
+            tax: createdOrderTotals?.taxAmount ?? (useNewProps ? taxAmountProp : calculateTax()),
             customerName: customer?.Name || 'Guest',
             paymentMethod: paymentResult.paymentMethod || 'Paid',
             orderId: createdOrderId,
@@ -880,6 +890,7 @@ const RightPanelAll = ({
         setShowReceiptModal(true);
         setCreatedOrderId(null);
         setOrderTotal(0);
+        setCreatedOrderTotals(null);
         setSelectedPaymentMethod(null);
     };
 
@@ -911,8 +922,8 @@ const RightPanelAll = ({
                 const receiptData = {
                     ...response.data,
                     orderTotal: orderTotal,
-                    subTotal: useNewProps ? subTotalProp : calculateSubtotal(),
-                    tax: useNewProps ? taxAmountProp : calculateTax(),
+                    subTotal: createdOrderTotals?.subTotal ?? (useNewProps ? subTotalProp : calculateSubtotal()),
+                    tax: createdOrderTotals?.taxAmount ?? (useNewProps ? taxAmountProp : calculateTax()),
                     customerName: customer?.Name || 'Guest',
                     paymentMethod: paymentOptions.find(opt => opt.Payment_Options_id === selectedPaymentMethod)?.PaymentOption?.[0]?.option || 'N/A'
                 };
@@ -923,6 +934,7 @@ const RightPanelAll = ({
 
                 setCreatedOrderId(null);
                 setOrderTotal(0);
+                setCreatedOrderTotals(null);
                 setSelectedPaymentMethod(null);
             } else {
                 toast.error('Payment failed: ' + (response.message || 'Unknown error'));
@@ -964,65 +976,15 @@ const RightPanelAll = ({
         try {
             setLoading(true);
 
-            const orderData = {
-                items: cartItems.map(item => {
-                    const basePrice = Number(
-                        item.itemDetails?.Price ??
-                        item.itemDetails?.['item-price'] ??
-                        item.itemDetails?.price ??
-                        item.Price ??
-                        item['item-price'] ??
-                        item.price ??
-                        0
-                    );
-
-                    let variantPrice = 0;
-                    if (item.selectedVariants) {
-                        variantPrice = item.selectedVariants.reduce((sum, variant) => sum + (variant.Item_prices || 0), 0);
-                    } else if (item.variantDetails?.Item_prices) {
-                        variantPrice = item.variantDetails.Item_prices;
-                    }
-
-                    let addonPrice = 0;
-                    if (item.selectedAddons) {
-                        addonPrice = item.selectedAddons.reduce((sum, addon) => sum + (addon.Item_prices || 0), 0);
-                    } else if (item.addonDetails?.Item_prices) {
-                        addonPrice = item.addonDetails.Item_prices;
-                    }
-
-                    const itemData = {
-                        item_id: item.item_id,
-                        item_Quentry: item.item_Quentry,
-                        item_price: basePrice,
-                        variant_price: variantPrice,
-                        addon_price: addonPrice
-                    };
-
-                    if (item.item_Addons_id) {
-                        itemData.item_Addons_id = item.item_Addons_id;
-                    }
-                    if (item.item_Variants_id) {
-                        itemData.item_Variants_id = item.item_Variants_id;
-                    }
-
-                    return itemData;
-                }),
-                Tax: calculateTax(),
-                Customer_id: selectedCustomer.Customer_id,
-                Dining_Option: selectedDining,
-                Kitchen_id: kitchen.Kitchen_id,
-                Status: true
-            };
-
-            if (selectedTable?.Table_id) {
-                orderData.Table_id = selectedTable.Table_id;
-            }
-
-            if (selectedSlot) {
-                orderData.Restaurant_slot_id = selectedSlot._id;
-                orderData.Slot_Type = selectedSlot.slot_type;
-                orderData.Slot_Time = selectedSlot.time;
-            }
+            const orderData = buildPosOrderPayload({
+                cartItems,
+                selectedCustomer,
+                diningOption: selectedDining,
+                selectedTable,
+                kitchenId: kitchen.Kitchen_id,
+                taxAmount: calculateTax(),
+                slot: selectedSlot
+            });
 
             const response = await createPosOrderMutation.mutateAsync(orderData);
 
@@ -1098,10 +1060,10 @@ const RightPanelAll = ({
     const customerPhone = currentCustomer?.phone || currentCustomer?.Phone_Number || '';
     const cashierName = authUser?.Name || authUser?.name || 'Staff';
 
-    const displaySubtotal = useNewProps ? subTotalProp : calculateSubtotal();
+    const displaySubtotal = createdOrderTotals?.subTotal ?? (useNewProps ? subTotalProp : calculateSubtotal());
     const displayTaxRate = useNewProps ? taxRateProp : (taxSetup?.rate || 0);
-    const displayTaxAmount = useNewProps ? taxAmountProp : calculateTax();
-    const displayTotal = useNewProps ? totalProp : calculateTotal();
+    const displayTaxAmount = createdOrderTotals?.taxAmount ?? (useNewProps ? taxAmountProp : calculateTax());
+    const displayTotal = createdOrderTotals?.total ?? (useNewProps ? totalProp : calculateTotal());
 
     return (
         <>
@@ -1579,31 +1541,29 @@ const RightPanelAll = ({
 
                                             <div className="space-y-4 max-h-[50vh] overflow-y-auto pr-1 mb-4">
                                                 {cartItems.map((item, index) => {
-                                                    const basePrice = Number(
-                                                        item.itemDetails?.Price ??
-                                                        item.itemDetails?.['item-price'] ??
-                                                        item.itemDetails?.price ??
-                                                        0
-                                                    );
-                                                    const addonPrice = item.selectedAddons ? item.selectedAddons.reduce((sum, addon) => sum + Number(addon.Item_prices || addon.price || addon.prices || 0), 0) : 0;
-                                                    const variantPrice = item.selectedVariants ? item.selectedVariants.reduce((sum, variant) => sum + Number(variant.Item_prices || variant.price || variant.prices || 0), 0) : 0;
-                                                    const totalPrice = (basePrice + addonPrice + variantPrice) * (item.item_Quentry || 1);
+                                                    const { totalPrice, quantity } = calculateItemPrices(item);
+                                                    const addonNames = item.selectedAddons?.map(addon => addon.Addons).join(', ')
+                                                        || item.addonDetails?.item_Addons_id?.Addons
+                                                        || item.addonDetails?.Addons;
+                                                    const variantNames = item.selectedVariants?.map(variant => variant.Variants).join(', ')
+                                                        || item.variantDetails?.item_Variants_id?.Variants
+                                                        || item.variantDetails?.Variants;
 
                                                     return (
                                                         <div key={index} className="border-b border-gray-200 pb-3">
                                                             <p className="text-gray-800 text-sm font-medium">
-                                                                {(item.itemDetails?.['item-name'] || item.itemDetails?.item_name || item.itemDetails?.Title || item.itemDetails?.Name || item.itemDetails?.name || item.item_name || item.name || 'Dish')} x{item.item_Quentry}
+                                                                {(item.itemDetails?.['item-name'] || item.itemDetails?.item_name || item.itemDetails?.Title || item.itemDetails?.Name || item.itemDetails?.name || item.item_name || item.name || 'Dish')} x{quantity}
                                                             </p>                                                             <p className="text-xs text-gray-500">
                                                                 {formatCurrency(totalPrice, currency)}
                                                             </p>
-                                                            {item.selectedAddons?.length > 0 && (
+                                                            {addonNames && (
                                                                 <p className="text-xs text-gray-500">
-                                                                    Addons: {item.selectedAddons.map(a => a.Addons).join(', ')}
+                                                                    Addons: {addonNames}
                                                                 </p>
                                                             )}
-                                                            {item.selectedVariants?.length > 0 && (
+                                                            {variantNames && (
                                                                 <p className="text-xs text-gray-500">
-                                                                    Variants: {item.selectedVariants.map(v => v.Variants).join(', ')}
+                                                                    Variants: {variantNames}
                                                                 </p>
                                                             )}
                                                         </div>

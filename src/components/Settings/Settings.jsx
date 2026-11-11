@@ -1,5 +1,5 @@
-import React, { useState } from "react";
-import { Navigate } from 'react-router-dom';
+import React, { useEffect, useState } from "react";
+import { useSearchParams } from 'react-router-dom';
 import { FaBars, FaTimes } from 'react-icons/fa';
 import fluent from '../assets/fluent.svg';
 import print from '../assets/print1.svg';
@@ -20,6 +20,7 @@ import PaymentTypesTab from './PaymentTypesTab';
 export default function Settings() {
     // ✅ Add 'settings' namespace here
     const { t } = useTranslation('settings');
+    const [searchParams] = useSearchParams();
 
     const tabs = [
         { label: t('tabs.details'), key: 'details', icon: fluent },
@@ -30,6 +31,12 @@ export default function Settings() {
 
     const [activeTab, setActiveTab] = useState("details");
     const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
+    useEffect(() => {
+        if (searchParams.get('tab') === 'paymentTypes') {
+            setActiveTab('paymentTypes');
+        }
+    }, [searchParams]);
 
     const renderRightContent = () => {
         switch (activeTab) {

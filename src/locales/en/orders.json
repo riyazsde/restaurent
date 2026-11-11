@@ -54,6 +54,8 @@
         "markAsServed": "Mark this order as served and completed",
         "paymentOptions": "Payment Options",
         "payWithCash": "Pay with Cash",
+        "stripe": "Pay with Stripe",
+        "startingStripeCheckout": "Opening Stripe Checkout...",
         "giftCards": "Gift Cards",
         "onlinePayments": "Online Payments",
         "cardPayments": "Card Payments",
@@ -94,6 +96,8 @@
         "fetchError": "Failed to fetch orders",
         "exportSuccess": "Orders exported successfully!",
         "exportFailed": "Failed to export orders",
-        "billDownloadError": "Failed to download the order PDF"
+        "billDownloadError": "Failed to download the order PDF",
+        "stripeOrderRequired": "Order ID is required to start Stripe Checkout",
+        "stripeCheckoutError": "Failed to start Stripe Checkout"
     }
 }

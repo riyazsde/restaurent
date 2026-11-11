@@ -1,5 +1,26 @@
 # Getting Started with Create React App
 
+## Stripe POS checkout
+
+The API server uses one platform Stripe account for all restaurant POS payments. Configure these variables on the backend (for example, Render), never in this React app:
+
+```dotenv
+STRIPE_POS_SUCCESS_URL=https://your-deployed-frontend.example/payment/success
+STRIPE_POS_CANCEL_URL=https://your-deployed-frontend.example/payment/cancel # optional; defaults to success URL
+STRIPE_SECRET_KEY=<Stripe platform secret key>
+STRIPE_POS_WEBHOOK_SECRET=<platform account webhook signing secret>
+```
+
+Configure the platform webhook at `https://your-api.example/api/v1/payments/stripe/pos/webhook` for `checkout.session.completed` and `checkout.session.async_payment_succeeded`. The webhook verifies payment and marks the order paid.
+
+Create and save a POS order before requesting `POST /api/v1/restaurant/pos_order/:id/payment-link` (or the employee equivalent under `/api/v1/employee/pos_order`). The API calculates the amount from the saved order; do not convert XOF to minor units or request split payments. The optional `idempotency_key` defaults to the order ID. Reusing the same key returns the active Checkout Session; another key while checkout is active returns HTTP 409.
+
+Open the returned `data.checkout_url` for the customer. A successful browser redirect is not proof of payment. The app calls `POST /api/v1/restaurant/pos_order/:id/payment/confirm` (or employee equivalent) to refresh status: HTTP 202 means pending and HTTP 200 means Stripe confirms payment. The cancel return route calls the matching `/payment/cancel` endpoint to release an unpaid order for edits.
+
+Bar tabs use the same platform Stripe account, but require a backend-supported mapping from each tab to a POS order before checkout can be safely enabled.
+
+Use test-mode keys/accounts for testing and live-mode keys/accounts for real payments. Never expose Stripe API keys or webhook signing secrets to the frontend or customers.
+
 This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
 
 ## Available Scripts

@@ -1,9 +1,10 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
-import { X, Minus, Plus, ArrowLeft } from 'lucide-react';
+import { X, Minus, Plus, ArrowLeft, CreditCard } from 'lucide-react';
 import { formatCurrency } from '../../../utils/currencyUtils';
 import posService from '../../../services/posService';
 import { toast } from 'react-toastify';
+import { getStripeCheckoutUrl, rememberStripeOrderId } from '../../../utils/stripeCheckout';
 
 const BarOrderPaymentModal = ({
     isOpen = false,
@@ -25,6 +26,7 @@ const BarOrderPaymentModal = ({
     const [step, setStep] = useState(1);
     const [selectedMethod, setSelectedMethod] = useState('cash');
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const [createdOrderId, setCreatedOrderId] = useState(null);
 
     // Reset step whenever modal opens
     useEffect(() => {
@@ -32,6 +34,7 @@ const BarOrderPaymentModal = ({
             setStep(1);
             setSelectedMethod('cash');
             setIsSubmitting(false);
+            setCreatedOrderId(null);
         }
     }, [isOpen]);
 
@@ -64,7 +67,8 @@ const BarOrderPaymentModal = ({
                 cash: 'Cash',
                 gift_card: 'Gift Card',
                 debit_card: 'Debit Card',
-                credit_card: 'Credit Card'
+                credit_card: 'Credit Card',
+                stripe: 'Stripe Checkout'
             };
             const methodTitle = methodTitles[selectedMethod] || selectedMethod || 'Cash';
 
@@ -88,40 +92,54 @@ const BarOrderPaymentModal = ({
                 payment_method: methodTitle
             };
 
-            const orderResponse = await posService.createOrder(orderPayload);
-            const createdOrderId = orderResponse?.data?.POS_Order_id || orderResponse?.data?.id;
+            let orderId = createdOrderId;
+            if (!orderId) {
+                const orderResponse = await posService.createPosOrder(orderPayload);
+                orderId = orderResponse?.data?.POS_Order_id ||
+                    orderResponse?.data?.id ||
+                    orderResponse?.POS_Order_id ||
+                    orderResponse?.id;
+                if (orderId) setCreatedOrderId(orderId);
+            }
+
+            if (!orderId) {
+                throw new Error(t('bar.payment.orderCreateError', 'The order was created without an order ID.'));
+            }
+
+            if (selectedMethod === 'stripe') {
+                const stripeResponse = await posService.createStripePaymentLink(orderId);
+                const paymentUrl = getStripeCheckoutUrl(stripeResponse);
+                if (!paymentUrl) {
+                    throw new Error(t('bar.payment.stripeLinkError', 'Stripe did not return a payment link.'));
+                }
+                rememberStripeOrderId(orderId);
+                window.location.assign(paymentUrl);
+                return;
+            }
 
             // 2. Record payment transaction if possible
-            if (createdOrderId) {
-                try {
-                    await posService.createPayment({
-                        Payment_Options_id: 1,
-                        paymentStatus: 'Success',
-                        Order_id: createdOrderId,
-                        amount: grandTotal,
-                        payment_method: methodTitle
-                    });
-                } catch (payErr) {
-                    console.warn('Optional payment record notification:', payErr);
-                }
+            try {
+                await posService.createPayment({
+                    Payment_Options_id: 1,
+                    paymentStatus: 'Success',
+                    Order_id: orderId,
+                    amount: grandTotal,
+                    payment_method: methodTitle
+                });
+            } catch (payErr) {
+                console.warn('Optional payment record notification:', payErr);
             }
 
             toast.success(t('bar.payment.orderCompleted', 'Payment successful! Order completed.'));
             onPaymentSuccess?.({
-                orderId: createdOrderId,
+                orderId,
                 paymentMethod: methodTitle,
                 total: grandTotal
             });
             onClose();
         } catch (error) {
             console.error('Error completing payment:', error);
-            // Even if offline or mock, provide fallback success for testing prototype
-            toast.success(t('bar.payment.orderCompleted', 'Payment successful! Order completed.'));
-            onPaymentSuccess?.({
-                paymentMethod: selectedMethod,
-                total: grandTotal
-            });
-            onClose();
+            toast.error(error?.response?.data?.message || error?.message || t('bar.payment.paymentError', 'Payment could not be completed.'));
         } finally {
             setIsSubmitting(false);
         }
@@ -336,6 +354,30 @@ const BarOrderPaymentModal = ({
                             <h4 className="text-[13px] font-medium text-gray-500 pt-3 pb-1">
                                 {t('bar.payment.cardPayments', 'Card Payments')}
                             </h4>
+
+                            {/* Stripe Checkout */}
+                            <div
+                                onClick={() => setSelectedMethod('stripe')}
+                                className={`w-full border rounded-[10px] px-4 py-3 flex items-center justify-between cursor-pointer transition-all ${
+                                    selectedMethod === 'stripe'
+                                        ? 'border-[#8B206F] ring-1 ring-[#8B206F] bg-pink-50/20'
+                                        : 'border-[#2C2C2C] hover:border-gray-800 hover:bg-gray-50/50'
+                                }`}
+                            >
+                                <div className="flex items-center gap-2">
+                                    <span className="text-[14.5px] font-medium text-gray-900">
+                                        {t('bar.payment.stripeCheckout', 'Pay with Stripe')}
+                                    </span>
+                                    <CreditCard className="w-4 h-4" aria-hidden="true" />
+                                </div>
+                                <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all ${
+                                    selectedMethod === 'stripe' ? 'border-[#8B206F]' : 'border-[#2C2C2C]'
+                                }`}>
+                                    {selectedMethod === 'stripe' && (
+                                        <div className="w-2.5 h-2.5 rounded-full bg-[#8B206F]" />
+                                    )}
+                                </div>
+                            </div>
 
                             {/* Option 3: Debit Card Payment 💳 */}
                             <div

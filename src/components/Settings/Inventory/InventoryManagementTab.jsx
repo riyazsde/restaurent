@@ -506,7 +506,7 @@ const InventoryManagementTab = () => {
                             <span className="text-xs text-gray-500 font-medium">{t('inventory.totalValue', 'Total Value')}</span>
                             <FiBarChart2 className="w-4 h-4 text-[#2563EB]" />
                         </div>
-                        <span className="text-3xl font-bold text-[#2563EB]">{formatCurrency(stats.total_value, currency)}</span>
+                        <span className="text-xl font-bold text-[#2563EB]">{formatCurrency(stats.total_value, currency)}</span>
                     </div>
                 </div>
             )}

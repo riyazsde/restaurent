@@ -9,7 +9,7 @@ import BarTabCard from './BarTabCard';
 import AddNewItemModal from './AddNewItemModal';
 import AddNewTabModal from './AddNewTabModal';
 import CloseTabConfirmModal from './CloseTabConfirmModal';
-import PaymentModal from '../modals/PaymentModal';
+import BarTabPaymentModal from './modals/BarTabPaymentModal';
 
 const BarTabsView = () => {
     const navigate = useNavigate();
@@ -27,7 +27,7 @@ const BarTabsView = () => {
 
     // Dynamic Currency from Store Profile
     const { data: restaurantData } = useRestaurant();
-    const currency = resolveCurrencySymbol(restaurantData?.currency);
+    const currency = resolveCurrencySymbol(restaurantData?.currency || restaurantData?.Currency);
 
     // API Hooks
     const { getBarTabs, addItemToTab, closeTab, createBarTab } = useBarTabs();
@@ -60,12 +60,19 @@ const BarTabsView = () => {
         setIsPaymentModalOpen(true);
     };
 
-    const handlePaymentSuccess = () => {
-        if (tabToClose) {
-            closeTab.mutate({ id: tabToClose.Bar_Tab_id || tabToClose.id, data: { payment_method: "Credit Card" } });
+    const handlePaymentSuccess = async (paymentMethod) => {
+        if (!tabToClose) return;
+
+        try {
+            await closeTab.mutateAsync({
+                id: tabToClose.Bar_Tab_id || tabToClose.id,
+                data: { payment_method: paymentMethod }
+            });
+            setIsPaymentModalOpen(false);
+            setTabToClose(null);
+        } catch (error) {
+            console.error('Failed to close bar tab after payment:', error);
         }
-        setIsPaymentModalOpen(false);
-        setTabToClose(null);
     };
 
     const handleCreateTabSubmit = (tabPayload) => {
@@ -221,15 +228,19 @@ const BarTabsView = () => {
                     isOpen={isConfirmModalOpen}
                     onClose={() => setIsConfirmModalOpen(false)}
                     onConfirm={handleConfirmClose}
+                    tab={tabToClose}
+                    currency={currency}
                 />
             )}
 
             {isPaymentModalOpen && (
-                <PaymentModal
+                <BarTabPaymentModal
                     isOpen={isPaymentModalOpen}
                     onClose={() => setIsPaymentModalOpen(false)}
-                    onSuccess={handlePaymentSuccess}
-                    price={tabToClose ? tabToClose.total || "0.00" : "0.00"}
+                    onConfirm={handlePaymentSuccess}
+                    tab={tabToClose}
+                    currency={currency}
+                    isProcessing={closeTab.isPending}
                 />
             )}
 

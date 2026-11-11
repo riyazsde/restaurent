@@ -529,7 +529,7 @@ export const usePosWorkflow = () => {
 
             if (response && response.success !== false) {
                 const orderId = response?.data?.POS_Order_id || response?.data?.Order_id || 'New';
-                const totalVal = response?.data?.Total ?? total;
+                const totalVal = total;
                 toast.success(`Order #${orderId} created successfully!`);
                 toast.info(`Total: ${formatCurrency(totalVal, currency)}`);
                 resetPOS();

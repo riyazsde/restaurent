@@ -502,6 +502,9 @@
     "currency": "Currency",
     "editConfig": "Edit Configuration",
     "configureNow": "Configure Gateway",
+    "stripeName": "Stripe Checkout",
+    "platformManaged": "Managed by platform",
+    "stripeDescription": "Stripe Checkout uses the platform account. No restaurant onboarding or Stripe account setup is required.",
     "modalTitle": "Configure {{name}}",
     "merchantAccountId": "Merchant Account ID / Wallet ID",
     "displayName": "Display Name",
@@ -529,7 +532,8 @@
     "terminalPaired": "Z500C Paired: {{serial}}",
     "noTerminalPaired": "No Z500C terminal paired yet",
     "errors": {
-      "accountIdRequired": "Merchant Account ID is required"
+      "accountIdRequired": "Merchant Account ID is required",
+      "configSecretRequired": "Enter the merchant configuration secret required by the server."
     }
   }
 }

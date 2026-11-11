@@ -125,6 +125,13 @@
       "cash": "Espèces"
     },
     "orderRequired": "Identifiant de commande manquant",
+    "invalidStripeAmount": "Le total de la commande doit être un montant positif",
+    "stripeCheckoutError": "Impossible de démarrer Stripe Checkout",
+    "stripeError": "Échec du démarrage de Stripe Checkout",
+    "stripeTitle": "Payez en toute sécurité avec Stripe",
+    "stripeDescription": "Vous allez être redirigé vers Stripe Checkout. Ne modifiez pas et n'annulez pas l'addition avant la confirmation du paiement.",
+    "creatingStripeLink": "Ouverture de Stripe Checkout...",
+    "payWithStripe": "Payer avec Stripe",
     "terminalRequired": "Veuillez sélectionner un terminal Z500C",
     "terminalOffline": "Terminal hors ligne",
     "terminalOfflineDesc": "Le pont Android Z500C n'est pas connecté au serveur. Vérifiez la connexion Wi-Fi et que l'application de pont est active.",
@@ -143,7 +150,7 @@
     "acquirer": "Compte acquéreur",
     "supportedCards": "Cartes acceptées",
     "initiating": "Envoi du montant au terminal Z500C...",
-    "startCardButton": "Envoyer {{amount}} {{currency}} au terminal",
+    "startCardButton": "Envoyer {{amount}} au terminal",
     "employeeAuthRequired": "Les transactions par carte sur terminal doivent être initiées par un compte employé authentifié (Caissier). Veuillez vous connecter avec votre code caissier.",
     "momoPromptSent": "Demande de paiement envoyée sur le mobile du client.",
     "momoPromptActive": "Demande de paiement envoyée au client !",
@@ -155,7 +162,7 @@
     "customerPhone": "Numéro de téléphone du portefeuille client",
     "phoneHint": "Assurez-vous d'inclure l'indicatif régional ou international.",
     "sendingPrompt": "Envoi de la demande au portefeuille...",
-    "sendMomoButton": "Envoyer la demande de {{amount}} {{currency}}",
+    "sendMomoButton": "Envoyer la demande de {{amount}}",
     "momoSuccess": "Paiement Mobile Money confirmé !",
     "momoTimeout": "Le délai de confirmation a expiré. Veuillez réessayer.",
     "momoError": "Échec de l'initialisation de la demande Mobile Money",
@@ -168,5 +175,20 @@
     "completeCashButton": "Valider le paiement en espèces",
     "cashSuccess": "Paiement en espèces enregistré avec succès !",
     "cashError": "Échec de l'enregistrement du paiement en espèces"
+  },
+  "stripeReturn": {
+    "titleSuccess": "Paiement Stripe",
+    "titleCancelled": "Paiement annulé",
+    "verifying": "Vérification du paiement Stripe...",
+    "cancelling": "Libération de la commande impayée...",
+    "orderMissing": "Impossible d'identifier la commande à vérifier. Retournez au POS et vérifiez son statut.",
+    "cancelOrderMissing": "Impossible d'identifier la commande impayée à libérer.",
+    "pending": "Le paiement est toujours en attente. Vérifiez à nouveau dans un instant.",
+    "failed": "Impossible de mettre à jour le statut du paiement Stripe.",
+    "paid": "Paiement Stripe confirmé avec succès.",
+    "cancelled": "Stripe Checkout a été annulé. La commande impayée peut être modifiée.",
+    "checkAgain": "Vérifier à nouveau le statut du paiement",
+    "cancelAgain": "Réessayer de libérer la commande",
+    "returnToPos": "Retour au POS"
   }
 }

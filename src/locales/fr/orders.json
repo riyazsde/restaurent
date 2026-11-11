@@ -54,6 +54,8 @@
         "markAsServed": "Marquer cette commande comme servie et terminée",
         "paymentOptions": "Options de paiement",
         "payWithCash": "Payer en espèces",
+        "stripe": "Payer avec Stripe",
+        "startingStripeCheckout": "Ouverture de Stripe Checkout...",
         "giftCards": "Cartes-cadeaux",
         "onlinePayments": "Paiements en ligne",
         "cardPayments": "Paiements par carte",
@@ -94,6 +96,8 @@
         "fetchError": "Échec de la récupération des commandes",
         "exportSuccess": "Commandes exportées avec succès !",
         "exportFailed": "Échec de l'exportation des commandes",
-        "billDownloadError": "Échec du téléchargement du PDF de la commande"
+        "billDownloadError": "Échec du téléchargement du PDF de la commande",
+        "stripeOrderRequired": "L'identifiant de la commande est requis pour démarrer Stripe Checkout",
+        "stripeCheckoutError": "Impossible de démarrer Stripe Checkout"
     }
 }

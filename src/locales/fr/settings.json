@@ -488,6 +488,9 @@
     "currency": "Devise de règlement",
     "editConfig": "Modifier la configuration",
     "configureNow": "Configurer la passerelle",
+    "stripeName": "Stripe Checkout",
+    "platformManaged": "Géré par la plateforme",
+    "stripeDescription": "Stripe Checkout utilise le compte de la plateforme. Aucune inscription ni configuration de compte Stripe par le restaurant n'est requise.",
     "modalTitle": "Configurer {{name}}",
     "merchantAccountId": "ID compte marchand / Portefeuille",
     "displayName": "Nom affiché",
@@ -515,7 +518,8 @@
     "terminalPaired": "Z500C jumelé : {{serial}}",
     "noTerminalPaired": "Aucun terminal Z500C jumelé pour l'instant",
     "errors": {
-      "accountIdRequired": "L'identifiant du compte marchand est requis"
+      "accountIdRequired": "L'identifiant du compte marchand est requis",
+      "configSecretRequired": "Saisissez le secret de configuration marchand requis par le serveur."
     }
   }
 }

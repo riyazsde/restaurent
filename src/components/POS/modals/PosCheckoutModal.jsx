@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
+import { useNavigate } from 'react-router-dom';
 import { 
     IoMdClose, 
     IoMdRefresh,
@@ -26,6 +27,8 @@ import {
 } from '../../../hooks/queries/usePaymentIntegrations';
 import { useDevices } from '../../../hooks/queries/useDevices';
 import posService from '../../../services/posService';
+import { formatCurrency } from '../../../utils/currencyUtils';
+import { getStripeCheckoutUrl, rememberStripeOrderId } from '../../../utils/stripeCheckout';
 
 export default function PosCheckoutModal({
     isOpen,
@@ -39,14 +42,14 @@ export default function PosCheckoutModal({
     onPaymentSuccess
 }) {
     const { t } = useTranslation('pos');
+    const navigate = useNavigate();
 
     // Tabs: 'card' | 'momo' | 'cash'
-    const [selectedTab, setSelectedTab] = useState('card');
+    const [selectedTab, setSelectedTab] = useState('stripe');
 
     // Devices & Merchant Accounts
     const { data: allDevices = [], isLoading: isLoadingDevices } = useDevices();
     const { data: merchantConfigs = [] } = useMerchantPaymentConfigs();
-
     // Mutations
     const startTerminalMutation = useStartTerminalPayment();
     const startMobileMoneyMutation = useStartMobileMoneyPayment();
@@ -332,19 +335,53 @@ export default function PosCheckoutModal({
     // -------------------------------------------------------------
     // CASH PAYMENT STATE
     // -------------------------------------------------------------
-    const [tenderedAmount, setTenderedAmount] = useState(orderTotal);
+    const normalizedOrderTotal = Math.max(0, Number(orderTotal) || 0);
+    const [tenderedAmount, setTenderedAmount] = useState(normalizedOrderTotal);
     const [isProcessingCash, setIsProcessingCash] = useState(false);
+    const [isCreatingStripeLink, setIsCreatingStripeLink] = useState(false);
+    const [stripeErrorMessage, setStripeErrorMessage] = useState('');
 
     useEffect(() => {
-        if (orderTotal) {
-            setTenderedAmount(orderTotal);
+        if (normalizedOrderTotal) {
+            setTenderedAmount(normalizedOrderTotal);
         }
-    }, [orderTotal]);
+    }, [normalizedOrderTotal]);
 
-    const changeDue = Math.max(0, (Number(tenderedAmount) || 0) - orderTotal);
+    const changeDue = Math.max(0, (Number(tenderedAmount) || 0) - normalizedOrderTotal);
+
+    const handleStartStripeCheckout = async () => {
+        if (!orderId) {
+            toast.error(t('checkoutModal.orderRequired', 'Save the order before starting Stripe Checkout'));
+            return;
+        }
+        if (!Number.isFinite(normalizedOrderTotal) || normalizedOrderTotal <= 0) {
+            toast.error(t('checkoutModal.invalidStripeAmount', 'The order total must be a positive amount'));
+            return;
+        }
+
+        setIsCreatingStripeLink(true);
+        setStripeErrorMessage('');
+        try {
+            const response = await posService.createStripePaymentLink(orderId);
+            const paymentUrl = getStripeCheckoutUrl(response);
+            if (!paymentUrl) {
+                throw new Error(t('checkoutModal.stripeCheckoutError', 'Stripe Checkout URL was not returned'));
+            }
+            rememberStripeOrderId(orderId);
+            window.location.assign(paymentUrl);
+        } catch (err) {
+            const message = err?.response?.data?.message
+                || err?.message
+                || t('checkoutModal.stripeError', 'Failed to start Stripe Checkout');
+            setStripeErrorMessage(message);
+            toast.error(message);
+        } finally {
+            setIsCreatingStripeLink(false);
+        }
+    };
 
     const handleProcessCashPayment = async () => {
-        if (Number(tenderedAmount) < orderTotal) {
+        if (Number(tenderedAmount) < normalizedOrderTotal) {
             toast.error(t('checkoutModal.insufficientCash', 'Tendered amount is less than order total'));
             return;
         }
@@ -401,7 +438,7 @@ export default function PosCheckoutModal({
                         paymentMethod: 'Cash',
                         tenderedAmount: Number(tenderedAmount),
                         changeDue: changeDue,
-                        orderTotal: orderTotal
+                        orderTotal: normalizedOrderTotal
                     });
                 }
             } else {
@@ -441,7 +478,7 @@ export default function PosCheckoutModal({
                                 {t('checkoutModal.amountDue', 'Amount Due')}
                             </span>
                             <span className="text-lg md:text-xl font-extrabold text-gray-900 font-poppins">
-                                {orderTotal.toLocaleString()} {currency}
+                                {formatCurrency(normalizedOrderTotal, currency)}
                             </span>
                         </div>
                         <button
@@ -455,7 +492,19 @@ export default function PosCheckoutModal({
                 </div>
 
                 {/* Payment Method Selector Tabs */}
-                <div className="grid grid-cols-3 border-b border-gray-200 bg-gray-50/80 p-1 gap-1">
+                <div className="grid grid-cols-4 border-b border-gray-200 bg-gray-50/80 p-1 gap-1">
+                    <button
+                        type="button"
+                        onClick={() => setSelectedTab('stripe')}
+                        className={`py-3 rounded-2xl text-xs font-semibold flex items-center justify-center gap-2 transition-all cursor-pointer ${
+                            selectedTab === 'stripe'
+                                ? 'bg-white text-purple-900 shadow-xs border border-gray-200/80'
+                                : 'text-gray-600 hover:text-gray-900 hover:bg-white/50'
+                        }`}
+                    >
+                        <FiCreditCard className="text-base text-indigo-600" />
+                        <span>{t('checkoutModal.tabs.stripe', 'Stripe')}</span>
+                    </button>
                     <button
                         type="button"
                         onClick={() => { setSelectedTab('card'); handleResetCardAttempt(); }}
@@ -498,6 +547,35 @@ export default function PosCheckoutModal({
 
                 {/* Tab Content Body */}
                 <div className="p-6 overflow-y-auto flex-1 font-poppins">
+                    {selectedTab === 'stripe' && (
+                        <div className="space-y-5">
+                            <div className="rounded-2xl border border-indigo-100 bg-indigo-50 p-5">
+                                <h3 className="font-bold text-gray-900">{t('checkoutModal.stripeTitle', 'Pay securely with Stripe')}</h3>
+                                <p className="mt-2 text-sm text-gray-600">
+                                    {t('checkoutModal.stripeDescription', 'You will be redirected to Stripe Checkout. Do not edit or cancel the bill until payment is confirmed.')}
+                                </p>
+                            </div>
+                            {stripeErrorMessage && (
+                                <p className="rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-800" role="alert">
+                                    {stripeErrorMessage}
+                                </p>
+                            )}
+                            <div className="flex items-center justify-between rounded-xl border border-gray-200 px-4 py-3">
+                                <span className="text-sm text-gray-600">{t('checkoutModal.amountDue', 'Amount Due')}</span>
+                                <span className="text-lg font-bold text-gray-900">{formatCurrency(normalizedOrderTotal, currency)}</span>
+                            </div>
+                            <button
+                                type="button"
+                                onClick={handleStartStripeCheckout}
+                                disabled={isCreatingStripeLink}
+                                className="w-full rounded-xl bg-indigo-600 px-4 py-3 font-bold text-white transition hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-60"
+                            >
+                                {isCreatingStripeLink
+                                    ? t('checkoutModal.creatingStripeLink', 'Opening Stripe Checkout...')
+                                    : t('checkoutModal.payWithStripe', 'Pay with Stripe')}
+                            </button>
+                        </div>
+                    )}
                     {/* TAB 1: CARD PAYMENT (Z500C) */}
                     {selectedTab === 'card' && (
                         <div className="space-y-5">
@@ -652,7 +730,7 @@ export default function PosCheckoutModal({
                                         ) : (
                                             <>
                                                 <FiCreditCard className="text-base" />
-                                                <span>{t('checkoutModal.startCardButton', 'Send {{amount}} {{currency}} to Terminal', { amount: orderTotal.toLocaleString(), currency })}</span>
+                                                <span>{t('checkoutModal.startCardButton', 'Send {{amount}} to Terminal', { amount: formatCurrency(normalizedOrderTotal, currency) })}</span>
                                             </>
                                         )}
                                     </button>
@@ -773,7 +851,7 @@ export default function PosCheckoutModal({
                                         ) : (
                                             <>
                                                 <FiSmartphone className="text-base" />
-                                                <span>{t('checkoutModal.sendMomoButton', 'Send {{amount}} {{currency}} Prompt', { amount: orderTotal.toLocaleString(), currency })}</span>
+                                                <span>{t('checkoutModal.sendMomoButton', 'Send {{amount}} Prompt', { amount: formatCurrency(normalizedOrderTotal, currency) })}</span>
                                             </>
                                         )}
                                     </button>
@@ -791,6 +869,8 @@ export default function PosCheckoutModal({
                                 </label>
                                 <input
                                     type="number"
+                                    min="0"
+                                    step="0.01"
                                     value={tenderedAmount}
                                     onChange={(e) => setTenderedAmount(e.target.value)}
                                     className="w-full px-4 py-3 text-lg font-bold border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-500 font-poppins"
@@ -799,14 +879,14 @@ export default function PosCheckoutModal({
 
                             {/* Quick Tender Amount Buttons */}
                             <div className="flex flex-wrap gap-2">
-                                {[orderTotal, Math.ceil(orderTotal / 1000) * 1000, Math.ceil(orderTotal / 5000) * 5000, Math.ceil(orderTotal / 10000) * 10000].filter((v, i, a) => v >= orderTotal && a.indexOf(v) === i).map((amt) => (
+                                {[normalizedOrderTotal, Math.ceil(normalizedOrderTotal / 1000) * 1000, Math.ceil(normalizedOrderTotal / 5000) * 5000, Math.ceil(normalizedOrderTotal / 10000) * 10000].filter((v, i, a) => v >= normalizedOrderTotal && a.indexOf(v) === i).map((amt) => (
                                     <button
                                         key={amt}
                                         type="button"
                                         onClick={() => setTenderedAmount(amt)}
                                         className="px-3 py-1.5 text-xs bg-gray-100 hover:bg-gray-200 text-gray-800 rounded-lg font-semibold transition-colors cursor-pointer"
                                     >
-                                        {amt.toLocaleString()} {currency}
+                                        {formatCurrency(amt, currency)}
                                     </button>
                                 ))}
                             </div>
@@ -815,22 +895,22 @@ export default function PosCheckoutModal({
                             <div className="bg-amber-50/60 border border-amber-100 rounded-2xl p-4 space-y-2">
                                 <div className="flex justify-between text-xs text-gray-600">
                                     <span>{t('checkoutModal.orderTotal', 'Order Total')}:</span>
-                                    <span className="font-semibold text-gray-900">{orderTotal.toLocaleString()} {currency}</span>
+                                    <span className="font-semibold text-gray-900">{formatCurrency(normalizedOrderTotal, currency)}</span>
                                 </div>
                                 <div className="flex justify-between text-xs text-gray-600">
                                     <span>{t('checkoutModal.cashReceived', 'Cash Received')}:</span>
-                                    <span className="font-semibold text-gray-900">{(Number(tenderedAmount) || 0).toLocaleString()} {currency}</span>
+                                    <span className="font-semibold text-gray-900">{formatCurrency(Number(tenderedAmount) || 0, currency)}</span>
                                 </div>
                                 <div className="flex justify-between text-sm font-bold text-gray-900 pt-2 border-t border-amber-200/60">
                                     <span className="text-amber-900">{t('checkoutModal.changeDue', 'Change Due')}:</span>
-                                    <span className="text-amber-800 text-base">{changeDue.toLocaleString()} {currency}</span>
+                                    <span className="text-amber-800 text-base">{formatCurrency(changeDue, currency)}</span>
                                 </div>
                             </div>
 
                             <button
                                 type="button"
                                 onClick={handleProcessCashPayment}
-                                disabled={isProcessingCash || Number(tenderedAmount) < orderTotal}
+                                disabled={isProcessingCash || Number(tenderedAmount) < normalizedOrderTotal}
                                 className="w-full bg-amber-600 hover:bg-amber-700 text-white py-3 rounded-xl font-semibold text-sm shadow-md transition-colors disabled:opacity-50 cursor-pointer flex items-center justify-center gap-2"
                             >
                                 {isProcessingCash ? (
