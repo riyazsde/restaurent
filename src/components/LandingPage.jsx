@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { ArrowRight, CheckCircle, Zap, Users, Play, Check } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { features } from '../core/data';
@@ -15,6 +15,7 @@ import { COOKIE_NAMES } from '../utils/constants';
 
 const LandingPage = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const { t } = useTranslation('common');
   const heroRef = useRef(null);
   const { isAuthenticated, userRole, initAuth } = useAuthStore();
@@ -24,6 +25,11 @@ const LandingPage = () => {
   useEffect(() => {
     initAuth();
   }, [initAuth]);
+  useEffect(() => {
+    if (!location.state?.scrollToSubscriptions) return;
+    document.getElementById('subscriptions')?.scrollIntoView({ behavior: 'smooth' });
+    navigate('/', { replace: true, state: null });
+  }, [location.state, navigate]);
 
   const authToken = getCookie(COOKIE_NAMES.AUTH_TOKEN);
   const isLoggedIn = isAuthenticated || !!authToken;
@@ -972,7 +978,10 @@ const LandingPage = () => {
                   </ul>
 
                   <button
-                    onClick={() => openModal('PAYMENT', { price: plan.Price })}
+                    onClick={() => openModal('PAYMENT', {
+                      planId: plan.Admin_Plan_id || plan.admin_plan_id || plan.id || plan._id,
+                      planName: plan.PlanName
+                    })}
                     className={`w-full py-3.5 rounded-xl font-bold transition-all ${i === 1 ? 'bg-gradient-to-r from-brand-primary to-brand-secondary text-white shadow-md hover:opacity-90' : 'border-2 border-gray-200 hover:border-gray-300 text-transparent bg-clip-text bg-gradient-to-r from-brand-primary to-brand-secondary'}`}
                   >
                     Get Started

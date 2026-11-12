@@ -1,10 +1,20 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { X, Minus, Plus, ArrowLeft, CreditCard } from 'lucide-react';
-import { formatCurrency } from '../../../utils/currencyUtils';
+import { formatCurrency, roundCurrencyAmount } from '../../../utils/currencyUtils';
 import posService from '../../../services/posService';
 import { toast } from 'react-toastify';
-import { getStripeCheckoutUrl, rememberStripeOrderId } from '../../../utils/stripeCheckout';
+import {
+    getStripeCheckoutUrl,
+    isStripeMinimumAmountError,
+    rememberStripeOrderId
+} from '../../../utils/stripeCheckout';
+import { calculateBarOrderTotals } from '../barOrderTotals';
+import {
+    calculateOrderItemsSubtotal,
+    extractOrder
+} from '../../FloorPlan/floorPlanPayment';
+import { isStoredOrderTotalConsistent } from '../../Orders/orderTotals';
 
 const BarOrderPaymentModal = ({
     isOpen = false,
@@ -39,17 +49,10 @@ const BarOrderPaymentModal = ({
     }, [isOpen]);
 
     // Financial calculations
-    const itemsNetTotal = useMemo(() => {
-        return cartItems.reduce((acc, it) => acc + (Number(it.price) || 0) * (it.quantity || 1), 0);
-    }, [cartItems]);
-
-    const taxes = useMemo(() => {
-        return Math.round(itemsNetTotal * taxRate);
-    }, [itemsNetTotal, taxRate]);
-
-    const grandTotal = useMemo(() => {
-        return itemsNetTotal + taxes;
-    }, [itemsNetTotal, taxes]);
+    const { itemsTotal: itemsNetTotal, taxAmount: taxes, serviceCharge, grandTotal } = useMemo(
+        () => calculateBarOrderTotals(cartItems, taxRate, currency),
+        [cartItems, taxRate, currency]
+    );
 
     if (!isOpen) return null;
 
@@ -79,11 +82,20 @@ const BarOrderPaymentModal = ({
                     item_Quentry: item.quantity || 1,
                     item_size: item.size || 'Regular',
                     item_status: 'Preparing',
+                    item_price: roundCurrencyAmount(Number(item.price) || 0, currency),
+                    unit_price: roundCurrencyAmount(Number(item.price) || 0, currency),
+                    line_total: roundCurrencyAmount(
+                        (Number(item.price) || 0) * (item.quantity || 1),
+                        currency
+                    ),
                     notes: item.notes || item.addonsText || ''
                 })),
                 Tax: taxes,
                 SubTotal: itemsNetTotal,
                 Total: grandTotal,
+                Grand_Total: grandTotal,
+                total_amount: grandTotal,
+                Service_Charge: serviceCharge,
                 Dining_Option: 'Dine in',
                 Order_Type: 'Bar',
                 Table_id: isNaN(Number(selectedTable)) ? 128 : Number(selectedTable),
@@ -107,6 +119,28 @@ const BarOrderPaymentModal = ({
             }
 
             if (selectedMethod === 'stripe') {
+                const updateResponse = await posService.updateOrder({
+                    id: orderId,
+                    ...orderPayload
+                });
+                if (!updateResponse || updateResponse.success === false) {
+                    throw new Error(
+                        updateResponse?.message
+                        || t('bar.payment.orderTotalError', 'The order total could not be verified. Payment was not started.')
+                    );
+                }
+
+                const synchronizedOrder = extractOrder(await posService.getOrderById(orderId));
+                const synchronizedItemsTotal = calculateOrderItemsSubtotal(synchronizedOrder?.items || []);
+                if (
+                    !isStoredOrderTotalConsistent(synchronizedOrder, grandTotal)
+                    || Math.abs(synchronizedItemsTotal - itemsNetTotal) > 0.01
+                ) {
+                    throw new Error(
+                        t('bar.payment.orderTotalError', 'The order total could not be verified. Payment was not started.')
+                    );
+                }
+
                 const stripeResponse = await posService.createStripePaymentLink(orderId);
                 const paymentUrl = getStripeCheckoutUrl(stripeResponse);
                 if (!paymentUrl) {
@@ -139,7 +173,14 @@ const BarOrderPaymentModal = ({
             onClose();
         } catch (error) {
             console.error('Error completing payment:', error);
-            toast.error(error?.response?.data?.message || error?.message || t('bar.payment.paymentError', 'Payment could not be completed.'));
+            toast.error(isStripeMinimumAmountError(error)
+                ? t(
+                    'bar.payment.stripeMinimumAmount',
+                    'Stripe cannot process this order because its total is below the minimum charge. Use cash or mobile money, or correct item prices if the total is wrong.'
+                )
+                : error?.response?.data?.message
+                    || error?.message
+                    || t('bar.payment.paymentError', 'Payment could not be completed.'));
         } finally {
             setIsSubmitting(false);
         }
@@ -260,6 +301,17 @@ const BarOrderPaymentModal = ({
                                     {formatCurrency(taxes, currency)}
                                 </span>
                             </div>
+
+                            {serviceCharge > 0 && (
+                                <div className="flex justify-between items-center border-b border-[#F5B8CB]/70 pb-3 text-[14px]">
+                                    <span className="font-medium text-gray-900">
+                                        {t('bar.payment.serviceCharge', 'Service charge')}
+                                    </span>
+                                    <span className="font-semibold text-gray-900">
+                                        {formatCurrency(serviceCharge, currency)}
+                                    </span>
+                                </div>
+                            )}
 
                             <div className="flex justify-between items-center border-b border-[#F5B8CB]/70 pb-3 text-[15px]">
                                 <span className="font-bold text-gray-950">

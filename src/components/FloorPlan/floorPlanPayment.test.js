@@ -53,6 +53,13 @@ describe('Floor Plan payment state helpers', () => {
         expect(calculateOrderItemsSubtotal(items)).toBe(25);
     });
 
+    test('reads the item price field used by Orders API records', () => {
+        expect(calculateOrderItemsSubtotal([{
+            item_Quentry: 1,
+            Item: { prices: 1750 }
+        }])).toBe(1750);
+    });
+
     test('keeps bill subtotal, tax, and checkout total reconciled to stored order values', () => {
         const order = { SubTotal: 100, Grand_Total: 115, items: [] };
         const subtotal = getOrderSubtotal(order, 80);

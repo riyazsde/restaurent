@@ -48,7 +48,13 @@ export const useBarTabs = () => {
 
     // 5. Close Tab
     const closeTab = useMutation({
-        mutationFn: ({ id, data }) => apiService.payAndCloseTab(id, data),
+        mutationFn: async ({ id, data }) => {
+            const response = await apiService.payAndCloseTab(id, data);
+            if (response?.success === false) {
+                throw new Error(response.message || 'Failed to close bar tab');
+            }
+            return response;
+        },
         onSuccess: (data, variables) => {
             queryClient.invalidateQueries(['barTabs']);
             queryClient.invalidateQueries(['barTabs', variables.id]);

@@ -66,7 +66,10 @@ const BarTabsView = () => {
         try {
             await closeTab.mutateAsync({
                 id: tabToClose.Bar_Tab_id || tabToClose.id,
-                data: { payment_method: paymentMethod }
+                data: {
+                    payment_method: paymentMethod,
+                    payment_confirmed: true
+                }
             });
             setIsPaymentModalOpen(false);
             setTabToClose(null);

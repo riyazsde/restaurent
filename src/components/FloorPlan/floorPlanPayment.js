@@ -49,13 +49,26 @@ const readFirstAmount = (...values) => {
     return 0;
 };
 
+const readOptionalAmount = (...values) => {
+    for (const value of values) {
+        if (value === undefined || value === null || value === '') continue;
+        const amount = Number(value);
+        if (Number.isFinite(amount)) return amount;
+    }
+    return null;
+};
+
 export const getOrderItemUnitPrice = (item) => {
+    const savedUnitPrice = readOptionalAmount(item?.unit_price, item?.unitPrice);
+    if (savedUnitPrice !== null) return savedUnitPrice;
+
     const basePrice = readFirstAmount(
         item?.item_price,
         item?.Item_price,
         item?.Item?.['item-price'],
         item?.Item?.item_price,
         item?.Item?.Price,
+        item?.Item?.prices,
         item?.Item?.price,
         item?.price
     );
@@ -63,13 +76,19 @@ export const getOrderItemUnitPrice = (item) => {
         item?.variant_price,
         item?.Variant?.Item_prices,
         item?.Variant?.prices,
-        item?.Variant?.price
+        item?.Variant?.price,
+        item?.item_Variants_id?.Item_prices,
+        item?.item_Variants_id?.prices,
+        item?.item_Variants_id?.price
     );
     const addonPrice = readFirstAmount(
         item?.addon_price,
         item?.Addon?.Item_prices,
         item?.Addon?.prices,
-        item?.Addon?.price
+        item?.Addon?.price,
+        item?.item_Addons_id?.Item_prices,
+        item?.item_Addons_id?.prices,
+        item?.item_Addons_id?.price
     );
 
     return basePrice + variantPrice + addonPrice;
@@ -78,6 +97,9 @@ export const getOrderItemUnitPrice = (item) => {
 export const calculateOrderItemsSubtotal = (items = []) =>
     Math.round(
         items.reduce((sum, item) => {
+            const lineTotal = readOptionalAmount(item?.line_total, item?.lineTotal);
+            if (lineTotal !== null) return sum + lineTotal;
+
             const rawQuantity = item?.item_Quentry ?? item?.quantity;
             const quantity = rawQuantity === undefined || rawQuantity === null || rawQuantity === ''
                 ? 1

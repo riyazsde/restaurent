@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { Minus, Plus, Trash2, User, Layers, Armchair } from 'lucide-react';
 import { formatCurrency } from '../../utils/currencyUtils';
+import { calculateBarOrderTotals } from './barOrderTotals';
 
 const BarRightPanel = ({
     mode = 'IDLE', // 'IDLE' | 'FLOOR_MAP' | 'START_ORDER_SUMMARY' | 'ORDER_SUMMARY'
@@ -39,11 +40,11 @@ const BarRightPanel = ({
     };
 
     // Calculate totals for active order
-    const itemsTotal = cartItems.reduce((acc, it) => acc + (Number(it.price) || 0) * (it.quantity || 1), 0);
-    const taxRate = 0.06; // 6%
-    const taxAmount = Math.round(itemsTotal * taxRate);
-    const serviceCharge = cartItems.length > 0 ? 200 : 0;
-    const grandTotal = itemsTotal + taxAmount + serviceCharge;
+    const { taxAmount, serviceCharge, grandTotal } = calculateBarOrderTotals(
+        cartItems,
+        0.06,
+        currency
+    );
 
     // Group cart items by category
     const groupedItems = cartItems.reduce((acc, it) => {

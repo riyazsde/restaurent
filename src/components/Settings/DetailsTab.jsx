@@ -121,7 +121,7 @@ const DetailsTab = () => {
 
     const handleRenewSubscription = async () => {
         try {
-            const res = await renewSubscriptionMutation.mutateAsync({ paymentMethodToken: 'pm_card_visa' });
+            const res = await renewSubscriptionMutation.mutateAsync({});
             if (res && res.success !== false) {
                 toast.success(t('store.renewSuccess'));
             } else {

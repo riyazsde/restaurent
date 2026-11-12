@@ -83,6 +83,7 @@ const BarTabPaymentModal = ({ isOpen, onClose, onConfirm, tab, currency, isProce
     const resolvedDiscount = discount ?? 0;
     const resolvedSubtotal = subtotal ?? (total - resolvedTax - serviceCharge + resolvedDiscount);
     const providers = Array.isArray(providerConfigs) ? providerConfigs : [];
+    const isCashTender = /\bcash\b|esp[eè]ces/i.test(selectedMethod);
     const canSubmit = Boolean(currency) && total > 0 && Boolean(selectedMethod) && tenders.length > 0;
 
     return (
@@ -176,31 +177,47 @@ const BarTabPaymentModal = ({ isOpen, onClose, onConfirm, tab, currency, isProce
                 </section>
 
                 <section className="mt-5 rounded-xl border border-gray-200 p-4">
-                    <h3 className="text-sm font-bold text-gray-900">
-                        {t('bar.payment.providerStatus', 'Payment provider status')}
-                    </h3>
-                    {isLoadingProviders ? (
-                        <p className="mt-2 text-sm text-gray-500">{t('bar.payment.loadingProviders', 'Checking configured providers...')}</p>
-                    ) : providers.length > 0 ? (
-                        <ul className="mt-2 space-y-1 text-sm text-gray-700">
-                            {providers.map((provider, index) => {
-                                const configured = provider.enabled !== false &&
-                                    Boolean(provider.merchant_account_id || provider.account_id);
-                                const providerName = provider.display_name || provider.provider || provider.Provider || t('bar.payment.provider', 'Provider');
-                                return (
-                                    <li key={`${providerName}-${index}`} className="flex justify-between gap-3">
-                                        <span>{providerName}</span>
-                                        <span className={configured ? 'text-green-700' : 'text-gray-500'}>
-                                            {configured ? t('bar.payment.configured', 'Configured') : t('bar.payment.notConfigured', 'Not configured')}
-                                        </span>
-                                    </li>
-                                );
-                            })}
-                        </ul>
+                    {isCashTender ? (
+                        <>
+                            <h3 className="text-sm font-bold text-gray-900">
+                                {t('bar.payment.manualCashPayment', 'Manual cash payment')}
+                            </h3>
+                            <p className="mt-2 text-sm text-gray-700">
+                                {t(
+                                    'bar.payment.cashProviderNotRequired',
+                                    'Cash does not require an online payment provider. Confirm you received the cash before closing the tab.'
+                                )}
+                            </p>
+                        </>
                     ) : (
-                        <p className="mt-2 text-sm text-amber-800">
-                            {t('bar.payment.noProviderConfigured', 'No payment provider is configured.')}
-                        </p>
+                        <>
+                            <h3 className="text-sm font-bold text-gray-900">
+                                {t('bar.payment.providerStatus', 'Payment provider status')}
+                            </h3>
+                            {isLoadingProviders ? (
+                                <p className="mt-2 text-sm text-gray-500">{t('bar.payment.loadingProviders', 'Checking configured providers...')}</p>
+                            ) : providers.length > 0 ? (
+                                <ul className="mt-2 space-y-1 text-sm text-gray-700">
+                                    {providers.map((provider, index) => {
+                                        const configured = provider.enabled !== false &&
+                                            Boolean(provider.merchant_account_id || provider.account_id);
+                                        const providerName = provider.display_name || provider.provider || provider.Provider || t('bar.payment.provider', 'Provider');
+                                        return (
+                                            <li key={`${providerName}-${index}`} className="flex justify-between gap-3">
+                                                <span>{providerName}</span>
+                                                <span className={configured ? 'text-green-700' : 'text-gray-500'}>
+                                                    {configured ? t('bar.payment.configured', 'Configured') : t('bar.payment.notConfigured', 'Not configured')}
+                                                </span>
+                                            </li>
+                                        );
+                                    })}
+                                </ul>
+                            ) : (
+                                <p className="mt-2 text-sm text-amber-800">
+                                    {t('bar.payment.noProviderConfigured', 'No payment provider is configured.')}
+                                </p>
+                            )}
+                        </>
                     )}
                 </section>
 

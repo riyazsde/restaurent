@@ -98,6 +98,12 @@
         "exportFailed": "Échec de l'exportation des commandes",
         "billDownloadError": "Échec du téléchargement du PDF de la commande",
         "stripeOrderRequired": "L'identifiant de la commande est requis pour démarrer Stripe Checkout",
-        "stripeCheckoutError": "Impossible de démarrer Stripe Checkout"
+        "stripeCheckoutError": "Impossible de démarrer Stripe Checkout",
+        "stripeMinimumAmount": "Stripe ne peut pas traiter cette commande car son total est inférieur au montant minimum. Utilisez les espèces ou Mobile Money, ou corrigez les prix des articles si le total est incorrect.",
+        "cashOrderRequired": "L'identifiant de la commande est requis pour enregistrer le paiement en espèces.",
+        "cashOptionUnavailable": "Le paiement en espèces n'est pas configuré pour ce restaurant.",
+        "cashPaymentError": "Échec de l'enregistrement du paiement en espèces.",
+        "cashPaymentStatusUpdateError": "Le paiement en espèces a été enregistré, mais le statut de la commande n'a pas pu être mis à jour.",
+        "orderTotalSyncError": "Le total de la commande n'a pas pu être vérifié. Le paiement n'a pas été démarré."
     }
 }

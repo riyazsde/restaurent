@@ -214,12 +214,7 @@ const BarManagement = () => {
         setPanelMode('ORDER_SUMMARY');
     };
 
-    // Calculate totals for active order
-    const itemsTotal = useMemo(() => cartItems.reduce((acc, it) => acc + (Number(it.price) || 0) * (it.quantity || 1), 0), [cartItems]);
     const taxRate = 0.06;
-    const taxAmount = Math.round(itemsTotal * taxRate);
-    const serviceCharge = cartItems.length > 0 ? 200 : 0;
-    const grandTotal = itemsTotal + taxAmount + serviceCharge;
 
     const handlePaymentSuccess = () => {
         setCartItems([]);

@@ -21,13 +21,24 @@ import qr from '../assets/Qr2.svg'
 import cancel2 from '../assets/cancel2.svg'
 import { formatCurrency } from '../../utils/currencyUtils';
 import { useOrders, useUpdateOrderStatus, useUpdateOrderItemStatus } from '../../hooks/queries/useOrders';
+import { usePaymentOptions } from '../../hooks/queries/usePos';
 import { useSearchStore } from '../../store/searchStore';
 import posService from '../../services/posService';
+import { findPaymentOptionId } from '../../utils/paymentOptions';
 import { getOrderStatusKey, getPaymentStatusKey } from '../../utils/orderStatus';
-import { resolveOrderTotal } from './orderTotals';
-import { getStripeCheckoutUrl, rememberStripeOrderId } from '../../utils/stripeCheckout';
+import {
+    getOrderTotalsCorrection,
+    isStoredOrderTotalConsistent,
+    resolveOrderTotal
+} from './orderTotals';
+import { extractOrder } from '../FloorPlan/floorPlanPayment';
+import {
+    getStripeCheckoutUrl,
+    isStripeMinimumAmountError,
+    rememberStripeOrderId
+} from '../../utils/stripeCheckout';
 
-const OrderCard = ({ order, onRefresh }) => {
+const OrderCard = ({ order, onRefresh, paymentOptions, refetchPaymentOptions }) => {
     const { t } = useTranslation('orders');
     const [open, setOpen] = useState(false);
     const menuRef = useRef();
@@ -177,8 +188,38 @@ const OrderCard = ({ order, onRefresh }) => {
     };
 
     const handlePayment = async () => {
+        const orderId = order?.POS_Order_id ?? order?.id ?? order?.Order_id;
+        const totalsCorrection = getOrderTotalsCorrection(order);
+        if (totalsCorrection) {
+            if (!orderId) {
+                toast.error(t('messages.orderTotalSyncError'));
+                return;
+            }
+
+            try {
+                const updateResponse = await posService.updateOrder({
+                    id: orderId,
+                    ...totalsCorrection
+                });
+                if (!updateResponse || updateResponse.success === false) {
+                    throw new Error(updateResponse?.message || t('messages.orderTotalSyncError'));
+                }
+
+                const refreshedOrder = extractOrder(await posService.getOrderById(orderId));
+                if (!isStoredOrderTotalConsistent(refreshedOrder, totalsCorrection.Total)) {
+                    throw new Error(t('messages.orderTotalSyncError'));
+                }
+            } catch (error) {
+                toast.error(
+                    error?.response?.data?.message
+                    || error?.message
+                    || t('messages.orderTotalSyncError')
+                );
+                return;
+            }
+        }
+
         if (selectedPaymentMethod === 'stripe') {
-            const orderId = order?.POS_Order_id ?? order?.id ?? order?.Order_id;
             if (!orderId) {
                 toast.error(t('messages.stripeOrderRequired'));
                 return;
@@ -194,20 +235,84 @@ const OrderCard = ({ order, onRefresh }) => {
                 rememberStripeOrderId(orderId);
                 window.location.assign(paymentUrl);
             } catch (error) {
-                toast.error(
-                    error?.response?.data?.message ||
-                    error?.message ||
-                    t('messages.stripeCheckoutError')
-                );
+                toast.error(isStripeMinimumAmountError(error)
+                    ? t(
+                        'messages.stripeMinimumAmount',
+                        'Stripe cannot process this order because its total is below the minimum charge. Use cash or mobile money, or correct item prices if the total is wrong.'
+                    )
+                    : error?.response?.data?.message
+                        || error?.message
+                        || t('messages.stripeCheckoutError'));
             } finally {
                 setIsCreatingStripeLink(false);
             }
             return;
         }
 
+        if (selectedPaymentMethod === 'cash') {
+            if (!orderId) {
+                toast.error(t('messages.cashOrderRequired'));
+                return;
+            }
+
+            let availablePaymentOptions = paymentOptions;
+            if (!availablePaymentOptions?.length && refetchPaymentOptions) {
+                try {
+                    const paymentOptionsResult = await refetchPaymentOptions();
+                    availablePaymentOptions = paymentOptionsResult.data || [];
+                } catch (error) {
+                    toast.error(
+                        error?.response?.data?.message
+                        || error?.message
+                        || t('messages.cashOptionUnavailable')
+                    );
+                    return;
+                }
+            }
+
+            const cashOptionId = findPaymentOptionId(availablePaymentOptions, 'cash');
+            if (cashOptionId === null) {
+                toast.error(t('messages.cashOptionUnavailable'));
+                return;
+            }
+
+            try {
+                const response = await posService.createPayment({
+                    Payment_Options_id: cashOptionId,
+                    paymentStatus: 'Success',
+                    Order_id: orderId,
+                    merchant_reference: `CASH-${orderId}-${Date.now()}`
+                });
+                if (!response || response.success === false) {
+                    throw new Error(response?.message || t('messages.cashPaymentError'));
+                }
+            } catch (error) {
+                toast.error(
+                    error?.response?.data?.message
+                    || error?.message
+                    || t('messages.cashPaymentError')
+                );
+                return;
+            }
+
+            setShowPaymentModal(false);
+            setLocalPaid(true);
+            setShowSuccessModal2(true);
+            try {
+                await updateOrderStatusMutation.mutateAsync({
+                    id: orderId,
+                    Order_Status: 'Completed'
+                });
+            } catch (error) {
+                console.error('Cash payment was recorded but order status update failed:', error);
+                toast.warn(t('messages.cashPaymentStatusUpdateError'));
+            }
+            if (onRefresh) await onRefresh();
+            return;
+        }
+
         setShowScanModal(true);
         setShowPaymentModal(false);
-        const orderId = order?.POS_Order_id ?? order?.id ?? order?.Order_id;
         try {
             if (orderId) {
                 await posService.createPayment({
@@ -762,6 +867,10 @@ const Orders = () => {
     const { t } = useTranslation('orders');
     const [showLoadedMessage, setShowLoadedMessage] = useState(false);
     const { data: orders = [], isLoading, refetch: fetchOrders } = useOrders();
+    const {
+        data: paymentOptions = [],
+        refetch: refetchPaymentOptions
+    } = usePaymentOptions();
     const { searchQuery, setSearchPlaceholder } = useSearchStore();
 
     useEffect(() => {
@@ -889,7 +998,13 @@ const Orders = () => {
                 <div className="grid grid-cols-fluid gap-6">
                     {filteredOrders.length > 0 ? (
                         filteredOrders.map((order) => (
-                            <OrderCard key={order._id || order.POS_Order_id || order.id || order.Order_id} order={order} onRefresh={fetchOrders} />
+                            <OrderCard
+                                key={order._id || order.POS_Order_id || order.id || order.Order_id}
+                                order={order}
+                                onRefresh={fetchOrders}
+                                paymentOptions={paymentOptions}
+                                refetchPaymentOptions={refetchPaymentOptions}
+                            />
                         ))
                     ) : orders.length > 0 ? (
                         <div className="col-span-full text-center py-12 text-gray-500">

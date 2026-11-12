@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import bgImage from "../assets/Gradient.svg";
-import logo from "../assets/logo.svg";
+import logo from "../assets/LOGOPlande.svg";
 import { Eye, EyeOff } from 'lucide-react';
 import { useNavigate, useLocation } from "react-router-dom";
 import { useTranslation } from 'react-i18next';
@@ -145,7 +145,7 @@ const VerifyOtp = () => {
                     <div className="flex justify-between items-center mb-4 md:mb-6">
                         <h3 className="text-[20px] md:text-[24px] font-semibold">Reset Password</h3>
                         <div className="flex items-center space-x-2">
-                            <img src={logo} alt="Triaxx Logo" className="" />
+                            <img src={logo} alt="Triaxx Logo" className="block h-auto w-40 max-w-[75%] object-contain md:w-44" />
                         </div>
                     </div>
 

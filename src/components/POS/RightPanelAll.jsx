@@ -610,18 +610,18 @@ const RightPanelAll = ({
 
     const calculateSubtotal = () => {
         if (useNewProps && subTotalProp !== undefined) return subTotalProp;
-        return calculateCartTotals(cartItems, taxSetup?.rate).subTotal;
+        return calculateCartTotals(cartItems, taxSetup?.rate, currency).subTotal;
     };
 
     const calculateTax = () => {
         if (useNewProps && taxAmountProp !== undefined) return taxAmountProp;
         if (!taxSetup) return 0;
-        return calculateCartTotals(cartItems, taxSetup.rate).taxAmount;
+        return calculateCartTotals(cartItems, taxSetup.rate, currency).taxAmount;
     };
 
     const calculateTotal = () => {
         if (useNewProps && totalProp !== undefined) return totalProp;
-        return calculateCartTotals(cartItems, taxSetup?.rate).total;
+        return calculateCartTotals(cartItems, taxSetup?.rate, currency).total;
     };
     const handleDropdownClick = () => {
         const newState = !isDropdownOpen;
@@ -758,6 +758,7 @@ const RightPanelAll = ({
                 kitchenId: kitchenData?.Kitchen_id || kitchenData?.[0]?.Kitchen_id || 1,
                 taxAmount: useNewProps ? taxAmountProp : calculateTax(),
                 slot: selectedSlot,
+                currency,
             });
 
             const response = await createPosOrderMutation.mutateAsync(orderData);
@@ -983,7 +984,8 @@ const RightPanelAll = ({
                 selectedTable,
                 kitchenId: kitchen.Kitchen_id,
                 taxAmount: calculateTax(),
-                slot: selectedSlot
+                slot: selectedSlot,
+                currency
             });
 
             const response = await createPosOrderMutation.mutateAsync(orderData);

@@ -1,8 +1,21 @@
 
 import React, { useState, useRef, useEffect } from "react";
 import { Link, Outlet, useLocation, useNavigate } from "react-router-dom";
-import { FaSearch, FaBars, FaBell, FaChevronDown, FaUser, FaDesktop, FaLanguage, FaUserPlus, FaQuestionCircle, FaSignOutAlt } from "react-icons/fa";
-import { Search, Menu, CircleUser, MonitorSmartphone, Languages, UserPlus, LifeBuoy, LogOut } from "lucide-react";
+import { FaBars, FaBell, FaChevronDown, FaUser, FaDesktop, FaLanguage, FaUserPlus, FaQuestionCircle, FaSignOutAlt } from "react-icons/fa";
+import {
+  Search,
+  Menu,
+  CircleUser,
+  MonitorSmartphone,
+  Languages,
+  UserPlus,
+  LifeBuoy,
+  LogOut,
+  Store,
+  MapPin,
+  X,
+  CircleAlert
+} from "lucide-react";
 import { useQuery } from '@tanstack/react-query';
 // import { FiHome, FiShoppingCart, FiUsers, FiSettings, FiClipboard, FiBox, FiGrid, FiStar, FiBriefcase, FiBarChart2, FiMessageSquare } from "react-icons/fi";
 import { toast } from 'react-toastify';
@@ -151,44 +164,99 @@ const AdminLayout = () => {
     || restaurant?.title
     || t('search.restaurant', 'Restaurant');
 
-  const renderRestaurantSearchResults = () => {
+  const renderRestaurantSearchResults = (resultsId) => {
     if (!shouldShowRestaurantResults) return null;
 
     return (
       <div
+        id={resultsId}
         role="region"
         aria-label={t('search.restaurantResults', 'Restaurant search results')}
         aria-live="polite"
-        className="absolute left-0 right-0 top-full z-50 mt-2 max-h-80 overflow-y-auto rounded-2xl border border-gray-200 bg-white py-2 shadow-xl"
+        className="absolute left-0 right-0 top-full z-50 mt-3 max-h-[min(26rem,70vh)] overflow-y-auto rounded-2xl border border-slate-200 bg-white shadow-[0_20px_50px_rgba(15,23,42,0.16)] ring-1 ring-black/5"
       >
-        {isRestaurantQueryPending || isSearchingRestaurants ? (
-          <p className="px-4 py-3 text-sm text-gray-500">{t('search.searchingRestaurants', 'Searching restaurants...')}</p>
-        ) : restaurantSearchFailed ? (
-          <p role="alert" className="px-4 py-3 text-sm text-red-600">
-            {restaurantSearchError?.response?.data?.message
-              || restaurantSearchError?.message
-              || t('search.restaurantSearchError', 'Could not search restaurants. Please try again.')}
-          </p>
-        ) : restaurantSearchResults.length === 0 ? (
-          <p className="px-4 py-3 text-sm text-gray-500">{t('search.noRestaurantsFound', 'No restaurants found.')}</p>
-        ) : (
-          restaurantSearchResults.map((restaurant, index) => {
-            const name = getRestaurantName(restaurant);
-            const subtitle = [
-              restaurant?.address || restaurant?.Address,
-              restaurant?.city || restaurant?.City
-            ].filter(Boolean).join(', ');
+        <div className="sticky top-0 z-10 flex items-center justify-between gap-3 border-b border-slate-100 bg-white/95 px-4 py-3 backdrop-blur">
+          <div className="flex min-w-0 items-center gap-3">
+            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-purple-100 to-pink-100 text-purple-700">
+              <Store className="h-4 w-4" aria-hidden="true" />
+            </span>
+            <div className="min-w-0">
+              <p className="truncate text-sm font-semibold text-slate-900">
+                {t('search.restaurantResults', 'Restaurant search results')}
+              </p>
+              <p className="truncate text-xs text-slate-500">{searchQuery.trim()}</p>
+            </div>
+          </div>
+          {!isRestaurantQueryPending && !isSearchingRestaurants && !restaurantSearchFailed && (
+            <span className="shrink-0 rounded-full bg-slate-100 px-2.5 py-1 text-xs font-semibold text-slate-600">
+              {restaurantSearchResults.length}
+            </span>
+          )}
+        </div>
 
-            return (
-              <div
-                key={restaurant?._id || restaurant?.id || restaurant?.restaurant_id || `${name}-${index}`}
-                className="px-4 py-2.5 hover:bg-purple-50"
-              >
-                <p className="truncate text-sm font-semibold text-gray-800">{name}</p>
-                {subtitle && <p className="mt-0.5 truncate text-xs text-gray-500">{subtitle}</p>}
+        {isRestaurantQueryPending || isSearchingRestaurants ? (
+          <div role="status" className="space-y-3 p-4">
+            <p className="text-xs font-medium text-slate-500">
+              {t('search.searchingRestaurants', 'Searching restaurants...')}
+            </p>
+            {[0, 1, 2].map((item) => (
+              <div key={item} className="flex animate-pulse items-center gap-3">
+                <span className="h-10 w-10 rounded-xl bg-slate-100" />
+                <span className="min-w-0 flex-1 space-y-2">
+                  <span className="block h-3 w-2/5 rounded bg-slate-100" />
+                  <span className="block h-2.5 w-3/5 rounded bg-slate-100" />
+                </span>
               </div>
-            );
-          })
+            ))}
+          </div>
+        ) : restaurantSearchFailed ? (
+          <div role="alert" className="m-3 flex items-start gap-3 rounded-xl border border-red-100 bg-red-50 p-4 text-red-700">
+            <CircleAlert className="mt-0.5 h-5 w-5 shrink-0" aria-hidden="true" />
+            <p className="text-sm leading-5">
+              {restaurantSearchError?.response?.data?.message
+                || restaurantSearchError?.message
+                || t('search.restaurantSearchError', 'Could not search restaurants. Please try again.')}
+            </p>
+          </div>
+        ) : restaurantSearchResults.length === 0 ? (
+          <div role="status" className="flex flex-col items-center px-6 py-9 text-center">
+            <span className="mb-3 flex h-12 w-12 items-center justify-center rounded-2xl bg-slate-100 text-slate-400">
+              <Search className="h-5 w-5" aria-hidden="true" />
+            </span>
+            <p className="text-sm font-semibold text-slate-800">
+              {t('search.noRestaurantsFound', 'No restaurants found.')}
+            </p>
+          </div>
+        ) : (
+          <div className="space-y-1 p-2">
+            {restaurantSearchResults.map((restaurant, index) => {
+              const name = getRestaurantName(restaurant);
+              const subtitle = [
+                restaurant?.address || restaurant?.Address,
+                restaurant?.city || restaurant?.City
+              ].filter(Boolean).join(', ');
+
+              return (
+                <div
+                  key={restaurant?._id || restaurant?.id || restaurant?.restaurant_id || `${name}-${index}`}
+                  className="flex items-center gap-3 rounded-xl px-3 py-3 transition-colors hover:bg-purple-50"
+                >
+                  <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-purple-50 text-sm font-bold text-purple-700">
+                    {name.trim().charAt(0).toUpperCase() || <Store className="h-4 w-4" aria-hidden="true" />}
+                  </span>
+                  <span className="min-w-0 flex-1">
+                    <span className="block truncate text-sm font-semibold text-slate-800">{name}</span>
+                    {subtitle && (
+                      <span className="mt-1 flex min-w-0 items-center gap-1.5 text-xs text-slate-500">
+                        <MapPin className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+                        <span className="truncate">{subtitle}</span>
+                      </span>
+                    )}
+                  </span>
+                </div>
+              );
+            })}
+          </div>
         )}
       </div>
     );
@@ -439,8 +507,12 @@ const AdminLayout = () => {
         </header>
 
         {/* Mobile Search Input */}
-        <div className="lg:hidden relative px-4 py-2 bg-white border-b border-gray-100 flex items-center shadow-xs">
-          <div className="flex items-center w-full bg-[#FAEFF5] rounded-full px-3 py-1.5 border border-pink-200 focus-within:ring-1 focus-within:ring-pink-300">
+        <div className="lg:hidden relative z-20 border-b border-slate-100 bg-white px-4 py-3">
+          <div
+            role="search"
+            className="flex w-full items-center gap-3 rounded-2xl border border-slate-200 bg-slate-50 px-3.5 py-3 shadow-sm transition-all focus-within:border-purple-300 focus-within:bg-white focus-within:ring-4 focus-within:ring-purple-100"
+          >
+            <Search className="h-4 w-4 shrink-0 text-slate-400" aria-hidden="true" />
             <input
               type="text"
               value={searchQuery}
@@ -452,7 +524,8 @@ const AdminLayout = () => {
               }}
               placeholder={contextualPlaceholder}
               aria-label={contextualPlaceholder}
-              className="w-full bg-transparent text-xs text-gray-800 placeholder:text-gray-400 focus:outline-none"
+              aria-controls="restaurant-search-results-mobile"
+              className="w-full bg-transparent text-sm text-slate-800 placeholder:text-slate-400 focus:outline-none"
             />
             {searchQuery ? (
               <button
@@ -462,62 +535,63 @@ const AdminLayout = () => {
                   setIsRestaurantSearchFocused(false);
                 }}
                 aria-label={t('search.clear', 'Clear search')}
-                className="text-gray-400 hover:text-gray-600 ml-2 font-bold text-xs"
+                className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-700"
               >
-                ×
+                <X className="h-4 w-4" aria-hidden="true" />
               </button>
-            ) : (
-              <Search className="text-gray-500 w-3.5 h-3.5 ml-2 flex-shrink-0" />
-            )}
+            ) : null}
           </div>
-          <div>
-            {renderRestaurantSearchResults()}
-          </div>
+          {renderRestaurantSearchResults('restaurant-search-results-mobile')}
         </div>
 
 
         {/* Desktop Topbar */}
         <header className="hidden lg:flex h-[80px] w-full items-center justify-between px-8 bg-white shadow-sm z-10 relative">
           {/* Left side: Search & Menu */}
-          <div className="relative flex-1 max-w-[400px]">
-            <div className="flex items-center w-full bg-[#FAEFF5] rounded-full px-4 py-2 border-2 border-pink-300 transition-shadow focus-within:ring-2 focus-within:ring-pink-400">
-              <button
-                onClick={() => setSidebarOpen(!sidebarOpen)}
-                className="text-gray-700 hover:text-pink-600 focus:outline-none mr-3"
+          <div className="flex flex-1 items-center gap-3">
+            <button
+              type="button"
+              onClick={() => setSidebarOpen(!sidebarOpen)}
+              aria-label={t('header.menu', 'Toggle menu')}
+              className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-600 shadow-sm transition-colors hover:border-purple-200 hover:bg-purple-50 hover:text-purple-700"
+            >
+              <Menu className="h-[18px] w-[18px]" aria-hidden="true" />
+            </button>
+            <div className="relative w-full max-w-[480px]">
+              <div
+                role="search"
+                className="flex w-full items-center gap-3 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 shadow-sm transition-all focus-within:border-purple-300 focus-within:bg-white focus-within:ring-4 focus-within:ring-purple-100"
               >
-                <Menu className="w-[18px] h-[18px]" />
-              </button>
-              <input
-                type="text"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                onFocus={() => setIsRestaurantSearchFocused(true)}
-                onBlur={() => setIsRestaurantSearchFocused(false)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Escape') setIsRestaurantSearchFocused(false);
-                }}
-                placeholder={contextualPlaceholder}
-                aria-label={contextualPlaceholder}
-                className="search-input"
-              />
-              {searchQuery ? (
-                <button
-                  type="button"
-                  onClick={() => {
-                    setSearchQuery('');
-                    setIsRestaurantSearchFocused(false);
+                <Search className="h-4 w-4 shrink-0 text-slate-400" aria-hidden="true" />
+                <input
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  onFocus={() => setIsRestaurantSearchFocused(true)}
+                  onBlur={() => setIsRestaurantSearchFocused(false)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Escape') setIsRestaurantSearchFocused(false);
                   }}
-                  aria-label={t('search.clear', 'Clear search')}
-                  className="text-gray-400 hover:text-gray-600 ml-2 font-bold text-base leading-none cursor-pointer"
-                >
-                  ×
-                </button>
-              ) : (
-                <Search className="text-gray-700 w-[18px] h-[18px] ml-3" />
-              )}
-            </div>
-            <div>
-              {renderRestaurantSearchResults()}
+                  placeholder={contextualPlaceholder}
+                  aria-label={contextualPlaceholder}
+                  aria-controls="restaurant-search-results-desktop"
+                  className="w-full bg-transparent text-sm font-medium text-slate-800 placeholder:text-slate-400 focus:outline-none"
+                />
+                {searchQuery ? (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSearchQuery('');
+                      setIsRestaurantSearchFocused(false);
+                    }}
+                    aria-label={t('search.clear', 'Clear search')}
+                    className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-700"
+                  >
+                    <X className="h-4 w-4" aria-hidden="true" />
+                  </button>
+                ) : null}
+              </div>
+              {renderRestaurantSearchResults('restaurant-search-results-desktop')}
             </div>
           </div>
 

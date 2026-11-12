@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from "react";
 import { useMutation } from '@tanstack/react-query';
 import bgImage from "./assets/Gradient.svg";
-import logo from "./assets/logo.svg";
+
+import logo from "./assets/LOGOPlande.svg";
 import { Eye, EyeOff } from 'lucide-react';
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { useTranslation } from 'react-i18next';
 import useAuthStore from '../store/authStore';
 import authService from '../services/authService';
@@ -19,8 +20,9 @@ const Signin = () => {
     const [showOtpScreen, setShowOtpScreen] = useState(false);
     const [otp, setOtp] = useState('');
     const [employeeLoginData, setEmployeeLoginData] = useState(null);
+    const location = useLocation();
     const [formData, setFormData] = useState({
-        email: '',
+        email: location.state?.email || '',
         password: '',
         rememberMe: false
     });
@@ -236,7 +238,7 @@ const Signin = () => {
                     <div className="flex justify-between items-center mb-4 md:mb-6">
                         <h3 className="text-[20px] md:text-[24px] font-semibold">{t('login.title')}</h3>
                         <div className="flex items-center space-x-2">
-                            <img src={logo} alt="Triaxx Logo" className="" />
+                            <img src={logo} alt="Triaxx Logo" className="block h-auto w-70 max-w-[75%] object-contain md:w-44" />
                         </div>
                     </div>
 

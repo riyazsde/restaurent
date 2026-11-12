@@ -12,6 +12,26 @@ export const resolveCurrencySymbol = (currency) => {
     return String(currency).trim();
 }
 
+export const getCurrencyFractionDigits = (currency) => {
+    const resolved = resolveCurrencySymbol(currency);
+    if (!/^[A-Za-z]{3}$/.test(resolved)) return 2;
+
+    try {
+        return new Intl.NumberFormat(undefined, {
+            style: 'currency',
+            currency: resolved
+        }).resolvedOptions().maximumFractionDigits;
+    } catch (error) {
+        if (error instanceof RangeError) return 2;
+        throw error;
+    }
+};
+
+export const roundCurrencyAmount = (amount, currency) => {
+    const factor = 10 ** getCurrencyFractionDigits(currency);
+    return Math.round((Number(amount) + Number.EPSILON) * factor) / factor;
+};
+
 /**
  * Formats a numeric amount with the given currency code.
  * @param {number|string} amount - The numeric amount to format

@@ -50,6 +50,7 @@ describe('BarTabPaymentModal', () => {
             />
         );
 
+        fireEvent.click(screen.getByLabelText('Credit Card'));
         expect(screen.getByText('QA BAR1031 · Tab #1031')).toBeInTheDocument();
         expect(screen.getByText('3750.00 XOF')).toBeInTheDocument();
         expect(screen.getByText('3500.00 XOF')).toBeInTheDocument();
@@ -59,6 +60,23 @@ describe('BarTabPaymentModal', () => {
         expect(screen.getByText('Configured')).toBeInTheDocument();
         expect(screen.getByLabelText('Cash')).toBeInTheDocument();
         expect(screen.getByLabelText('Credit Card')).toBeInTheDocument();
+    });
+
+    test('does not require an online provider for manual cash payment', () => {
+        render(
+            <BarTabPaymentModal
+                isOpen
+                onClose={jest.fn()}
+                onConfirm={jest.fn()}
+                isProcessing={false}
+                currency="XOF"
+                tab={{ client_name: 'QA BAR1031', table_no: '#1031', total: 3750 }}
+            />
+        );
+
+        expect(screen.getByText('Manual cash payment')).toBeInTheDocument();
+        expect(screen.getByText(/Cash does not require an online payment provider/)).toBeInTheDocument();
+        expect(screen.queryByText('Payment provider status')).not.toBeInTheDocument();
     });
 
     test('confirms the selected supported tender', () => {

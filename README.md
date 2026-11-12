@@ -15,7 +15,15 @@ Configure the platform webhook at `https://your-api.example/api/v1/payments/stri
 
 Create and save a POS order before requesting `POST /api/v1/restaurant/pos_order/:id/payment-link` (or the employee equivalent under `/api/v1/employee/pos_order`). The API calculates the amount from the saved order; do not convert XOF to minor units or request split payments. The optional `idempotency_key` defaults to the order ID. Reusing the same key returns the active Checkout Session; another key while checkout is active returns HTTP 409.
 
+Order totals are rounded to the precision of the restaurant's configured currency before saving, so zero-decimal currencies are stored as whole amounts.
+
 Open the returned `data.checkout_url` for the customer. A successful browser redirect is not proof of payment. The app calls `POST /api/v1/restaurant/pos_order/:id/payment/confirm` (or employee equivalent) to refresh status: HTTP 202 means pending and HTTP 200 means Stripe confirms payment. The cancel return route calls the matching `/payment/cancel` endpoint to release an unpaid order for edits.
+
+## Restaurant signup subscription checkout
+
+The public plan cards start checkout at `POST /api/v1/restaurant/admin_plan_buy_restaurant/checkout`. The browser sends the business name, email, selected `Admin_Plan_id`, optional `Country_id`, and `currency: "usd"` with an `Idempotency-Key` header. The API calculates the amount from the selected admin plan's price in major currency units; the frontend must not send a client-supplied amount. The API converts USD to Stripe minor units; it also accepts XOF and keeps those amounts in whole units. It returns a PaymentIntent client secret, which the frontend confirms with Stripe.js Payment Element. Card details must never be collected or sent directly by this app.
+
+Set `REACT_APP_STRIPE_PUBLISHABLE_KEY` in the frontend build environment. Keep the Stripe secret and webhook signing secret only on the API server. After Stripe redirects to `/signup/payment-result`, the frontend checks `/checkout/:checkoutId/status` using the same idempotency key and does not report success or send the customer to sign in until the API reports `succeeded`. The webhook remains responsible for creating and activating the restaurant account and subscription.
 
 Bar tabs use the same platform Stripe account, but require a backend-supported mapping from each tab to a POS order before checkout can be safely enabled.
 

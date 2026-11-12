@@ -2,6 +2,15 @@ import api from './api';
 
 export const planApi = {
     purchase: (data) => api.post('/restaurant/admin_plan_buy_restaurant/purchase', data),
+    createSignupCheckout: (data, idempotencyKey) => api.post(
+        '/restaurant/admin_plan_buy_restaurant/checkout',
+        data,
+        { headers: { 'Idempotency-Key': idempotencyKey } }
+    ),
+    getSignupCheckoutStatus: (checkoutId, idempotencyKey) => api.get(
+        `/restaurant/admin_plan_buy_restaurant/checkout/${encodeURIComponent(checkoutId)}/status`,
+        { headers: { 'Idempotency-Key': idempotencyKey } }
+    ),
     renew: (data) => api.post('/restaurant/admin_plan_buy_restaurant/renew', data),
     getPublicPlans: (subscriptionType) => api.get('/admin/admin_plan/public', { params: { Subscription_Type: subscriptionType } }),
     getActiveSubscription: () => api.get('/restaurant/admin_plan_buy_restaurant/getRestaurantSubscriptionPurchased'),

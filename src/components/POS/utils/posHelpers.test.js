@@ -90,4 +90,36 @@ describe('POS bill and checkout amounts', () => {
             total_amount: 6300
         });
     });
+
+    test('rounds each line and the saved order total to the configured currency precision', () => {
+        const fractionalCart = [{
+            item_id: 18,
+            item_Quentry: 2,
+            itemDetails: { Price: 10.25 }
+        }];
+
+        expect(calculateCartTotals(fractionalCart, 10, 'XOF')).toEqual({
+            subTotal: 20,
+            taxRate: 10,
+            taxAmount: 2,
+            total: 22
+        });
+
+        const payload = buildPosOrderPayload({
+            cartItems: fractionalCart,
+            selectedCustomer: { Customer_id: 3 },
+            diningOption: 'Take Away',
+            taxAmount: 2,
+            currency: 'XOF'
+        });
+
+        expect(payload).toMatchObject({
+            SubTotal: 20,
+            Tax: 2,
+            Total: 22,
+            Grand_Total: 22,
+            total_amount: 22,
+            items: [{ unit_price: 10, line_total: 20 }]
+        });
+    });
 });

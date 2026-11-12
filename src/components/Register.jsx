@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import bgImage from "./assets/Gradient.svg";
-import logo from "./assets/logo.svg";
+import logo from "./assets/LOGOPlande.svg";
 import { useNavigate } from "react-router-dom";
 import { Eye, EyeOff, Loader2 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
@@ -28,7 +28,10 @@ const RegisterPage = () => {
         { id: 8, name: "Nigeria" }
     ];
     const countries = Array.isArray(rawCountries) && rawCountries.length > 0
-        ? rawCountries.map(c => ({ id: c.id, name: c.Country_name || c.name || `Country #${c.id}` }))
+        ? rawCountries.map((c) => {
+            const id = c.Country_id ?? c.id ?? c._id;
+            return { id, name: c.Country_name || c.name || `Country #${id}` };
+        })
         : defaultCountries;
 
     const [email, setEmail] = useState("");
@@ -90,6 +93,17 @@ const RegisterPage = () => {
                 rememberMe
             };
             const response = await registerMutation.mutateAsync(payload);
+            const registration = response?.data || response;
+            if (
+                response?.requiresSubscription
+                || registration?.requiresSubscription
+                || response?.token === null
+                || registration?.token === null
+            ) {
+                toast.info(response?.message || t('register.subscriptionRequired'));
+                navigate('/', { state: { scrollToSubscriptions: true } });
+                return;
+            }
             toast.success(response?.message || t('register.success', 'Registration successful! Please sign in.'));
             navigate('/signin');
         } catch (error) {
@@ -156,9 +170,9 @@ const RegisterPage = () => {
                         <h3 className="text-[20px] md:text-[24px] font-semibold text-[#1F2937]">
                             {t('register.title', 'Register')}
                         </h3>
-                        <div className="flex items-center space-x-2">
-                            <img src={logo} alt="Triaxx Logo" className="h-8" />
-                        </div>
+                       <div className="flex items-center space-x-2">
+                                                  <img src={logo} alt="Triaxx Logo" className="block h-auto w-70 max-w-[75%] object-contain md:w-44" />
+                                              </div>
                     </div>
 
                     <form onSubmit={handleSubmit} className="space-y-3 md:space-y-4">

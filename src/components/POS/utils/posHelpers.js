@@ -1,7 +1,6 @@
 import { IMAGE_BASE_URL } from '../../../services/fileUploadService';
+import { roundCurrencyAmount } from '../../../utils/currencyUtils';
 export { formatCurrency } from '../../../utils/currencyUtils';
-
-const roundCurrencyAmount = (amount) => Math.round((Number(amount) + Number.EPSILON) * 100) / 100;
 
 /**
  * Resolves full image URL with backend fallback
@@ -109,16 +108,17 @@ export const calculateItemPrices = (item) => {
 /**
  * Computes subtotal, tax, and grand total for cart
  */
-export const calculateCartTotals = (cartItems = [], taxRate = 0) => {
+export const calculateCartTotals = (cartItems = [], taxRate = 0, currency) => {
     const rawSubTotal = cartItems.reduce((acc, item) => {
-        const { totalPrice } = calculateItemPrices(item);
-        return acc + totalPrice;
+        const { basePrice, variantPrice, addonPrice, quantity } = calculateItemPrices(item);
+        const unitPrice = roundCurrencyAmount(basePrice + variantPrice + addonPrice, currency);
+        return acc + roundCurrencyAmount(unitPrice * quantity, currency);
     }, 0);
 
     const rate = Number(taxRate || 0);
-    const subTotal = roundCurrencyAmount(rawSubTotal);
-    const taxAmount = roundCurrencyAmount(subTotal * (rate / 100));
-    const total = roundCurrencyAmount(subTotal + taxAmount);
+    const subTotal = roundCurrencyAmount(rawSubTotal, currency);
+    const taxAmount = roundCurrencyAmount(subTotal * (rate / 100), currency);
+    const total = roundCurrencyAmount(subTotal + taxAmount, currency);
 
     return {
         subTotal,
@@ -163,7 +163,8 @@ export const buildPosOrderPayload = ({
     kitchenId,
     taxAmount = 0,
     posType = 'Food',
-    slot
+    slot,
+    currency
 }) => {
     const customerId = selectedCustomer?.Customer_id || selectedCustomer?.id;
     const tableId = selectedTable?.table_id?.Table_id || selectedTable?.Table_id || selectedTable?.id;
@@ -171,7 +172,7 @@ export const buildPosOrderPayload = ({
     const items = cartItems.map(item => {
         const { basePrice, variantPrice, addonPrice } = calculateItemPrices(item);
         const quantity = Number(item.item_Quentry) || 1;
-        const unitPrice = roundCurrencyAmount(basePrice + variantPrice + addonPrice);
+        const unitPrice = roundCurrencyAmount(basePrice + variantPrice + addonPrice, currency);
         return {
             item_id: item.item_id,
             item_Quentry: quantity,
@@ -183,14 +184,14 @@ export const buildPosOrderPayload = ({
             variant_price: Number(variantPrice) || 0,
             addon_price: Number(addonPrice) || 0,
             unit_price: unitPrice,
-            line_total: roundCurrencyAmount(unitPrice * quantity),
+            line_total: roundCurrencyAmount(unitPrice * quantity, currency),
             notes: item.notes || ''
         };
     });
 
-    const { subTotal } = calculateCartTotals(cartItems, 0);
-    const finalTax = roundCurrencyAmount(Number(taxAmount) || 0);
-    const finalTotal = roundCurrencyAmount(subTotal + finalTax);
+    const { subTotal } = calculateCartTotals(cartItems, 0, currency);
+    const finalTax = roundCurrencyAmount(Number(taxAmount) || 0, currency);
+    const finalTotal = roundCurrencyAmount(subTotal + finalTax, currency);
     const payload = {
         items,
         SubTotal: subTotal,

@@ -98,6 +98,12 @@
         "exportFailed": "Failed to export orders",
         "billDownloadError": "Failed to download the order PDF",
         "stripeOrderRequired": "Order ID is required to start Stripe Checkout",
-        "stripeCheckoutError": "Failed to start Stripe Checkout"
+        "stripeCheckoutError": "Failed to start Stripe Checkout",
+        "stripeMinimumAmount": "Stripe cannot process this order because its total is below the minimum charge. Use cash or mobile money, or correct item prices if the total is wrong.",
+        "cashOrderRequired": "Order ID is required to record a cash payment.",
+        "cashOptionUnavailable": "Cash payment is not configured for this restaurant.",
+        "cashPaymentError": "Failed to record the cash payment.",
+        "cashPaymentStatusUpdateError": "Cash payment was recorded, but the order status could not be updated.",
+        "orderTotalSyncError": "The order total could not be verified. Payment was not started."
     }
 }

@@ -138,7 +138,7 @@
 // export default RegisterPage;
 import React, { useState, useEffect } from "react";
 import bgImage from "../assets/Gradient.svg"; // Your background image path
-import logo from "../assets/logo.svg";
+import logo from "../assets/LOGOPlande.svg";
 import { Eye, EyeOff } from 'lucide-react';
 import { useNavigate } from "react-router-dom";
 

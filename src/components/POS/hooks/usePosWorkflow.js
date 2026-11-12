@@ -343,8 +343,8 @@ export const usePosWorkflow = () => {
 
     // Dynamic Reactive Totals
     const { subTotal, taxAmount, total } = useMemo(() => {
-        return calculateCartTotals(cartItems, taxRate);
-    }, [cartItems, taxRate]);
+        return calculateCartTotals(cartItems, taxRate, currency);
+    }, [cartItems, taxRate, currency]);
 
     // Category Select Handler
     const handleCategorySelect = (category) => {
@@ -520,7 +520,8 @@ export const usePosWorkflow = () => {
             restaurantId: resolvedRestaurantId,
             kitchenId: resolvedKitchenId,
             taxAmount,
-            posType
+            posType,
+            currency
         });
 
         try {

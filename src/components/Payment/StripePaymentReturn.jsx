@@ -17,10 +17,11 @@ const StripePaymentReturn = () => {
     const isAuthLoading = useAuthStore((state) => state.isLoading);
     const isSuccess = location.pathname.endsWith('/success');
     const query = new URLSearchParams(location.search);
+    const [rememberedOrderId] = useState(getRememberedStripeOrderId);
     const orderId = query.get('order_id')
         || query.get('orderId')
         || query.get('id')
-        || getRememberedStripeOrderId();
+        || rememberedOrderId;
     const [state, setState] = useState('processing');
     const [message, setMessage] = useState(
         isSuccess

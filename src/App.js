@@ -62,6 +62,7 @@ import EmployeeSalesPerformance from './components/EmployeeDashboard/EmployeeSal
 import EmployeeWorkShifts from './components/EmployeeDashboard/EmployeeWorkShifts'
 import EmployeeSettings from './components/EmployeeDashboard/EmployeeSettings'
 import StripePaymentReturn from './components/Payment/StripePaymentReturn';
+import SubscriptionPaymentResult from './components/Payment/SubscriptionPaymentResult';
 
 const App = () => {
   const { initLanguage } = useLanguageStore();
@@ -96,6 +97,7 @@ const App = () => {
         <Route path="/verifyotp" element={<PublicRoute><VerifyOtp /></PublicRoute>} />
         <Route path="/payment/success" element={<StripePaymentReturn />} />
         <Route path="/payment/cancel" element={<StripePaymentReturn />} />
+        <Route path="/signup/payment-result" element={<SubscriptionPaymentResult />} />
 
         {/* Protected Routes */}
         <Route path="/dashboard" element={<ProtectedRoute allowedRoles={['Restaurant', 'Admin']}><AdminLayout /></ProtectedRoute>}>

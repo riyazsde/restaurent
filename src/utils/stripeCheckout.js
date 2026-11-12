@@ -23,6 +23,11 @@ export const getStripeCheckoutUrl = (response) => {
     return null;
 };
 
+export const isStripeMinimumAmountError = (error) => {
+    const message = error?.response?.data?.message || error?.message || '';
+    return /total amount.*at least 50 cents/i.test(message);
+};
+
 export const rememberStripeOrderId = (orderId) => {
     if (orderId === undefined || orderId === null || orderId === '') {
         throw new Error('Order ID is required for Stripe Checkout');

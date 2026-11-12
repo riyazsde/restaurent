@@ -28,7 +28,12 @@ import {
 import { useDevices } from '../../../hooks/queries/useDevices';
 import posService from '../../../services/posService';
 import { formatCurrency } from '../../../utils/currencyUtils';
-import { getStripeCheckoutUrl, rememberStripeOrderId } from '../../../utils/stripeCheckout';
+import { findPaymentOptionId } from '../../../utils/paymentOptions';
+import {
+    getStripeCheckoutUrl,
+    isStripeMinimumAmountError,
+    rememberStripeOrderId
+} from '../../../utils/stripeCheckout';
 
 export default function PosCheckoutModal({
     isOpen,
@@ -370,9 +375,14 @@ export default function PosCheckoutModal({
             rememberStripeOrderId(orderId);
             window.location.assign(paymentUrl);
         } catch (err) {
-            const message = err?.response?.data?.message
-                || err?.message
-                || t('checkoutModal.stripeError', 'Failed to start Stripe Checkout');
+            const message = isStripeMinimumAmountError(err)
+                ? t(
+                    'checkoutModal.stripeMinimumAmount',
+                    'Stripe cannot process this order because its total is below the minimum charge. Use cash or mobile money, or correct item prices if the total is wrong.'
+                )
+                : err?.response?.data?.message
+                    || err?.message
+                    || t('checkoutModal.stripeError', 'Failed to start Stripe Checkout');
             setStripeErrorMessage(message);
             toast.error(message);
         } finally {
@@ -386,17 +396,17 @@ export default function PosCheckoutModal({
             return;
         }
 
+        const cashOptionId = findPaymentOptionId(paymentOptions, 'cash');
+        if (cashOptionId === null) {
+            toast.error(t(
+                'checkoutModal.cashOptionUnavailable',
+                'Cash payment is not configured for this restaurant.'
+            ));
+            return;
+        }
+
         setIsProcessingCash(true);
         try {
-            // Find Cash Payment Option ID across all entries in PaymentOption array
-            const cashOption = paymentOptions.find((opt) => {
-                if (Array.isArray(opt?.PaymentOption)) {
-                    return opt.PaymentOption.some((p) => String(p?.option || '').toLowerCase().includes('cash'));
-                }
-                return String(opt?.option || opt?.Name || '').toLowerCase().includes('cash');
-            });
-            const cashOptionId = cashOption?.Payment_Options_id || paymentOptions[0]?.Payment_Options_id || 1;
-
             const paymentData = {
                 Payment_Options_id: cashOptionId,
                 paymentStatus: 'Success',

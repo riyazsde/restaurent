@@ -7,11 +7,16 @@ import StripePaymentReturn from './StripePaymentReturn';
 
 const mockLocation = { pathname: '', search: '' };
 const mockNavigate = jest.fn();
+const mockTranslate = (key, fallback) => fallback || key;
 
 jest.mock('react-router-dom', () => ({
     useLocation: () => mockLocation,
     useNavigate: () => mockNavigate
 }), { virtual: true });
+
+jest.mock('react-i18next', () => ({
+    useTranslation: () => ({ t: mockTranslate })
+}));
 
 jest.mock('../../services/posService', () => ({
     confirmStripePayment: jest.fn(),
