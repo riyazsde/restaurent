@@ -233,6 +233,7 @@ const Signin = () => {
             </div>
 
             {/* Right Side */}
+            
             <div style={{ fontFamily: 'Poppins' }} className="w-full md:w-1/2 overflow-y-auto flex items-center justify-center relative z-10">
                 <div className="max-w-md w-full bg-white mx-4 p-4 md:p-8 space-y-4 md:space-y-6 mt-8 md:mt-32">
                     <div className="flex justify-between items-center mb-4 md:mb-6">
