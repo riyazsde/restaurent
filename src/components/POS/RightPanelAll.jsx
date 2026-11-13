@@ -769,15 +769,11 @@ const RightPanelAll = ({
                     throw new Error('The created order response did not include an order ID.');
                 }
                 setCreatedOrderId(posOrderId);
-                const localSubtotal = Number(calculateSubtotal()) || 0;
-                const localTax = Number(calculateTax()) || 0;
-                const localTotal = Number(calculateTotal()) || localSubtotal + localTax;
-
-                setOrderTotal(localTotal);
+                setOrderTotal(orderData.Total);
                 setCreatedOrderTotals({
-                    subTotal: localSubtotal,
-                    taxAmount: localTax,
-                    total: localTotal
+                    subTotal: orderData.SubTotal,
+                    taxAmount: orderData.Tax,
+                    total: orderData.Total
                 });
                 try {
                     await invoiceService.generatePosInvoice(posOrderId);

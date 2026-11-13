@@ -11,6 +11,17 @@ const readAmount = (order, fields) => {
 };
 
 const ORDER_TOTAL_FIELDS = [
+    'Total',
+    'total',
+    'Grand_Total',
+    'grand_total',
+    'GrandTotal',
+    'Total_Amount',
+    'total_amount',
+    'total_price'
+];
+
+const PAYMENT_TOTAL_FIELDS = [
     'Grand_Total',
     'grand_total',
     'GrandTotal',
@@ -79,7 +90,7 @@ export const getOrderTotalsCorrection = (order = {}) => {
 };
 
 export const isStoredOrderTotalConsistent = (order, expectedTotal) => {
-    const savedTotal = readAmount(order, ORDER_TOTAL_FIELDS);
+    const savedTotal = readAmount(order, PAYMENT_TOTAL_FIELDS);
     return savedTotal !== null && Math.abs(savedTotal - expectedTotal) <= 0.01;
 };
 

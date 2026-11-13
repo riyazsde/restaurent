@@ -30,6 +30,27 @@ describe('resolveOrderTotal', () => {
         })).toBe(2363);
     });
 
+    test('prefers the POS total over a stale grand total alias', () => {
+        expect(resolveOrderTotal({
+            Total: 9450,
+            Grand_Total: 5050
+        })).toBe(9450);
+    });
+
+    test('verifies the payment total alias when a generic total alias is stale', () => {
+        expect(isStoredOrderTotalConsistent({
+            Total: 3710,
+            Grand_Total: 3910
+        }, 3910)).toBe(true);
+    });
+
+    test('does not verify a payment total from a generic alias when grand total differs', () => {
+        expect(isStoredOrderTotalConsistent({
+            Total: 3910,
+            Grand_Total: 3710
+        }, 3910)).toBe(false);
+    });
+
     test('recalculates from item prices when the saved amount only contains tax', () => {
         expect(resolveOrderTotal({
             SubTotal: 0,

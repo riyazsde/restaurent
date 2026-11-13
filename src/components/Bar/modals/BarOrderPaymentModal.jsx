@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { X, Minus, Plus, ArrowLeft, CreditCard } from 'lucide-react';
-import { formatCurrency, roundCurrencyAmount } from '../../../utils/currencyUtils';
+import { formatCurrency } from '../../../utils/currencyUtils';
 import posService from '../../../services/posService';
 import { toast } from 'react-toastify';
 import {
@@ -9,12 +9,6 @@ import {
     isStripeMinimumAmountError,
     rememberStripeOrderId
 } from '../../../utils/stripeCheckout';
-import { calculateBarOrderTotals } from '../barOrderTotals';
-import {
-    calculateOrderItemsSubtotal,
-    extractOrder
-} from '../../FloorPlan/floorPlanPayment';
-import { isStoredOrderTotalConsistent } from '../../Orders/orderTotals';
 
 const BarOrderPaymentModal = ({
     isOpen = false,
@@ -49,10 +43,17 @@ const BarOrderPaymentModal = ({
     }, [isOpen]);
 
     // Financial calculations
-    const { itemsTotal: itemsNetTotal, taxAmount: taxes, serviceCharge, grandTotal } = useMemo(
-        () => calculateBarOrderTotals(cartItems, taxRate, currency),
-        [cartItems, taxRate, currency]
-    );
+    const itemsNetTotal = useMemo(() => {
+        return cartItems.reduce((acc, it) => acc + (Number(it.price) || 0) * (it.quantity || 1), 0);
+    }, [cartItems]);
+
+    const taxes = useMemo(() => {
+        return Math.round(itemsNetTotal * taxRate);
+    }, [itemsNetTotal, taxRate]);
+
+    const grandTotal = useMemo(() => {
+        return itemsNetTotal + taxes;
+    }, [itemsNetTotal, taxes]);
 
     if (!isOpen) return null;
 
@@ -82,12 +83,9 @@ const BarOrderPaymentModal = ({
                     item_Quentry: item.quantity || 1,
                     item_size: item.size || 'Regular',
                     item_status: 'Preparing',
-                    item_price: roundCurrencyAmount(Number(item.price) || 0, currency),
-                    unit_price: roundCurrencyAmount(Number(item.price) || 0, currency),
-                    line_total: roundCurrencyAmount(
-                        (Number(item.price) || 0) * (item.quantity || 1),
-                        currency
-                    ),
+                    item_price: Number(item.price) || 0,
+                    unit_price: Number(item.price) || 0,
+                    line_total: (Number(item.price) || 0) * (item.quantity || 1),
                     notes: item.notes || item.addonsText || ''
                 })),
                 Tax: taxes,
@@ -95,7 +93,6 @@ const BarOrderPaymentModal = ({
                 Total: grandTotal,
                 Grand_Total: grandTotal,
                 total_amount: grandTotal,
-                Service_Charge: serviceCharge,
                 Dining_Option: 'Dine in',
                 Order_Type: 'Bar',
                 Table_id: isNaN(Number(selectedTable)) ? 128 : Number(selectedTable),
@@ -107,40 +104,18 @@ const BarOrderPaymentModal = ({
             let orderId = createdOrderId;
             if (!orderId) {
                 const orderResponse = await posService.createPosOrder(orderPayload);
-                orderId = orderResponse?.data?.POS_Order_id ||
-                    orderResponse?.data?.id ||
-                    orderResponse?.POS_Order_id ||
-                    orderResponse?.id;
-                if (orderId) setCreatedOrderId(orderId);
-            }
-
-            if (!orderId) {
-                throw new Error(t('bar.payment.orderCreateError', 'The order was created without an order ID.'));
+                orderId = orderResponse?.data?.POS_Order_id
+                    || orderResponse?.data?.Order_id
+                    || orderResponse?.data?.id
+                    || orderResponse?.POS_Order_id
+                    || orderResponse?.id;
+                if (!orderId) {
+                    throw new Error(t('bar.payment.orderCreateError', 'The order was created without an order ID.'));
+                }
+                setCreatedOrderId(orderId);
             }
 
             if (selectedMethod === 'stripe') {
-                const updateResponse = await posService.updateOrder({
-                    id: orderId,
-                    ...orderPayload
-                });
-                if (!updateResponse || updateResponse.success === false) {
-                    throw new Error(
-                        updateResponse?.message
-                        || t('bar.payment.orderTotalError', 'The order total could not be verified. Payment was not started.')
-                    );
-                }
-
-                const synchronizedOrder = extractOrder(await posService.getOrderById(orderId));
-                const synchronizedItemsTotal = calculateOrderItemsSubtotal(synchronizedOrder?.items || []);
-                if (
-                    !isStoredOrderTotalConsistent(synchronizedOrder, grandTotal)
-                    || Math.abs(synchronizedItemsTotal - itemsNetTotal) > 0.01
-                ) {
-                    throw new Error(
-                        t('bar.payment.orderTotalError', 'The order total could not be verified. Payment was not started.')
-                    );
-                }
-
                 const stripeResponse = await posService.createStripePaymentLink(orderId);
                 const paymentUrl = getStripeCheckoutUrl(stripeResponse);
                 if (!paymentUrl) {
@@ -152,16 +127,18 @@ const BarOrderPaymentModal = ({
             }
 
             // 2. Record payment transaction if possible
-            try {
-                await posService.createPayment({
-                    Payment_Options_id: 1,
-                    paymentStatus: 'Success',
-                    Order_id: orderId,
-                    amount: grandTotal,
-                    payment_method: methodTitle
-                });
-            } catch (payErr) {
-                console.warn('Optional payment record notification:', payErr);
+            if (orderId) {
+                try {
+                    await posService.createPayment({
+                        Payment_Options_id: 1,
+                        paymentStatus: 'Success',
+                        Order_id: orderId,
+                        amount: grandTotal,
+                        payment_method: methodTitle
+                    });
+                } catch (payErr) {
+                    console.warn('Optional payment record notification:', payErr);
+                }
             }
 
             toast.success(t('bar.payment.orderCompleted', 'Payment successful! Order completed.'));
@@ -302,17 +279,6 @@ const BarOrderPaymentModal = ({
                                 </span>
                             </div>
 
-                            {serviceCharge > 0 && (
-                                <div className="flex justify-between items-center border-b border-[#F5B8CB]/70 pb-3 text-[14px]">
-                                    <span className="font-medium text-gray-900">
-                                        {t('bar.payment.serviceCharge', 'Service charge')}
-                                    </span>
-                                    <span className="font-semibold text-gray-900">
-                                        {formatCurrency(serviceCharge, currency)}
-                                    </span>
-                                </div>
-                            )}
-
                             <div className="flex justify-between items-center border-b border-[#F5B8CB]/70 pb-3 text-[15px]">
                                 <span className="font-bold text-gray-950">
                                     {t('bar.payment.total', 'Total')}
@@ -408,9 +374,11 @@ const BarOrderPaymentModal = ({
                             </h4>
 
                             {/* Stripe Checkout */}
-                            <div
+                            <button
+                                type="button"
+                                aria-pressed={selectedMethod === 'stripe'}
                                 onClick={() => setSelectedMethod('stripe')}
-                                className={`w-full border rounded-[10px] px-4 py-3 flex items-center justify-between cursor-pointer transition-all ${
+                                className={`w-full border rounded-[10px] px-4 py-3 flex items-center justify-between text-left cursor-pointer transition-all ${
                                     selectedMethod === 'stripe'
                                         ? 'border-[#8B206F] ring-1 ring-[#8B206F] bg-pink-50/20'
                                         : 'border-[#2C2C2C] hover:border-gray-800 hover:bg-gray-50/50'
@@ -420,7 +388,7 @@ const BarOrderPaymentModal = ({
                                     <span className="text-[14.5px] font-medium text-gray-900">
                                         {t('bar.payment.stripeCheckout', 'Pay with Stripe')}
                                     </span>
-                                    <CreditCard className="w-4 h-4" aria-hidden="true" />
+                                    <CreditCard className="w-4 h-4 text-indigo-600" aria-hidden="true" />
                                 </div>
                                 <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all ${
                                     selectedMethod === 'stripe' ? 'border-[#8B206F]' : 'border-[#2C2C2C]'
@@ -429,7 +397,7 @@ const BarOrderPaymentModal = ({
                                         <div className="w-2.5 h-2.5 rounded-full bg-[#8B206F]" />
                                     )}
                                 </div>
-                            </div>
+                            </button>
 
                             {/* Option 3: Debit Card Payment 💳 */}
                             <div
