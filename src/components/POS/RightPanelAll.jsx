@@ -255,6 +255,7 @@ const RightPanelAll = ({
     const [selectedPaymentMethod, setSelectedPaymentMethod] = useState(null);
     const [paymentOptions, setPaymentOptions] = useState([]);
     const [createdOrderId, setCreatedOrderId] = useState(null);
+    const createdOrderSignatureRef = useRef(null);
     const [orderTotal, setOrderTotal] = useState(0);
     const [createdOrderTotals, setCreatedOrderTotals] = useState(null);
     const [isCreatingOrder, setIsCreatingOrder] = useState(false);
@@ -739,8 +740,6 @@ const RightPanelAll = ({
     };
 
     const createOrderForPayment = async () => {
-        if (createdOrderId) return createdOrderId;
-
         const customer = useNewProps ? selectedCustomerProp : selectedCustomer;
         const dining = useNewProps ? diningOptionProp : selectedDining;
         const table = useNewProps ? selectedTableProp : selectedTable;
@@ -760,6 +759,16 @@ const RightPanelAll = ({
                 slot: selectedSlot,
                 currency,
             });
+            const orderSignature = JSON.stringify(orderData);
+            if (createdOrderId && createdOrderSignatureRef.current === orderSignature) {
+                return createdOrderId;
+            }
+            if (createdOrderId) {
+                setCreatedOrderId(null);
+                setOrderTotal(0);
+                setCreatedOrderTotals(null);
+                createdOrderSignatureRef.current = null;
+            }
 
             const response = await createPosOrderMutation.mutateAsync(orderData);
 
@@ -769,6 +778,7 @@ const RightPanelAll = ({
                     throw new Error('The created order response did not include an order ID.');
                 }
                 setCreatedOrderId(posOrderId);
+                createdOrderSignatureRef.current = orderSignature;
                 setOrderTotal(orderData.Total);
                 setCreatedOrderTotals({
                     subTotal: orderData.SubTotal,
@@ -886,6 +896,7 @@ const RightPanelAll = ({
         setPaymentReceipt(receiptData);
         setShowReceiptModal(true);
         setCreatedOrderId(null);
+        createdOrderSignatureRef.current = null;
         setOrderTotal(0);
         setCreatedOrderTotals(null);
         setSelectedPaymentMethod(null);
@@ -930,6 +941,7 @@ const RightPanelAll = ({
                 toast.success('Payment processed successfully!');
 
                 setCreatedOrderId(null);
+                createdOrderSignatureRef.current = null;
                 setOrderTotal(0);
                 setCreatedOrderTotals(null);
                 setSelectedPaymentMethod(null);

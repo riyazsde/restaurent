@@ -24,8 +24,18 @@ export const extractOrder = (response) => {
     return candidates.find((candidate) => getOrderId(candidate)) || null;
 };
 
+export const getOrderPaymentStatus = (order) => {
+    const status = [
+        order?.payment_status,
+        order?.paymentStatus,
+        order?.Payment_Status,
+        order?.PaymentStatus
+    ].find((value) => value !== undefined && value !== null && String(value).trim() !== '');
+    return String(status ?? '').trim().toLowerCase();
+};
+
 export const isPaymentVerified = (order) => {
-    const status = String(order?.payment_status ?? order?.paymentStatus ?? '').trim().toLowerCase();
+    const status = getOrderPaymentStatus(order);
     return ['success', 'paid', 'completed'].includes(status);
 };
 

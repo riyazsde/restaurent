@@ -31,7 +31,11 @@ import {
     isStoredOrderTotalConsistent,
     resolveOrderTotal
 } from './orderTotals';
-import { extractOrder } from '../FloorPlan/floorPlanPayment';
+import {
+    extractOrder,
+    getOrderPaymentStatus,
+    isPaymentVerified
+} from '../FloorPlan/floorPlanPayment';
 import {
     getStripeCheckoutUrl,
     isStripeMinimumAmountError,
@@ -106,6 +110,7 @@ const OrderCard = ({ order, onRefresh, paymentOptions, refetchPaymentOptions }) 
 
     const [items, setItems] = useState(() => mapOrderItems(orderItemsList));
     const [localPaid, setLocalPaid] = useState(false);
+    const isOrderPaid = localPaid || isPaymentVerified(order);
 
     useEffect(() => {
         setItems(mapOrderItems(order?.items || []));
@@ -162,7 +167,6 @@ const OrderCard = ({ order, onRefresh, paymentOptions, refetchPaymentOptions }) 
 
             if (response && response.success !== false) {
                 if (newStatus === 'Completed' || newStatus === 'Served') {
-                    setLocalPaid(true);
                     setItems(prev => prev.map(itm =>
                         itm.item_status === 'Cancelled' ? itm : { ...itm, item_status: 'Served' }
                     ));
@@ -189,6 +193,39 @@ const OrderCard = ({ order, onRefresh, paymentOptions, refetchPaymentOptions }) 
 
     const handlePayment = async () => {
         const orderId = order?.POS_Order_id ?? order?.id ?? order?.Order_id;
+        if (isOrderPaid) {
+            setShowPaymentModal(false);
+            toast.info(t('messages.orderAlreadyPaid'));
+            return;
+        }
+
+        if (selectedPaymentMethod === 'stripe') {
+            if (!orderId) {
+                toast.error(t('messages.stripeOrderRequired'));
+                return;
+            }
+
+            try {
+                const latestOrder = extractOrder(await posService.getOrderById(orderId));
+                if (!latestOrder || !getOrderPaymentStatus(latestOrder)) {
+                    throw new Error(t('messages.paymentStatusCheckError'));
+                }
+                if (isPaymentVerified(latestOrder)) {
+                    setLocalPaid(true);
+                    setShowPaymentModal(false);
+                    toast.info(t('messages.orderAlreadyPaid'));
+                    return;
+                }
+            } catch (error) {
+                toast.error(
+                    error?.response?.data?.message
+                    || error?.message
+                    || t('messages.paymentStatusCheckError')
+                );
+                return;
+            }
+        }
+
         const totalsCorrection = getOrderTotalsCorrection(order);
         if (totalsCorrection) {
             if (!orderId) {
@@ -551,12 +588,14 @@ const OrderCard = ({ order, onRefresh, paymentOptions, refetchPaymentOptions }) 
                                         </div>
                                     </>
                                 )}
-                                <li onClick={() => setShowPaymentModal(true)}
-                                    className="flex font-medium items-center gap-2 text-green-800 cursor-pointer hover:bg-green-100 px-2 py-1 rounded">
-                                    <FaMoneyBill className="text-xs" />
-                                    <span>{t('actions.payAndComplete')}</span>
-                                </li>
-                                {showPaymentModal && (
+                                {!isOrderPaid && (
+                                    <li onClick={() => setShowPaymentModal(true)}
+                                        className="flex font-medium items-center gap-2 text-green-800 cursor-pointer hover:bg-green-100 px-2 py-1 rounded">
+                                        <FaMoneyBill className="text-xs" />
+                                        <span>{t('actions.payAndComplete')}</span>
+                                    </li>
+                                )}
+                                {showPaymentModal && !isOrderPaid && (
                                     <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50">
                                         {/* <div className="bg-white w-[90%] sm:w-[450px] rounded-xl shadow-xl p-6 relative"> */}
                                         <div className="bg-white w-[90%] sm:w-[450px] max-h-[80vh] overflow-y-auto rounded-xl hide-scrollbar shadow-xl p-6 relative">
@@ -704,14 +743,15 @@ const OrderCard = ({ order, onRefresh, paymentOptions, refetchPaymentOptions }) 
                             ? 'Served'
                             : (order?.Order_Status || 'Preparing');
                         const isOrderFinished = effectiveOrderStatus === 'Served' || effectiveOrderStatus === 'Completed';
-                        const rawPayStatus = order?.payment_status;
-                        const effectivePayStatus = localPaid || ['Completed', 'Paid', 'Success'].includes(rawPayStatus)
+                        const rawPayStatus = order?.payment_status
+                            ?? order?.paymentStatus
+                            ?? order?.Payment_Status
+                            ?? order?.PaymentStatus;
+                        const effectivePayStatus = isOrderPaid
                             ? (rawPayStatus && ['Completed', 'Paid', 'Success'].includes(rawPayStatus) ? rawPayStatus : 'Completed')
                             : effectiveOrderStatus === 'Cancelled'
                                 ? 'Cancelled'
-                                : isOrderFinished
-                                    ? 'Completed'
-                                    : (rawPayStatus || 'Pending');
+                                : (rawPayStatus || 'Pending');
 
                         return (
                             <>

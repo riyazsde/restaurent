@@ -5,6 +5,12 @@
   "showing": "Affichage de {{count}} facture(s)",
   "showingAllDates": "Affichage des factures pour toutes les dates",
   "noInvoices": "Aucune facture trouvée.",
+  "pagination": {
+    "showing": "Affichage de {{start}} à {{end}} sur {{count}} factures",
+    "page": "Page {{current}} sur {{total}}",
+    "previous": "Précédent",
+    "next": "Suivant"
+  },
   "na": "N/D",
   "table": {
     "invoiceId": "ID de facture",

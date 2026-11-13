@@ -5,6 +5,12 @@
   "showing": "Showing {{count}} Invoice(s)",
   "showingAllDates": "Showing Invoices for All Dates",
   "noInvoices": "No invoices found.",
+  "pagination": {
+    "showing": "Showing {{start}}-{{end}} of {{count}} invoices",
+    "page": "Page {{current}} of {{total}}",
+    "previous": "Previous",
+    "next": "Next"
+  },
   "na": "N/A",
   "table": {
     "invoiceId": "Invoice ID",

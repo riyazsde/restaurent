@@ -2,6 +2,7 @@ import {
     extractOrder,
     createVerifiedReceipt,
     getOrderId,
+    getOrderPaymentStatus,
     getOrderTotal,
     isPaymentVerified,
     isOrderForTable,
@@ -34,6 +35,11 @@ describe('Floor Plan payment state helpers', () => {
         expect(isPaymentVerified({ Order_Status: 'Completed' })).toBe(false);
         expect(isPaymentVerified({ payment_status: 'Pending' })).toBe(false);
         expect(isPaymentVerified({ paymentStatus: 'Success' })).toBe(true);
+        expect(isPaymentVerified({ Payment_Status: 'Paid' })).toBe(true);
+        expect(getOrderPaymentStatus({
+            payment_status: '',
+            Payment_Status: 'Pending'
+        })).toBe('pending');
     });
 
     test('does not invent a total when an order is absent', () => {

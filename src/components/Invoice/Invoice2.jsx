@@ -17,10 +17,13 @@ import { formatCurrency, resolveCurrencySymbol } from '../../utils/currencyUtils
 import useSearchStore from '../../store/searchStore';
 import InvoiceViewModal from './InvoiceViewModal';
 
+const INVOICES_PER_PAGE = 10;
+
 const ReservationsHeader = () => {
     const { t } = useTranslation('invoice');
     const navigate = useNavigate();
     const [showModal, setShowModal] = useState(false);
+    const [currentPage, setCurrentPage] = useState(1);
     const [isExporting, setIsExporting] = useState(false);
     const [selectedInvoice, setSelectedInvoice] = useState(null);
     const [isViewModalOpen, setIsViewModalOpen] = useState(false);
@@ -212,6 +215,24 @@ const ReservationsHeader = () => {
         });
     }, [formattedData, searchQuery]);
 
+    const totalPages = Math.ceil(filteredData.length / INVOICES_PER_PAGE);
+    const paginatedData = useMemo(() => {
+        const startIndex = (currentPage - 1) * INVOICES_PER_PAGE;
+        return filteredData.slice(startIndex, startIndex + INVOICES_PER_PAGE);
+    }, [currentPage, filteredData]);
+    const firstVisibleInvoice = filteredData.length === 0
+        ? 0
+        : (currentPage - 1) * INVOICES_PER_PAGE + 1;
+    const lastVisibleInvoice = Math.min(currentPage * INVOICES_PER_PAGE, filteredData.length);
+
+    useEffect(() => {
+        setCurrentPage(1);
+    }, [searchQuery]);
+
+    useEffect(() => {
+        setCurrentPage(page => Math.min(page, Math.max(totalPages, 1)));
+    }, [totalPages]);
+
     return (
         <>
             <div className="p-4 sm:p-6 font-[Poppins] space-y-4">
@@ -367,7 +388,7 @@ const ReservationsHeader = () => {
                                     </td>
                                 </tr>
                             ) : (
-                                filteredData.map((row, i) => (
+                                paginatedData.map((row, i) => (
                                     <tr
                                         key={i}
                                         className="border-b border-gray-200 hover:bg-gray-50/50 transition-colors bg-white"
@@ -435,7 +456,7 @@ const ReservationsHeader = () => {
                                 {searchQuery ? t('common.noResults', 'No invoices found') : t('noInvoices')}
                             </div>
                         ) : (
-                            filteredData.map((row, i) => (
+                            paginatedData.map((row, i) => (
                                 <div
                                     key={i}
                                     className="border border-gray-300 rounded-lg p-4 bg-white shadow-sm"
@@ -495,6 +516,41 @@ const ReservationsHeader = () => {
                         )))}
                     </div>
                 </div>
+                {!isLoading && filteredData.length > 0 && (
+                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 border-t border-gray-200 px-4 py-3">
+                        <p className="text-sm text-gray-600">
+                            {t('pagination.showing', {
+                                start: firstVisibleInvoice,
+                                end: lastVisibleInvoice,
+                                count: filteredData.length
+                            })}
+                        </p>
+                        <div className="flex items-center justify-end gap-3">
+                            <button
+                                type="button"
+                                onClick={() => setCurrentPage(page => Math.max(page - 1, 1))}
+                                disabled={currentPage === 1}
+                                className="rounded-md border border-gray-300 px-3 py-1.5 text-sm text-gray-700 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
+                            >
+                                {t('pagination.previous')}
+                            </button>
+                            <span className="whitespace-nowrap text-sm text-gray-600">
+                                {t('pagination.page', {
+                                    current: currentPage,
+                                    total: totalPages
+                                })}
+                            </span>
+                            <button
+                                type="button"
+                                onClick={() => setCurrentPage(page => Math.min(page + 1, totalPages))}
+                                disabled={currentPage === totalPages}
+                                className="rounded-md border border-gray-300 px-3 py-1.5 text-sm text-gray-700 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
+                            >
+                                {t('pagination.next')}
+                            </button>
+                        </div>
+                    </div>
+                )}
             </div>
         </div>
 
