@@ -3,6 +3,7 @@ import { merchantPaymentConfigApi } from '../../api/merchantPaymentConfig.api';
 import { terminalPaymentsApi } from '../../api/terminalPayments.api';
 import { mobileMoneyApi } from '../../api/mobileMoney.api';
 import { QUERY_KEYS } from '../../utils/queryKeys';
+import { isTerminalFinalStatus, normalizeTerminalStatus } from '../../utils/terminalStatus';
 
 export const PAYMENT_INTEGRATION_KEYS = {
     CONFIGS: ['merchant_payment_configs'],
@@ -75,12 +76,13 @@ export const useTerminalPaymentStatus = (attemptId, options = {}) => {
         },
         enabled: Boolean(attemptId),
         refetchInterval: (query) => {
-            const status = query.state.data?.status;
-            // Stop polling once final state is reached
-            if (['Approved', 'Declined', 'Cancelled', 'Error', 'Reversed'].includes(status)) {
+            const rawStatus = query.state.data?.status;
+            const status = normalizeTerminalStatus(rawStatus);
+            // Stop polling once the terminal reports a final state, including backend aliases such as Success/Paid.
+            if (isTerminalFinalStatus(status)) {
                 return false;
             }
-            return 2000; // Poll every 2 seconds while Pending or AwaitingBankConfirmation
+            return 2000; // Poll every 2 seconds while pending or awaiting bank confirmation.
         },
         ...options
     });

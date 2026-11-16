@@ -40,4 +40,16 @@ describe('POS Stripe payment endpoints', () => {
     );
     expect(response).toEqual({ success: true, httpStatus: 202 });
   });
+
+  it('accepts employee role strings in lowercase and mixed case', async () => {
+    useAuthStore.setState({ userRole: 'employee' });
+    api.post.mockResolvedValue({ data: { success: true }, status: 200 });
+
+    await posService.createStripePaymentLink(789);
+
+    expect(api.post).toHaveBeenCalledWith(
+      '/employee/pos_order/789/payment-link',
+      {}
+    );
+  });
 });

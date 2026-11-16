@@ -34,6 +34,11 @@ import {
     isStripeMinimumAmountError,
     rememberStripeOrderId
 } from '../../../utils/stripeCheckout';
+import {
+    isTerminalSuccessStatus,
+    normalizeTerminalStatus,
+    isTerminalFinalStatus
+} from '../../../utils/terminalStatus';
 
 export default function PosCheckoutModal({
     isOpen,
@@ -95,7 +100,7 @@ export default function PosCheckoutModal({
         enabled: Boolean(cardAttemptId)
     });
 
-    const terminalStatus = attemptStatusData?.status || 'Pending';
+    const terminalStatus = normalizeTerminalStatus(attemptStatusData?.status || 'Pending');
 
     // Handle Card Payment Status Changes & Step 5 Order Status Verification
     useEffect(() => {
@@ -108,10 +113,10 @@ export default function PosCheckoutModal({
                 // Step 5: Verify final order status via GET /api/v1/restaurant/pos_order/getbyid/:id
                 const orderRes = await posService.getOrderById(orderId);
                 const orderData = orderRes?.data || orderRes;
+                const orderPaymentStatus = normalizeTerminalStatus(orderData?.payment_status || orderData?.paymentStatus);
                 const isOrderPaid =
-                    orderData?.payment_status === 'Success' ||
-                    orderData?.paymentStatus === 'Success' ||
-                    terminalStatus === 'Approved';
+                    orderPaymentStatus === 'Approved' ||
+                    isTerminalSuccessStatus(terminalStatus);
 
                 if (!isCancelled && isOrderPaid) {
                     toast.success(t('checkoutModal.cardApproved', 'Card payment approved by acquiring bank!'));
@@ -127,8 +132,8 @@ export default function PosCheckoutModal({
                     }
                 }
             } catch {
-                // Fallback if order check fails but terminal attempt is explicitly Approved
-                if (!isCancelled && terminalStatus === 'Approved') {
+                // Fallback if order check fails but terminal attempt is explicitly Approved/Success/Paid.
+                if (!isCancelled && isTerminalSuccessStatus(terminalStatus)) {
                     toast.success(t('checkoutModal.cardApproved', 'Card payment approved by acquiring bank!'));
                     if (onPaymentSuccess) {
                         onPaymentSuccess({
@@ -144,11 +149,11 @@ export default function PosCheckoutModal({
             }
         };
 
-        if (terminalStatus === 'Approved') {
+        if (isTerminalSuccessStatus(terminalStatus)) {
             verifyFinalOrderAndComplete(attemptStatusData || {});
-        } else if (['Declined', 'Cancelled', 'Error'].includes(terminalStatus)) {
+        } else if (isTerminalFinalStatus(terminalStatus) && !isTerminalSuccessStatus(terminalStatus)) {
             setCardErrorMessage(
-                attemptStatusData?.terminal_message || 
+                attemptStatusData?.terminal_message ||
                 t('checkoutModal.cardDeclined', 'Card transaction was {{status}} by terminal or acquirer.', { status: terminalStatus })
             );
         }
@@ -179,7 +184,8 @@ export default function PosCheckoutModal({
             try {
                 const orderCheck = await posService.getOrderById(orderId);
                 const orderInfo = orderCheck?.data || orderCheck;
-                if (orderInfo?.payment_status === 'Success' || orderInfo?.paymentStatus === 'Success') {
+                const orderPaymentStatus = normalizeTerminalStatus(orderInfo?.payment_status || orderInfo?.paymentStatus);
+                if (isTerminalSuccessStatus(orderPaymentStatus)) {
                     toast.info(t('checkoutModal.cardApproved', 'Order is already marked as Paid!'));
                     if (onPaymentSuccess) {
                         onPaymentSuccess({
@@ -277,7 +283,8 @@ export default function PosCheckoutModal({
             try {
                 const res = await posService.getOrderById(orderId);
                 const orderData = res?.data || res;
-                if (orderData?.payment_status === 'Success' || orderData?.paymentStatus === 'Success') {
+                const orderPaymentStatus = normalizeTerminalStatus(orderData?.payment_status || orderData?.paymentStatus);
+                if (isTerminalSuccessStatus(orderPaymentStatus)) {
                     clearInterval(countdownInterval);
                     if (momoIntervalRef.current) clearInterval(momoIntervalRef.current);
                     setMomoActive(false);

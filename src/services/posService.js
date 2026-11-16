@@ -3,9 +3,11 @@ import useAuthStore from '../store/authStore';
 import { API_ENDPOINTS } from '../utils/constants';
 import { normalizeDiningOption } from '../utils/diningOption';
 
+const normalizeRole = (role) => String(role ?? '').trim().toLowerCase();
+
 const getPosOrderPaymentPath = (orderId, action = '') => {
   const role = useAuthStore.getState().userRole;
-  const namespace = role === 'Employee' ? 'employee' : 'restaurant';
+  const namespace = normalizeRole(role) === 'employee' ? 'employee' : 'restaurant';
   return `/${namespace}/pos_order/${orderId}${action}`;
 };
 
