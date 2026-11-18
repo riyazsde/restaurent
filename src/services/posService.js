@@ -5,10 +5,12 @@ import { normalizeDiningOption } from '../utils/diningOption';
 
 const normalizeRole = (role) => String(role ?? '').trim().toLowerCase();
 
+const getAuthenticatedNamespace = () => (
+  normalizeRole(useAuthStore.getState().userRole) === 'employee' ? 'employee' : 'restaurant'
+);
+
 const getPosOrderPaymentPath = (orderId, action = '') => {
-  const role = useAuthStore.getState().userRole;
-  const namespace = normalizeRole(role) === 'employee' ? 'employee' : 'restaurant';
-  return `/${namespace}/pos_order/${orderId}${action}`;
+  return `/${getAuthenticatedNamespace()}/pos_order/${orderId}${action}`;
 };
 
 class PosService {
@@ -218,10 +220,10 @@ class PosService {
     }
   }
 
-  // Get order receipt by ID (GET /api/v1/restaurant/pos_order/getbyid/:orderId)
+  // Get order receipt by ID using the authenticated restaurant or employee route
   async getOrderById(orderId) {
     try {
-      const response = await api.get(`${API_ENDPOINTS.POS_ORDER_GET_BY_ID}/${orderId}`);
+      const response = await api.get(`/${getAuthenticatedNamespace()}/pos_order/getbyid/${orderId}`);
       return response.data;
     } catch (error) {
       throw this.handleError(error);
@@ -280,6 +282,18 @@ class PosService {
     try {
       const response = await api.post('/restaurant/payment_by_restaurant/create-payment', paymentData);
       return response.data;
+    } catch (error) {
+      throw this.handleError(error);
+    }
+  }
+
+  async createSplitPayment(paymentData) {
+    try {
+      const response = await api.post(`/${getAuthenticatedNamespace()}/payment_by_restaurant/split-payment`, paymentData);
+      return {
+        ...(response.data && typeof response.data === 'object' ? response.data : {}),
+        httpStatus: response.status
+      };
     } catch (error) {
       throw this.handleError(error);
     }

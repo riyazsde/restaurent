@@ -39,6 +39,7 @@ import {
     normalizeTerminalStatus,
     isTerminalFinalStatus
 } from '../../../utils/terminalStatus';
+import { validateCashSplitPayments } from '../../../utils/posSplitPayment';
 
 export default function PosCheckoutModal({
     isOpen,
@@ -350,6 +351,16 @@ export default function PosCheckoutModal({
     const normalizedOrderTotal = Math.max(0, Number(orderTotal) || 0);
     const [tenderedAmount, setTenderedAmount] = useState(normalizedOrderTotal);
     const [isProcessingCash, setIsProcessingCash] = useState(false);
+    const [cashMode, setCashMode] = useState('single');
+    const [splitPayments, setSplitPayments] = useState([
+        { payer: '', amount: '' },
+        { payer: '', amount: '' }
+    ]);
+    const splitIdempotencyKeyRef = useRef(null);
+    const [splitOrderTotal, setSplitOrderTotal] = useState(null);
+    const [isLoadingSplitOrder, setIsLoadingSplitOrder] = useState(false);
+    const [splitOrderLoadError, setSplitOrderLoadError] = useState('');
+    const [splitOrderRefreshCount, setSplitOrderRefreshCount] = useState(0);
     const [isCreatingStripeLink, setIsCreatingStripeLink] = useState(false);
     const [stripeErrorMessage, setStripeErrorMessage] = useState('');
 
@@ -359,7 +370,170 @@ export default function PosCheckoutModal({
         }
     }, [normalizedOrderTotal]);
 
+    useEffect(() => {
+        splitIdempotencyKeyRef.current = null;
+        setSplitPayments([
+            { payer: '', amount: '' },
+            { payer: '', amount: '' }
+        ]);
+        setSplitOrderTotal(null);
+        setSplitOrderLoadError('');
+    }, [orderId]);
+
+    useEffect(() => {
+        if (!isOpen || selectedTab !== 'cash' || cashMode !== 'split' || !orderId) return undefined;
+
+        let isCancelled = false;
+        const loadOrderTotal = async () => {
+            setIsLoadingSplitOrder(true);
+            setSplitOrderTotal(null);
+            setSplitOrderLoadError('');
+            try {
+                const orderResponse = await posService.getOrderById(orderId);
+                const orderData = orderResponse?.data?.data || orderResponse?.data || orderResponse;
+                const total = Number(orderData?.Total ?? orderData?.total);
+                if (!Number.isSafeInteger(total) || total <= 0) {
+                    throw new Error(t(
+                        'checkoutModal.splitOrderTotalUnavailable',
+                        'The saved order does not have a valid whole-number total.'
+                    ));
+                }
+                if (!isCancelled) setSplitOrderTotal(total);
+            } catch (err) {
+                if (!isCancelled) {
+                    setSplitOrderLoadError(
+                        err?.data?.message
+                        || err?.response?.data?.message
+                        || err?.message
+                        || t('checkoutModal.splitOrderLoadError', 'Unable to load the saved order total. Try again.')
+                    );
+                }
+            } finally {
+                if (!isCancelled) setIsLoadingSplitOrder(false);
+            }
+        };
+
+        loadOrderTotal();
+        return () => {
+            isCancelled = true;
+        };
+    }, [isOpen, selectedTab, cashMode, orderId, splitOrderRefreshCount, t]);
+
+    const displayedOrderTotal = selectedTab === 'cash' && cashMode === 'split'
+        ? splitOrderTotal
+        : normalizedOrderTotal;
+
     const changeDue = Math.max(0, (Number(tenderedAmount) || 0) - normalizedOrderTotal);
+
+    const updateSplitPayments = (updater) => {
+        splitIdempotencyKeyRef.current = null;
+        setSplitPayments(updater);
+    };
+
+    const handleProcessSplitPayment = async () => {
+        if (!orderId) {
+            toast.error(t('checkoutModal.orderRequired', 'Order ID is missing'));
+            return;
+        }
+
+        if (String(currency).toUpperCase() !== 'XOF') {
+            toast.error(t('checkoutModal.splitXofOnly', 'Cash split payment is not available for this store currency.'));
+            return;
+        }
+
+        if (splitOrderTotal === null || isLoadingSplitOrder) {
+            toast.error(t('checkoutModal.splitOrderLoadError', 'Unable to load the saved order total. Try again.'));
+            return;
+        }
+
+        const validationError = validateCashSplitPayments(splitPayments, splitOrderTotal);
+        if (validationError) {
+            toast.error(t(
+                `checkoutModal.splitValidation.${validationError}`,
+                validationError === 'invalidTotal'
+                    ? 'The order total must be a positive whole number.'
+                    : validationError === 'invalidCount'
+                        ? 'Add between 2 and 100 payers.'
+                        : validationError === 'invalidEntry'
+                            ? 'Each payer needs a name and a positive whole-number cash amount.'
+                            : 'Split amounts must add up to the exact order total.'
+            ));
+            return;
+        }
+
+        const cashOptionId = findPaymentOptionId(paymentOptions, 'cash');
+        if (cashOptionId === null) {
+            toast.error(t(
+                'checkoutModal.cashOptionUnavailable',
+                'Cash payment is not configured for this restaurant.'
+            ));
+            return;
+        }
+
+        const normalizedPayments = splitPayments.map(({ payer, amount }) => ({
+            payer: payer.trim(),
+            amount: Number(amount),
+            payment_method: 'Cash'
+        }));
+        if (!splitIdempotencyKeyRef.current) {
+            splitIdempotencyKeyRef.current = `pos-order-${orderId}-split-${Date.now()}-${Math.random().toString(36).slice(2, 12)}`;
+        }
+
+        setIsProcessingCash(true);
+        try {
+            const response = await posService.createSplitPayment({
+                Order_id: orderId,
+                paymentStatus: 'Success',
+                payment_method: 'Cash',
+                Payment_Options_id: cashOptionId,
+                idempotency_key: splitIdempotencyKeyRef.current,
+                payments: normalizedPayments
+            });
+
+            if (response?.success === false || ![200, 201].includes(response?.httpStatus)) {
+                throw new Error(response?.message || t('checkoutModal.splitError', 'Failed to record split cash payment.'));
+            }
+
+            const orderResponse = await posService.getOrderById(orderId);
+            const orderData = orderResponse?.data?.data || orderResponse?.data || orderResponse;
+            const savedPayments = orderData?.split_payments;
+            const allocationMatches = Array.isArray(savedPayments)
+                && savedPayments.length === normalizedPayments.length
+                && savedPayments.every((payment, index) => (
+                    String(payment?.payer ?? '').trim() === normalizedPayments[index].payer
+                    && Number(payment?.amount) === normalizedPayments[index].amount
+                    && String(payment?.payment_method || '').toLowerCase() === 'cash'
+                ));
+            const paymentStatus = String(orderData?.payment_status || orderData?.paymentStatus || '').toLowerCase();
+            const savedKey = orderData?.split_payment_key || orderData?.splitPaymentKey;
+
+            if (paymentStatus !== 'success' || savedKey !== splitIdempotencyKeyRef.current || !allocationMatches) {
+                throw new Error(t(
+                    'checkoutModal.splitVerificationError',
+                    'Payment was submitted, but the saved split could not be verified. Refresh the order before continuing.'
+                ));
+            }
+
+            toast.success(t('checkoutModal.cashSuccess', 'Cash payment recorded successfully!'));
+            if (onPaymentSuccess) {
+                onPaymentSuccess({
+                    paymentMethod: 'Cash',
+                    orderTotal: splitOrderTotal,
+                    splitPayments: savedPayments,
+                    idempotencyKey: splitIdempotencyKeyRef.current
+                });
+            }
+        } catch (err) {
+            toast.error(
+                err?.data?.message
+                || err?.response?.data?.message
+                || err?.message
+                || t('checkoutModal.splitError', 'Failed to record split cash payment.')
+            );
+        } finally {
+            setIsProcessingCash(false);
+        }
+    };
 
     const handleStartStripeCheckout = async () => {
         if (!orderId) {
@@ -495,7 +669,9 @@ export default function PosCheckoutModal({
                                 {t('checkoutModal.amountDue', 'Amount Due')}
                             </span>
                             <span className="text-lg md:text-xl font-extrabold text-gray-900 font-poppins">
-                                {formatCurrency(normalizedOrderTotal, currency)}
+                                {displayedOrderTotal === null
+                                    ? t('checkoutModal.orderTotalUnavailable', 'Unavailable')
+                                    : formatCurrency(displayedOrderTotal, currency)}
                             </span>
                         </div>
                         <button
@@ -880,6 +1056,144 @@ export default function PosCheckoutModal({
                     {/* TAB 3: CASH PAYMENT */}
                     {selectedTab === 'cash' && (
                         <div className="space-y-5">
+                            <div className="grid grid-cols-2 rounded-xl bg-gray-100 p-1">
+                                <button
+                                    type="button"
+                                    aria-pressed={cashMode === 'single'}
+                                    onClick={() => setCashMode('single')}
+                                    className={`rounded-lg px-3 py-2 text-sm font-semibold transition-colors ${
+                                        cashMode === 'single' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-600'
+                                    }`}
+                                >
+                                    {t('checkoutModal.singleCash', 'Single payment')}
+                                </button>
+                                <button
+                                    type="button"
+                                    aria-pressed={cashMode === 'split'}
+                                    onClick={() => setCashMode('split')}
+                                    className={`rounded-lg px-3 py-2 text-sm font-semibold transition-colors ${
+                                        cashMode === 'split' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-600'
+                                    }`}
+                                >
+                                    {t('checkoutModal.splitCash', 'Split payment')}
+                                </button>
+                            </div>
+
+                            {cashMode === 'split' ? (
+                                <div className="space-y-4">
+                                    <p className="text-sm text-gray-600">
+                                        {t('checkoutModal.splitDescription', 'Enter each payer and their cash share. Shares must be whole-number amounts in the order currency and add up to the order total.')}
+                                    </p>
+                                    {isLoadingSplitOrder && (
+                                        <p className="text-sm text-gray-600" role="status">
+                                            {t('checkoutModal.loadingOrderTotal', 'Loading saved order total...')}
+                                        </p>
+                                    )}
+                                    {splitOrderLoadError && (
+                                        <div className="flex items-center justify-between gap-3 rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-800" role="alert">
+                                            <span>{splitOrderLoadError}</span>
+                                            <button
+                                                type="button"
+                                                onClick={() => setSplitOrderRefreshCount((count) => count + 1)}
+                                                className="shrink-0 font-semibold underline"
+                                            >
+                                                {t('checkoutModal.retryOrderTotal', 'Retry')}
+                                            </button>
+                                        </div>
+                                    )}
+                                    <div className="space-y-3">
+                                        {splitPayments.map((payment, index) => (
+                                            <div key={index} className="grid grid-cols-[1fr_1fr_auto] items-end gap-2">
+                                                <div>
+                                                    <label className="mb-1 block text-xs font-semibold text-gray-700">
+                                                        {t('checkoutModal.payer', 'Payer')} {index + 1}
+                                                    </label>
+                                                    <input
+                                                        type="text"
+                                                        value={payment.payer}
+                                                        maxLength={100}
+                                                        onChange={(event) => updateSplitPayments((current) => current.map((item, itemIndex) => (
+                                                            itemIndex === index ? { ...item, payer: event.target.value } : item
+                                                        )))}
+                                                        placeholder={t('checkoutModal.payerName', 'Payer name')}
+                                                        className="w-full rounded-xl border border-gray-300 px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500"
+                                                    />
+                                                </div>
+                                                <div>
+                                                    <label className="mb-1 block text-xs font-semibold text-gray-700">
+                                                        {t('checkoutModal.share', 'Cash share')} ({currency})
+                                                    </label>
+                                                    <input
+                                                        type="number"
+                                                        min="1"
+                                                        step="1"
+                                                        value={payment.amount}
+                                                        onChange={(event) => updateSplitPayments((current) => current.map((item, itemIndex) => (
+                                                            itemIndex === index ? { ...item, amount: event.target.value } : item
+                                                        )))}
+                                                        className="w-full rounded-xl border border-gray-300 px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500"
+                                                    />
+                                                </div>
+                                                <button
+                                                    type="button"
+                                                    aria-label={t('checkoutModal.removePayer', 'Remove payer')}
+                                                    disabled={splitPayments.length <= 2 || isProcessingCash}
+                                                    onClick={() => updateSplitPayments((current) => current.filter((_, itemIndex) => itemIndex !== index))}
+                                                    className="mb-1 rounded-lg px-2 py-2 text-sm font-semibold text-red-600 hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-40"
+                                                >
+                                                    <IoMdClose size={18} />
+                                                </button>
+                                            </div>
+                                        ))}
+                                    </div>
+                                    <button
+                                        type="button"
+                                        disabled={splitPayments.length >= 100 || isProcessingCash}
+                                        onClick={() => updateSplitPayments((current) => [...current, { payer: '', amount: '' }])}
+                                        className="text-sm font-semibold text-amber-700 hover:text-amber-800 disabled:cursor-not-allowed disabled:opacity-40"
+                                    >
+                                        + {t('checkoutModal.addPayer', 'Add payer')}
+                                    </button>
+                                    <div className="rounded-2xl border border-amber-100 bg-amber-50/60 p-4">
+                                        <div className="flex justify-between text-sm">
+                                            <span className="text-gray-600">{t('checkoutModal.splitTotal', 'Shares total')}</span>
+                                            <span className="font-semibold text-gray-900">
+                                                {formatCurrency(splitPayments.reduce((sum, payment) => sum + (Number(payment.amount) || 0), 0), currency)}
+                                            </span>
+                                        </div>
+                                        <div className="mt-1 flex justify-between text-sm">
+                                            <span className="text-gray-600">{t('checkoutModal.orderTotal', 'Order Total')}</span>
+                                            <span className="font-semibold text-gray-900">
+                                                {splitOrderTotal === null
+                                                    ? t('checkoutModal.orderTotalUnavailable', 'Unavailable')
+                                                    : formatCurrency(splitOrderTotal, currency)}
+                                            </span>
+                                        </div>
+                                    </div>
+                                    <button
+                                        type="button"
+                                        onClick={handleProcessSplitPayment}
+                                        disabled={isProcessingCash || isLoadingSplitOrder || splitOrderTotal === null || Boolean(splitOrderLoadError)}
+                                        className="flex w-full items-center justify-center gap-2 rounded-xl bg-amber-600 py-3 text-sm font-semibold text-white shadow-md transition-colors hover:bg-amber-700 disabled:cursor-not-allowed disabled:opacity-50"
+                                    >
+                                        {isProcessingCash ? (
+                                            <>
+                                                <svg className="h-4 w-4 animate-spin text-white" viewBox="0 0 24 24">
+                                                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+                                                    <path className="opacity-75" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                                                </svg>
+                                                <span>{t('checkoutModal.recordingSplitCash', 'Recording split payment...')}</span>
+                                            </>
+                                        ) : (
+                                            <>
+                                                <FiCheckCircle className="text-base" />
+                                                <span>{t('checkoutModal.completeSplitCash', 'Complete split cash payment')}</span>
+                                            </>
+                                        )}
+                                    </button>
+                                </div>
+                            ) : (
+                                <>
                             <div>
                                 <label className="block text-xs font-semibold text-gray-700 mb-1">
                                     {t('checkoutModal.tenderedAmount', 'Cash Tendered')} ({currency})
@@ -945,6 +1259,8 @@ export default function PosCheckoutModal({
                                     </>
                                 )}
                             </button>
+                                </>
+                            )}
                         </div>
                     )}
                 </div>

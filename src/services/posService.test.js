@@ -1,5 +1,6 @@
 jest.mock('../api/api', () => ({
-  post: jest.fn()
+  post: jest.fn(),
+  get: jest.fn()
 }));
 
 import api from '../api/api';
@@ -9,6 +10,7 @@ import posService from './posService';
 describe('POS Stripe payment endpoints', () => {
   beforeEach(() => {
     api.post.mockReset();
+    api.get.mockReset();
     useAuthStore.setState({ userRole: 'Restaurant' });
   });
 
@@ -51,5 +53,42 @@ describe('POS Stripe payment endpoints', () => {
       '/employee/pos_order/789/payment-link',
       {}
     );
+  });
+
+  it('creates split cash payments on the authenticated restaurant route and returns the HTTP status', async () => {
+    const payload = {
+      Order_id: 1042,
+      paymentStatus: 'Success',
+      payment_method: 'Cash',
+      idempotency_key: 'order-1042-split-once',
+      payments: [
+        { payer: 'Alice', amount: 5000, payment_method: 'Cash' },
+        { payer: 'Bob', amount: 7000, payment_method: 'Cash' }
+      ]
+    };
+    api.post.mockResolvedValue({ data: { success: true }, status: 201 });
+
+    const response = await posService.createSplitPayment(payload);
+
+    expect(api.post).toHaveBeenCalledWith(
+      '/restaurant/payment_by_restaurant/split-payment',
+      payload
+    );
+    expect(response).toEqual({ success: true, httpStatus: 201 });
+  });
+
+  it('uses the employee split-payment and order-verification routes', async () => {
+    useAuthStore.setState({ userRole: 'Employee' });
+    api.post.mockResolvedValue({ data: { success: true }, status: 200 });
+    api.get.mockResolvedValue({ data: { success: true } });
+
+    await posService.createSplitPayment({ Order_id: 456 });
+    await posService.getOrderById(456);
+
+    expect(api.post).toHaveBeenCalledWith(
+      '/employee/payment_by_restaurant/split-payment',
+      { Order_id: 456 }
+    );
+    expect(api.get).toHaveBeenCalledWith('/employee/pos_order/getbyid/456');
   });
 });

@@ -891,7 +891,8 @@ const RightPanelAll = ({
             maskedPan: paymentResult.maskedPan,
             authCode: paymentResult.authCode,
             customerPhone: paymentResult.customerPhone,
-            changeDue: paymentResult.changeDue
+            changeDue: paymentResult.changeDue,
+            splitPayments: paymentResult.splitPayments
         };
         setPaymentReceipt(receiptData);
         setShowReceiptModal(true);
@@ -1760,6 +1761,22 @@ const RightPanelAll = ({
                                     </div>
                                 </div>
 
+                                {paymentReceipt.splitPayments?.length > 0 && (
+                                    <div className="mb-3 rounded-lg bg-amber-50 p-3">
+                                        <p className="mb-2 text-xs font-semibold text-gray-700">
+                                            {t('checkoutModal.splitAllocation', 'Split allocation')}
+                                        </p>
+                                        <div className="space-y-1">
+                                            {paymentReceipt.splitPayments.map((payment, index) => (
+                                                <div key={`${payment.payer}-${index}`} className="flex justify-between gap-3 text-xs">
+                                                    <span className="truncate">{payment.payer}</span>
+                                                    <span className="font-semibold">{formatCurrency(payment.amount, currency)}</span>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
+
                                 <div className="border-t-2 border-dashed border-gray-300 my-3"></div>
 
                                 <button
@@ -2187,6 +2204,18 @@ const RightPanelAll = ({
                         <span>{formatCurrency(displayTotal, currency)}</span>
                     </div>
                 </div>
+
+                {paymentReceipt?.splitPayments?.length > 0 && (
+                    <div className="py-2 border-b border-dashed border-gray-400 text-xs space-y-1">
+                        <div className="font-bold">{t('checkoutModal.splitAllocation', 'Split allocation')}</div>
+                        {paymentReceipt.splitPayments.map((payment, index) => (
+                            <div key={`${payment.payer}-${index}`} className="flex justify-between gap-2">
+                                <span>{payment.payer}</span>
+                                <span>{formatCurrency(payment.amount, currency)}</span>
+                            </div>
+                        ))}
+                    </div>
+                )}
 
                 <div className="text-center pt-2 text-xs space-y-1">
                     <div className="font-bold tracking-wider">
